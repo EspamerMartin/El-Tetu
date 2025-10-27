@@ -6,43 +6,74 @@ Aplicación móvil React Native (Expo) para la plataforma de comercio B2B/B2C El
 
 ### Requisitos Previos
 
-- Node.js 18+
-- npm o yarn
-- Expo CLI: `npm install -g expo-cli`
-- Expo Go app en tu dispositivo móvil (iOS/Android)
+- **Node.js 18+** y npm/yarn
+- **Expo CLI**: `npm install -g expo-cli`
+- **Expo Go app** en tu dispositivo móvil ([iOS](https://apps.apple.com/app/expo-go/id982107779) | [Android](https://play.google.com/store/apps/details?id=host.exp.exponent))
+- **Backend corriendo** en `localhost:8000` o en Railway
 
 ### Instalación
 
 ```bash
-# Navegar a la carpeta mobile
+# 1. Navegar a la carpeta mobile
 cd mobile
 
-# Instalar dependencias
+# 2. Instalar dependencias
 npm install
 
-# Copiar variables de entorno
-cp .env.example .env
+# 3. Configurar variables de entorno
+# Crear archivo .env en la raíz de mobile/
+echo EXPO_PUBLIC_API_URL=http://localhost:8000/api > .env
 
-# Editar .env con la URL de tu backend
-# EXPO_PUBLIC_API_URL=http://localhost:8000/api
-# Para dispositivo físico usar la IP de tu computadora:
+# Para dispositivo físico, usar IP de tu computadora (verificar con ipconfig/ifconfig):
 # EXPO_PUBLIC_API_URL=http://192.168.1.XXX:8000/api
+
+# Para backend en Railway:
+# EXPO_PUBLIC_API_URL=https://tu-app.railway.app/api
+
+# 4. IMPORTANTE: Eliminar app.json si existe (usamos app.config.js)
+# El proyecto usa app.config.js para soportar variables de entorno
+# Si encuentras errores, asegúrate de que solo exista app.config.js
 ```
 
 ### Ejecutar la Aplicación
 
 ```bash
-# Iniciar Expo
+# Iniciar servidor de desarrollo
 npm start
 
+# Se abrirá el Metro Bundler en el navegador
 # Escanear el código QR con:
-# - iOS: Camera app
-# - Android: Expo Go app
+# - iOS: Abrir Camera app y apuntar al código QR
+# - Android: Abrir Expo Go app y usar el scanner
 
 # O ejecutar en emulador:
-npm run ios      # iOS
-npm run android  # Android
+npm run ios      # Requiere Xcode (solo macOS)
+npm run android  # Requiere Android Studio
+npm run web      # Ejecutar en navegador
 ```
+
+### Verificar Conexión con Backend
+
+Antes de probar la app, asegúrate que el backend esté corriendo:
+
+```bash
+# En otra terminal, desde la raíz del proyecto:
+cd backend
+python manage.py runserver
+
+# Deberías ver:
+# Starting development server at http://127.0.0.1:8000/
+```
+
+### Usuarios de Prueba
+
+Puedes registrar nuevos usuarios o usar estos (cuando crees fixtures):
+
+| Rol | Email | Password |
+|-----|-------|----------|
+| Admin | admin@eltetu.com | admin123 |
+| Vendedor | vendedor@eltetu.com | vendedor123 |
+| Cliente | cliente@eltetu.com | cliente123 |
 
 ## 📁 Estructura del Proyecto
 
@@ -117,18 +148,21 @@ mobile/
 - [x] Error handling global
 - [x] Token refresh automático
 
-### ⏳ Navegación (Pendiente)
-- [ ] RootNavigator
-- [ ] AuthStack (Login, Register)
-- [ ] ClienteStack (Bottom Tabs)
-- [ ] VendedorStack (Drawer)
-- [ ] AdminStack (Drawer)
+### ✅ Navegación (Completo)
 
-### ⏳ Pantallas (Pendiente)
-- [ ] Auth: Login, Register
-- [ ] Cliente: Home, Catálogo, Carrito, Pedidos, Perfil
-- [ ] Vendedor: Home, Clientes, Pedidos, Nuevo Pedido
-- [ ] Admin: Dashboard, Productos, Usuarios, Pedidos, Promociones
+- [x] RootNavigator
+- [x] AuthStack (Login, Register)
+- [x] ClienteStack (Bottom Tabs)
+- [x] VendedorStack (Drawer)
+- [x] AdminStack (Drawer)
+
+### 🚧 Pantallas (En Progreso - 30%)
+
+- [x] Auth: Login, Register (Completas)
+- [x] Cliente: Home, Catálogo, Carrito, Pedidos, Perfil (Placeholders)
+- [x] Vendedor: Home, Clientes, Pedidos, Nuevo Pedido (Placeholders)
+- [x] Admin: Dashboard, Usuarios, Productos, Categorías, Pedidos, Promociones (Placeholders)
+- [ ] TODO: Implementar lógica completa en cada pantalla
 
 ### ⏳ Componentes (Pendiente)
 - [ ] ProductCard

@@ -1,0 +1,18 @@
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Text } from 'react-native-paper';
+
+const MisPedidosScreen = () => {
+  return (
+    <View style={styles.container}>
+      <Text variant="headlineMedium">Mis Pedidos</Text>
+      <Text>TODO: Implementar lista de pedidos del usuario</Text>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
+});
+
+export default MisPedidosScreen;

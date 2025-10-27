@@ -1,86 +1,48 @@
-# ========================================
-# Dependencies
-# ========================================
-
-node_modules/
+# Logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
-yarn.lock
+pnpm-debug.log*
+lerna-debug.log*
 
-# ========================================
+# OS
+.DS_Store
+
+# Local env files
+.env
+.env*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Dependencies
+node_modules
+
 # Expo
-# ========================================
-
-.expo/
-.expo-shared/
+.expo
+.expo-shared
 dist/
 web-build/
 
-# ========================================
 # Native
-# ========================================
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
 
-# Android
-android/
-*.apk
-*.aab
+# Metro
+.metro-health-check*
 
-# iOS
-ios/
-*.ipa
-Pods/
-
-# ========================================
-# Testing
-# ========================================
-
-coverage/
-.jest/
-__tests__/__snapshots__/
-
-# ========================================
 # TypeScript
-# ========================================
-
 *.tsbuildinfo
-*.js.map
-
-# ========================================
-# Environment
-# ========================================
-
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# ========================================
-# IDE
-# ========================================
-
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# ========================================
-# OS
-# ========================================
-
-.DS_Store
-Thumbs.db
-
-# ========================================
-# Misc
-# ========================================
-
-.cache/
-*.log
-*.tmp
-
-# Backup files
-*.bak
-app.json.bak

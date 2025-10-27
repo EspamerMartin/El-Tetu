@@ -132,10 +132,38 @@ export const promocionesAPI = {
   },
 };
 
+// ========== Clientes API (Admin/Vendedor) ==========
+
+export const clientesAPI = {
+  getAll: async (params?: {
+    search?: string;
+    page?: number;
+  }): Promise<PaginatedResponse<User>> => {
+    const response = await api.get('/auth/users/', { params });
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<User> => {
+    const response = await api.get(`/auth/users/${id}/`);
+    return response.data;
+  },
+
+  create: async (data: RegisterData): Promise<User> => {
+    const response = await api.post('/auth/users/', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: Partial<User>): Promise<User> => {
+    const response = await api.put(`/auth/users/${id}/`, data);
+    return response.data;
+  },
+};
+
 // Export todo junto
 export default {
   auth: authAPI,
   productos: productosAPI,
   pedidos: pedidosAPI,
   promociones: promocionesAPI,
+  clientes: clientesAPI,
 };
