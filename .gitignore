@@ -1,0 +1,93 @@
+# ========================================
+# General
+# ========================================
+
+.DS_Store
+*.log
+*.tmp
+*.temp
+.env.local
+.env.*.local
+
+# ========================================
+# Backend (Django)
+# ========================================
+
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/**/*.pyc
+backend/.pytest_cache/
+backend/staticfiles/
+backend/media/
+backend/db.sqlite3
+backend/.coverage
+backend/htmlcov/
+backend/.venv/
+backend/venv/
+backend/ENV/
+
+# ========================================
+# Frontend Mobile (React Native/Expo)
+# ========================================
+
+# Dependencies
+mobile/node_modules/
+mobile/npm-debug.log*
+mobile/yarn-debug.log*
+mobile/yarn-error.log*
+
+# Expo
+mobile/.expo/
+mobile/.expo-shared/
+mobile/dist/
+mobile/web-build/
+
+# Native builds
+mobile/android/
+mobile/ios/
+mobile/*.apk
+mobile/*.ipa
+
+# Testing
+mobile/coverage/
+mobile/.jest/
+
+# Local env files
+mobile/.env.local
+mobile/.env.development.local
+mobile/.env.test.local
+mobile/.env.production.local
+
+# TypeScript
+mobile/*.tsbuildinfo
+
+# ========================================
+# IDEs and Editors
+# ========================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ========================================
+# OS
+# ========================================
+
+Thumbs.db
+Desktop.ini
+
+# ========================================
+# Other
+# ========================================
+
+.cache/
+.parcel-cache/
