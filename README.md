@@ -7,6 +7,18 @@ Aplicación móvil de comercio B2B/B2C con backend Django y frontend React Nativ
 * Serra Facundo
 * Espamer Martin
 
+---
+
+## 📊 Estado del Proyecto
+
+**Fase 4 - Frontend Mobile:** ✅ **100% COMPLETADO**
+
+- **Pantallas implementadas:** 19/19
+- **Módulos:** Cliente (7), Vendedor (6), Admin (10)
+- **Líneas de código:** ~3,500+ TypeScript/TSX
+- **Ver resumen completo:** [RESUMEN_FASE4.md](RESUMEN_FASE4.md)
+- **Progreso detallado:** [PROGRESS.md](PROGRESS.md)
+
 ## 🏗️ Arquitectura
 
 - **Backend:** Django 4.x + Django REST Framework + SimpleJWT
@@ -179,25 +191,43 @@ Ver [documentación de Expo](https://docs.expo.dev/distribution/introduction/) p
 - Login con JWT (access + refresh tokens)
 - Protección de rutas por rol
 
-### ✅ Catálogo de Productos
-- Listado con filtros (categoría, subcategoría, stock)
-- Búsqueda por nombre o código
-- Precios por lista (Lista 3 / Lista 4)
+### ✅ Módulo Cliente (7 pantallas)
+- Dashboard con productos destacados
+- Catálogo completo con filtros categoría/subcategoría
+- Detalle de producto + agregar al carrito
+- Carrito de compras con edición de cantidades
+- Historial de pedidos con estados
+- Detalle de pedido + descarga PDF
+- Edición de perfil
+
+### ✅ Módulo Vendedor (6 pantallas)
+- Dashboard con KPIs (clientes, pedidos, ventas del mes)
+- Lista de clientes asignados con búsqueda
+- Detalle del cliente + historial de pedidos
+- Todos los pedidos con filtros por estado (6 estados)
+- Detalle de pedido + cambiar estado
+- Nuevo pedido en 3 pasos (cliente → productos → confirmar)
+
+### ✅ Módulo Admin (10 pantallas) ✨ NUEVO
+- **Dashboard Global:** 4 KPIs (usuarios, productos activos, pedidos del mes, ventas del mes)
+- **CRUD Usuarios:** Lista con búsqueda + formulario (6 campos + activo)
+- **CRUD Productos:** Lista con búsqueda + formulario (7 campos + activo)
+- **CRUD Categorías:** Lista con Dialog inline para crear/editar
+- **CRUD Promociones:** Lista con búsqueda + formulario (tipo, descuento %, activo)
+- **Configuraciones:** Ajustes globales del comercio + preferencias + info del sistema
+- **Todos los Pedidos:** Vista global con filtros por estado (admin view)
 
 ### ✅ Gestión de Pedidos
 - Crear pedido con múltiples items
 - Aplicación automática de promociones
 - Estados: Pendiente, Confirmado, En Camino, Entregado, Cancelado
 - Control de stock
+- Cambio de estado por vendedor/admin
 
 ### ✅ Promociones
 - Caja cerrada (descuento por cantidad exacta)
 - Combinables (descuento por familia de productos)
-
-### ✅ Roles y Permisos
-- **Admin:** CRUD completo de todo
-- **Vendedor:** Gestión de clientes y pedidos
-- **Cliente:** Pedidos propios y catálogo
+- Gestión CRUD por admin
 
 ## 🔐 Seguridad
 

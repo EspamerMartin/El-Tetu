@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Button, List, IconButton, FAB, Dialog, Portal } from 'react-native-paper';
-import { InputField } from '@/components';
+import { InputField, LoadingOverlay } from '@/components';
 import { theme, spacing } from '@/theme';
 
 /**
- * CategoriasListScreen - CRUD de categorías con dialog inline
+ * CategoriaFormScreen - Formulario simple para crear/editar categoría
+ * Implementación inline sin navegación separada
  */
-const CategoriasListScreen = () => {
+const CategoriaFormScreen = ({ navigation }: any) => {
   const [categorias, setCategorias] = useState([
     { id: 1, nombre: 'Electrónica' },
     { id: 2, nombre: 'Ropa' },
@@ -25,8 +26,10 @@ const CategoriasListScreen = () => {
 
     if (editingId) {
       setCategorias(categorias.map(c => c.id === editingId ? { ...c, nombre } : c));
+      Alert.alert('Éxito', 'Categoría actualizada');
     } else {
       setCategorias([...categorias, { id: Date.now(), nombre }]);
+      Alert.alert('Éxito', 'Categoría creada');
     }
 
     setDialogVisible(false);
@@ -41,7 +44,7 @@ const CategoriasListScreen = () => {
   };
 
   const handleDelete = (id: number) => {
-    Alert.alert('Confirmar', '¿Eliminar?', [
+    Alert.alert('Confirmar', '¿Eliminar esta categoría?', [
       { text: 'Cancelar' },
       { text: 'Eliminar', onPress: () => setCategorias(categorias.filter(c => c.id !== id)) },
     ]);
@@ -66,7 +69,15 @@ const CategoriasListScreen = () => {
         ))}
       </ScrollView>
 
-      <FAB icon="plus" style={styles.fab} onPress={() => { setEditingId(null); setNombre(''); setDialogVisible(true); }} />
+      <FAB
+        icon="plus"
+        style={styles.fab}
+        onPress={() => {
+          setEditingId(null);
+          setNombre('');
+          setDialogVisible(true);
+        }}
+      />
 
       <Portal>
         <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)}>
@@ -92,4 +103,4 @@ const styles = StyleSheet.create({
   fab: { position: 'absolute', bottom: spacing.lg, right: spacing.lg },
 });
 
-export default CategoriasListScreen;
+export default CategoriaFormScreen;
