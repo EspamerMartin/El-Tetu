@@ -153,9 +153,9 @@ export const pedidosAPI = {
     return response.data;
   },
 
-  downloadPDF: async (id: number): Promise<Blob> => {
+  downloadPDF: async (id: number): Promise<ArrayBuffer> => {
     const response = await api.get(`/pedidos/${id}/pdf/`, {
-      responseType: 'blob',
+      responseType: 'arraybuffer',
     });
     return response.data;
   },
