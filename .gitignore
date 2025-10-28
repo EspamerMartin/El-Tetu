@@ -1,93 +1,84 @@
-# ========================================
-# General
-# ========================================
+# Entornos virtuales y dependencias
+.venv/
+venv/
+env/
+ENV/
+backend/.venv/
+mobile/node_modules/
 
-.DS_Store
-*.log
-*.tmp
-*.temp
+# Archivos de entorno y configuración local
+.env
+.env*
 .env.local
-.env.*.local
+.env.example
+backend/.env
+mobile/.env
+mobile/.env.example
 
-# ========================================
-# Backend (Django)
-# ========================================
+# Archivos de base de datos y logs
+*.sqlite3
+*.sqlite3-journal
+*.log
+logs/
 
-backend/__pycache__/
-backend/**/__pycache__/
-backend/*.pyc
-backend/**/*.pyc
-backend/.pytest_cache/
+# Archivos y carpetas de compilación y distribución
+build/
+dist/
+downloads/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Django static/media
 backend/staticfiles/
 backend/media/
-backend/db.sqlite3
-backend/.coverage
-backend/htmlcov/
-backend/.venv/
-backend/venv/
-backend/ENV/
+backend/static/
 
-# ========================================
-# Frontend Mobile (React Native/Expo)
-# ========================================
+# Archivos generados por IDEs y editores
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*~
+.DS_Store
 
-# Dependencies
-mobile/node_modules/
-mobile/npm-debug.log*
-mobile/yarn-debug.log*
-mobile/yarn-error.log*
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
 
-# Expo
+# Expo/React Native
 mobile/.expo/
 mobile/.expo-shared/
 mobile/dist/
 mobile/web-build/
+mobile/android/app/debug.keystore
 
-# Native builds
-mobile/android/
-mobile/ios/
-mobile/*.apk
-mobile/*.ipa
-
-# Testing
-mobile/coverage/
-mobile/.jest/
-
-# Local env files
-mobile/.env.local
-mobile/.env.development.local
-mobile/.env.test.local
-mobile/.env.production.local
+# Metro
+.metro-health-check*
 
 # TypeScript
-mobile/*.tsbuildinfo
+*.tsbuildinfo
 
-# ========================================
-# IDEs and Editors
-# ========================================
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
 
-.vscode/
-.idea/
-*.swp
-*.swo
-*.swn
-*~
-.project
-.classpath
-.settings/
-*.sublime-project
-*.sublime-workspace
-
-# ========================================
-# OS
-# ========================================
-
-Thumbs.db
-Desktop.ini
-
-# ========================================
-# Other
-# ========================================
-
-.cache/
-.parcel-cache/
+# Migrations (descomenta si no quieres versionar)
+# */migrations/*.py
+# !*/migrations/__init__.py
