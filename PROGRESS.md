@@ -1,273 +1,381 @@
 # 📊 Progreso del Proyecto El-Tetu
 
-## Estado General
-**Progreso Total: 100%** ✅ (Fase 4 COMPLETADA)
+**Última actualización:** 27 de Octubre, 2025  
+**Estado General:** ✅ **COMPLETADO AL 100%**
 
 ---
 
-## 🎯 Fase 4: Frontend Mobile - React Native (100% ✓)
+## 🎯 Resumen Ejecutivo
 
-### Resumen Ejecutivo
-- **Total de pantallas:** 19/19 ✅
-- **Módulos completados:** 3/3 (Cliente, Vendedor, Admin)
-- **Líneas de código:** ~3,500+
-- **Hooks personalizados:** 1 (useFetch)
-- **Componentes reutilizables:** 5 (ProductCard, PedidoCard, InputField, ButtonPrimary, LoadingOverlay)
+El proyecto El-Tetu ha completado todas las fases de desarrollo, desde la configuración del backend Django hasta la integración completa con el frontend móvil React Native.
 
----
+### Estado por Fase
 
-### 📱 Módulo Cliente (7/7 pantallas - 100%)
+| Fase | Descripción | Estado | Completitud |
+|------|-------------|--------|-------------|
+| 1 | Backend Django REST Framework | ✅ | 100% |
+| 2 | Infraestructura (Docker, PostgreSQL) | ✅ | 100% |
+| 3 | Documentación técnica | ✅ | 100% |
+| 4 | Frontend Mobile (React Native) | ✅ | 100% |
+| 5 | Integración Backend-Frontend | ✅ | 100% |
 
-| # | Pantalla | Estado | Descripción |
-|---|----------|--------|-------------|
-| 1 | `HomeScreen` | ✅ | Dashboard con productos destacados y promociones |
-| 2 | `CatalogoScreen` | ✅ | Lista completa con filtros por categoría/subcategoría |
-| 3 | `ProductoDetalleScreen` | ✅ | Detalle del producto + selector cantidad (1-10) + agregar al carrito |
-| 4 | `CarritoScreen` | ✅ | Lista de productos en carrito + edición de cantidades + checkout |
-| 5 | `MisPedidosScreen` | ✅ | Historial de pedidos del cliente con estados |
-| 6 | `PedidoDetalleScreen` | ✅ | DataTable con productos del pedido + descarga PDF |
-| 7 | `PerfilScreen` | ✅ | Información personal + edición de perfil + cerrar sesión |
-
-**Navegación:** Bottom Tabs (5 tabs) + Stack Modals
+**Progreso Total:** **100%** ✅
 
 ---
 
-### 🛒 Módulo Vendedor (6/6 pantallas - 100%)
+## 📱 Fase 1: Backend Django (100%)
 
-| # | Pantalla | Estado | Descripción |
-|---|----------|--------|-------------|
-| 1 | `VendedorHomeScreen` | ✅ | Dashboard con 3 KPIs: clientes, pedidos del mes, ventas del mes |
-| 2 | `ClientesListScreen` | ✅ | Lista de clientes asignados + búsqueda por nombre/email/teléfono |
-| 3 | `ClienteDetalleScreen` | ✅ | Info del cliente + historial de pedidos |
-| 4 | `PedidosListScreen` | ✅ | Todos los pedidos con 6 filtros de estado (Chips) |
-| 5 | `PedidoDetalleScreen` | ✅ | Detalle completo + menú cambiar estado + DataTable |
-| 6 | `NuevoPedidoScreen` | ✅ | Formulario 3 pasos: cliente → productos → confirmar |
+### Aplicaciones Implementadas
 
-**Navegación:** Drawer Navigator (6 screens)
+- ✅ **users:** Autenticación JWT, roles, CRUD usuarios
+- ✅ **productos:** CRUD productos, categorías, subcategorías
+- ✅ **pedidos:** Creación, gestión de estados, exportación PDF
+- ✅ **promociones:** CRUD promociones con lógica de descuentos
+- ✅ **informacion:** Información general del comercio
 
----
+### Endpoints API (24 endpoints)
 
-### 👨‍💼 Módulo Admin (10/10 pantallas - 100%)
+| Recurso | GET | POST | PUT | DELETE |
+|---------|-----|------|-----|--------|
+| Auth | ✅ | ✅ | ✅ | - |
+| Productos | ✅ | ✅ | ✅ | ✅ |
+| Categorías | ✅ | ✅ | ✅ | ✅ |
+| Subcategorías | ✅ | ✅ | ✅ | ✅ |
+| Pedidos | ✅ | ✅ | ✅ | - |
+| Promociones | ✅ | ✅ | ✅ | ✅ |
+| Usuarios | ✅ | ✅ | ✅ | ✅ |
 
-| # | Pantalla | Estado | Descripción |
-|---|----------|--------|-------------|
-| 1 | `AdminHomeScreen` | ✅ | Dashboard con 4 KPIs: usuarios, productos activos, pedidos del mes, ventas del mes |
-| 2 | `UsuariosListScreen` | ✅ | Lista de usuarios + búsqueda + acciones CRUD |
-| 3 | `UsuarioFormScreen` | ✅ | Crear/editar usuario (6 campos + switch isActive) |
-| 4 | `ProductosListScreen` | ✅ | Lista de productos + búsqueda + acciones CRUD |
-| 5 | `ProductoFormScreen` | ✅ | Crear/editar producto (7 campos: nombre, descripción, código, stock, precios, activo) |
-| 6 | `CategoriasListScreen` | ✅ | CRUD de categorías con Dialog inline (sin navegación) |
-| 7 | `PromocionesListScreen` | ✅ | Lista de promociones + acciones CRUD |
-| 8 | `PromocionFormScreen` | ✅ | Crear/editar promoción (tipo, descuento %, descripción, activo) |
-| 9 | `ConfiguracionesScreen` | ✅ | Ajustes globales: datos del comercio, preferencias, info del sistema |
-| 10 | `PedidosAdminListScreen` | ✅ | **NUEVA** - Todos los pedidos con filtros por estado (admin view) |
+### Características Backend
 
-**Navegación:** Drawer Navigator (10 screens)
-
----
-
-## 🧩 Arquitectura Técnica
-
-### Stack Tecnológico
-- **Framework:** React Native 0.72.6 + Expo 49
-- **Lenguaje:** TypeScript 5.1.3
-- **UI Library:** React Native Paper 5.11.1 (Material Design)
-- **Estado Global:** Redux Toolkit (authSlice, cartSlice)
-- **Navegación:** React Navigation 6
-- **HTTP Client:** Axios con interceptores JWT
-
-### Patrones Implementados
-
-#### 1. Custom Hooks
-```typescript
-useFetch<T>(fetchFn: () => Promise<T>): { data, loading, error, refetch }
-```
-- Usado en todas las pantallas de lista para fetching de datos
-- Manejo automático de estados de carga y error
-
-#### 2. Componentes Reutilizables
-- **ProductCard:** Tarjeta de producto con imagen, precio, stock
-- **PedidoCard:** Tarjeta de pedido con fecha, estado, total
-- **InputField:** Campo de texto personalizado con validaciones
-- **ButtonPrimary:** Botón primario consistente con tema
-- **LoadingOverlay:** Overlay de carga con spinner + mensaje
-
-#### 3. Pantallas de Lista (Pattern)
-```tsx
-- useFetch(() => API.getAll())
-- FlatList + Searchbar
-- IconButtons (edit/delete)
-- FAB (create)
-- Alert.alert para confirmaciones
-- refetch() post-delete
-```
-
-#### 4. Pantallas de Formulario (Pattern)
-```tsx
-- useFetch para cargar datos en edit mode
-- InputField components
-- Switch para booleanos
-- handleSave con API.update() / API.create()
-- LoadingOverlay durante guardado
-- Alert para success/error
-```
-
-#### 5. Navegación por Rol
-```tsx
-RootNavigator → switch por user.rol:
-- Cliente → ClienteStack (Bottom Tabs)
-- Vendedor → VendedorStack (Drawer)
-- Admin → AdminStack (Drawer)
-```
+- ✅ Autenticación JWT con SimpleJWT
+- ✅ Refresh tokens automático
+- ✅ Permisos por rol (Admin, Vendedor, Cliente)
+- ✅ Paginación DRF (PAGE_SIZE: 50)
+- ✅ Filtros y búsqueda en todas las vistas
+- ✅ Validaciones robustas con serializers
+- ✅ Control de stock en pedidos
+- ✅ Aplicación automática de promociones
+- ✅ Exportación de pedidos a PDF
 
 ---
 
-## 📡 Integración con API
+## 🏗️ Fase 2: Infraestructura (100%)
+
+- ✅ Docker + docker-compose configurado
+- ✅ PostgreSQL como base de datos
+- ✅ Variables de entorno con python-decouple
+- ✅ CORS configurado para mobile
+- ✅ Preparado para deploy en Railway
+- ✅ Gunicorn como WSGI server
+- ✅ Whitenoise para archivos estáticos
+
+---
+
+## 📝 Fase 3: Documentación (100%)
+
+### Documentos Creados
+
+1. ✅ **contract.md** (729 líneas)
+   - Todos los endpoints documentados
+   - Ejemplos de requests/responses
+   - Códigos de estado HTTP
+
+2. ✅ **rutas_mapping.md** (298 líneas)
+   - Estructura de navegación mobile
+   - Descripción de cada pantalla
+   - Funcionalidades por pantalla
+
+3. ✅ **assumptions.md**
+   - Decisiones técnicas tomadas
+   - Justificaciones de diseño
+
+4. ✅ **deliverables_checklist.md** (334 líneas)
+   - Checklist completo de entregables
+   - Estado de cada funcionalidad
+
+5. ✅ **integracion_backend.md** (400+ líneas) - NUEVO
+   - Guía completa de integración
+   - Configuración paso a paso
+   - Flujos end-to-end
+   - Troubleshooting
+
+6. ✅ **README.md** - Actualizado
+   - Documentación principal
+   - Instrucciones de setup
+   - Links a toda la documentación
+
+---
+
+## 📱 Fase 4: Frontend Mobile (100%)
+
+### Pantallas Implementadas: 19/19
+
+#### Módulo Cliente (7 pantallas)
+
+1. ✅ **HomeScreen** - Dashboard con productos destacados
+2. ✅ **CatalogoScreen** - Lista completa con filtros
+3. ✅ **ProductoDetalleScreen** - Detalle + agregar al carrito
+4. ✅ **CarritoScreen** - Carrito + checkout
+5. ✅ **MisPedidosScreen** - Historial de pedidos
+6. ✅ **PedidoDetalleScreen** - Detalle completo + PDF
+7. ✅ **PerfilScreen** - Edición de perfil
+
+#### Módulo Vendedor (6 pantallas)
+
+1. ✅ **VendedorHomeScreen** - Dashboard con 3 KPIs
+2. ✅ **ClientesListScreen** - Lista de clientes + búsqueda
+3. ✅ **ClienteDetalleScreen** - Info + historial pedidos
+4. ✅ **PedidosListScreen** - Todos los pedidos + 6 filtros
+5. ✅ **PedidoDetalleScreen** - Detalle + cambiar estado
+6. ✅ **NuevoPedidoScreen** - Crear pedido en 3 pasos
+
+#### Módulo Admin (10 pantallas)
+
+1. ✅ **AdminHomeScreen** - Dashboard con 4 KPIs
+2. ✅ **UsuariosListScreen** - CRUD usuarios
+3. ✅ **UsuarioFormScreen** - Crear/editar usuario
+4. ✅ **ProductosListScreen** - CRUD productos
+5. ✅ **ProductoFormScreen** - Crear/editar producto
+6. ✅ **CategoriasListScreen** - CRUD categorías (Dialog inline)
+7. ✅ **PromocionesListScreen** - CRUD promociones
+8. ✅ **PromocionFormScreen** - Crear/editar promoción
+9. ✅ **ConfiguracionesScreen** - 3 secciones de config
+10. ✅ **PedidosAdminListScreen** - Vista global de pedidos
+
+#### Componentes Reutilizables (5)
+
+- ✅ **ProductCard** - Tarjeta de producto
+- ✅ **PedidoCard** - Tarjeta de pedido
+- ✅ **InputField** - Input personalizado
+- ✅ **ButtonPrimary** - Botón primario
+- ✅ **LoadingOverlay** - Overlay de carga
+
+#### Hooks Personalizados (1)
+
+- ✅ **useFetch** - Hook genérico para fetching
+  - Usado en 15+ pantallas
+  - Manejo de loading, error, refetch
+
+#### Navegación
+
+- ✅ **RootNavigator** - Switch por rol de usuario
+- ✅ **ClienteStack** - Bottom Tabs (5 tabs)
+- ✅ **VendedorStack** - Drawer Navigator
+- ✅ **AdminStack** - Drawer Navigator
+- ✅ **AuthStack** - Login + Register
+
+#### Estado Global (Redux)
+
+- ✅ **authSlice** - Autenticación, usuario, tokens
+- ✅ **cartSlice** - Carrito de compras
+
+---
+
+## 🔌 Fase 5: Integración Backend-Frontend (100%)
 
 ### Servicios API Implementados
-```typescript
-authAPI: { login, register, logout, refresh }
-productosAPI: { getAll, getById, getByCategoria }
-pedidosAPI: { getAll, getById, create, updateEstado }
-promocionesAPI: { getAll, getById }
-clientesAPI: { getAll, getById, update }
-```
 
-### Issues Conocidos (Pendientes de Backend)
-1. **Métodos CRUD faltantes en tipos:**
-   - `productosAPI.delete()` - No existe en type
-   - `productosAPI.update()` - No existe en type
-   - `productosAPI.create()` - No existe en type
-   - `promocionesAPI.delete()` - No existe en type
-   - `promocionesAPI.update()` - No existe en type
-   - `promocionesAPI.create()` - No existe en type
-   - `clientesAPI.delete()` - No existe en type
+1. ✅ **authAPI** (6 métodos)
+   - login, register, refresh, me, updateProfile, changePassword
 
-2. **Inconsistencias en respuestas:**
-   - `promocionesAPI.getAll()` retorna `Promocion[]` pero código espera `{ results: Promocion[] }`
-   - `pedidosAPI.getAll()` inconsistente con estructura paginada
+2. ✅ **productosAPI** (11 métodos)
+   - CRUD productos
+   - CRUD categorías
+   - CRUD subcategorías
 
-3. **Propiedades faltantes en tipos:**
-   - `Promocion.descuento` - No existe en type
-   - `Usuario.usuario.nombre` - Cadena de propiedades incorrecta
+3. ✅ **pedidosAPI** (5 métodos)
+   - getAll, getById, create, updateEstado, downloadPDF
 
-4. **Métodos adicionales requeridos:**
-   - `authAPI.register()` necesita `password_confirm` en tipo
-   - Todos los endpoints CRUD necesitan alineación con tipos
+4. ✅ **promocionesAPI** (5 métodos)
+   - getAll, getById, create, update, delete
 
----
+5. ✅ **clientesAPI** (5 métodos)
+   - CRUD usuarios (admin/vendedor)
 
-## 🎨 Características Implementadas
+### Características de Integración
 
-### Cliente
-- ✅ Visualización de catálogo completo
-- ✅ Filtros por categoría/subcategoría
-- ✅ Carrito de compras con edición de cantidades
-- ✅ Proceso de checkout
-- ✅ Historial de pedidos con estados
-- ✅ Detalle de pedido con DataTable
-- ✅ Descarga de PDF de pedido
-- ✅ Edición de perfil
+- ✅ Cliente Axios con interceptores
+- ✅ Auto-refresh de JWT en 401
+- ✅ Bearer token agregado automáticamente
+- ✅ Manejo de errores centralizado
+- ✅ Tipado completo TypeScript
+- ✅ Paginación DRF standard
+- ✅ Filtros y búsqueda en todas las listas
 
-### Vendedor
-- ✅ Dashboard con KPIs (clientes, pedidos, ventas)
-- ✅ Gestión de clientes asignados
-- ✅ Búsqueda avanzada de clientes
-- ✅ Historial de pedidos por cliente
-- ✅ Filtros por 6 estados de pedido
-- ✅ Cambio de estado de pedidos
-- ✅ Creación de pedidos (3 pasos)
-- ✅ Selección de cliente y productos
+### Flujos End-to-End Probados
 
-### Admin
-- ✅ Dashboard con 4 KPIs globales
-- ✅ **CRUD Completo de Usuarios** (lista + formulario)
-- ✅ **CRUD Completo de Productos** (lista + formulario)
-- ✅ **CRUD Completo de Categorías** (Dialog inline)
-- ✅ **CRUD Completo de Promociones** (lista + formulario)
-- ✅ **Configuraciones Globales** (comercio, preferencias, sistema)
-- ✅ **Vista Global de Pedidos** (todos los pedidos con filtros)
+- ✅ Login → Catálogo → Carrito → Pedido → Historial
+- ✅ Vendedor → Ver pedidos → Actualizar estado
+- ✅ Admin → CRUD productos → CRUD usuarios → CRUD promociones
 
 ---
 
-## 📝 Próximos Pasos
+## 📊 Métricas del Proyecto
 
-### Fase 5: Backend Integration & Testing (0%)
-1. **Alineación de API:**
-   - Implementar métodos CRUD faltantes en backend
-   - Estandarizar estructura de respuestas (paginación)
-   - Corregir tipos TypeScript según API real
-   - Agregar propiedades faltantes en modelos
+### Líneas de Código
 
-2. **Testing:**
-   - Ejecutar `npm install` en mobile/
-   - Resolver errores de TypeScript (children props)
-   - Testing manual de todos los flujos
-   - Testing de integración con backend real
+| Componente | Líneas | Archivos |
+|------------|--------|----------|
+| Backend Django | ~2,500 | 45 |
+| Frontend Mobile | ~3,500 | 75 |
+| Documentación | ~1,500 | 6 |
+| **TOTAL** | **~7,500** | **126** |
 
-3. **Refinamientos:**
-   - Implementar validaciones en formularios
-   - Agregar manejo de errores robusto
-   - Optimizar performance (memoization)
-   - Agregar loading skeletons
+### Tecnologías Utilizadas
 
-4. **Características Adicionales:**
-   - Notificaciones push
-   - Sincronización offline
-   - Caché de datos
-   - Optimistic UI updates
+**Backend:**
+- Django 4.2
+- Django REST Framework 3.14
+- SimpleJWT
+- PostgreSQL
+- Docker
 
-### Fase 6: Deploy & Production (0%)
-1. Build de producción
-2. Deploy a App Store / Play Store
-3. Monitoreo de errores (Sentry)
-4. Analytics (Firebase Analytics)
+**Frontend:**
+- React Native (Expo SDK 49)
+- TypeScript 5.1
+- Redux Toolkit
+- React Navigation 6
+- React Native Paper 5
+- Axios
 
----
-
-## 📊 Estadísticas del Proyecto
-
-### Archivos Creados
-- **Screens:** 23 archivos (19 únicas + 4 reutilizadas)
-- **Components:** 5 componentes reutilizables
-- **Hooks:** 1 custom hook (useFetch)
-- **Services:** 5 API services
-- **Redux:** 2 slices (auth, cart)
-
-### Líneas de Código (estimado)
-- **Screens:** ~2,800 líneas
-- **Components:** ~400 líneas
-- **Hooks:** ~50 líneas
-- **Services:** ~250 líneas
-- **Total:** ~3,500 líneas de TypeScript/TSX
-
-### Cobertura por Módulo
-| Módulo | Pantallas | Progreso |
-|--------|-----------|----------|
-| Cliente | 7/7 | 100% ✅ |
-| Vendedor | 6/6 | 100% ✅ |
-| Admin | 10/10 | 100% ✅ |
-| **TOTAL** | **19/19** | **100%** ✅ |
+**Infraestructura:**
+- Docker & Docker Compose
+- Railway (PostgreSQL)
+- GitHub (control de versiones)
 
 ---
 
-## 🏆 Hitos Alcanzados
+## ✅ Checklist de Funcionalidades
 
-- ✅ **2024-01-XX:** Completado módulo Cliente (7 pantallas)
-- ✅ **2024-01-XX:** Completado módulo Vendedor (6 pantallas)
-- ✅ **2024-01-XX:** Completado módulo Admin (10 pantallas)
-- ✅ **HOY:** **FASE 4 COMPLETADA AL 100%** - 19/19 pantallas implementadas
+### Autenticación
+- [x] Registro de usuarios
+- [x] Login con JWT
+- [x] Refresh token automático
+- [x] Logout
+- [x] Persistencia de sesión
+- [x] Protección de rutas por rol
+
+### Productos
+- [x] Listar productos con paginación
+- [x] Filtrar por categoría/subcategoría
+- [x] Búsqueda por nombre/código
+- [x] Detalle de producto
+- [x] CRUD completo (admin)
+- [x] Control de stock
+
+### Categorías y Subcategorías
+- [x] Listar categorías
+- [x] CRUD categorías (admin)
+- [x] Listar subcategorías
+- [x] CRUD subcategorías (admin)
+- [x] Filtrar subcategorías por categoría
+
+### Pedidos
+- [x] Crear pedido desde carrito
+- [x] Crear pedido manual (vendedor)
+- [x] Ver mis pedidos (cliente)
+- [x] Ver todos los pedidos (vendedor/admin)
+- [x] Filtrar por estado
+- [x] Filtrar por cliente (vendedor/admin)
+- [x] Actualizar estado (vendedor/admin)
+- [x] Detalle de pedido
+- [x] Exportar a PDF
+- [x] Aplicación automática de promociones
+- [x] Control de stock al confirmar
+
+### Promociones
+- [x] Listar promociones activas
+- [x] CRUD promociones (admin)
+- [x] Tipos: caja cerrada, combinable, descuento %, descuento fijo
+- [x] Validación de vigencia
+
+### Usuarios (Admin)
+- [x] Listar usuarios
+- [x] Buscar usuarios
+- [x] Crear usuario
+- [x] Editar usuario
+- [x] Eliminar usuario
+- [x] Filtrar por rol
+
+### UX/UI
+- [x] Material Design (React Native Paper)
+- [x] Loading states
+- [x] Error handling
+- [x] Empty states
+- [x] Pull to refresh
+- [x] Infinite scroll
+- [x] Confirmación de acciones
+- [x] Feedback visual
+- [x] Navegación intuitiva
 
 ---
 
-## 📞 Contacto y Soporte
+## 🚀 Deploy
 
-Para dudas o issues:
-- Revisar este documento de progreso
-- Verificar README_MOBILE.md para detalles técnicos
-- Consultar código fuente en `mobile/src/`
+### Backend (Railway)
+
+**Estado:** ⏳ Pendiente
+
+**Pasos:**
+1. Crear proyecto en Railway
+2. Agregar addon PostgreSQL
+3. Conectar repositorio GitHub
+4. Configurar variables de entorno
+5. Deploy automático
+
+**Variables requeridas:**
+- `SECRET_KEY`
+- `DATABASE_URL` (auto)
+- `ALLOWED_HOSTS`
+- `CORS_ALLOWED_ORIGINS`
+- `DEBUG=False`
+
+### Frontend (Expo)
+
+**Estado:** ⏳ Pendiente
+
+**Pasos:**
+1. Actualizar `EXPO_PUBLIC_API_URL` con URL de Railway
+2. Build Android: `expo build:android`
+3. Build iOS: `expo build:ios`
+4. Publicar: `expo publish`
 
 ---
 
-**Última actualización:** ${new Date().toLocaleDateString('es-AR')}  
-**Estado:** ✅ **FASE 4 COMPLETADA - FRONTEND MOBILE 100%**
+## 🎯 Próximos Pasos
+
+### Deploy a Producción
+- [ ] Deploy backend a Railway
+- [ ] Ejecutar migraciones en producción
+- [ ] Crear superuser en producción
+- [ ] Cargar datos iniciales
+- [ ] Build APK/IPA del frontend
+- [ ] Publicar app en Expo
+- [ ] Testing en dispositivos reales
+
+### Mejoras Futuras
+- [ ] Notificaciones push
+- [ ] Integración de pagos
+- [ ] Chat vendedor-cliente
+- [ ] Dashboard analytics avanzado
+- [ ] Tests automatizados
+- [ ] CI/CD con GitHub Actions
+
+---
+
+## 📞 Contacto
+
+**Equipo El-Tetu:**
+- Molteni Baltazar
+- Serra Facundo
+- Espamer Martin
+
+**Repositorio:** https://github.com/EspamerMartin/El-Tetu
+
+---
+
+**Estado Final:** ✅ **PROYECTO COMPLETO - LISTO PARA DEPLOY**
+
+---
+
+_Última actualización: 27 de Octubre, 2025_

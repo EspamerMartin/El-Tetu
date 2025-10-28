@@ -59,6 +59,7 @@ export const productosAPI = {
     subcategoria?: number;
     search?: string;
     disponible?: boolean;
+    activo?: boolean;
     page?: number;
   }): Promise<PaginatedResponse<Producto>> => {
     const response = await api.get('/productos/', { params });
@@ -70,15 +71,57 @@ export const productosAPI = {
     return response.data;
   },
 
+  create: async (data: Partial<Producto>): Promise<Producto> => {
+    const response = await api.post('/productos/', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: Partial<Producto>): Promise<Producto> => {
+    const response = await api.put(`/productos/${id}/`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/productos/${id}/`);
+  },
+
   getCategorias: async (): Promise<Categoria[]> => {
     const response = await api.get('/productos/categorias/');
     return response.data;
+  },
+
+  createCategoria: async (data: Partial<Categoria>): Promise<Categoria> => {
+    const response = await api.post('/productos/categorias/', data);
+    return response.data;
+  },
+
+  updateCategoria: async (id: number, data: Partial<Categoria>): Promise<Categoria> => {
+    const response = await api.put(`/productos/categorias/${id}/`, data);
+    return response.data;
+  },
+
+  deleteCategoria: async (id: number): Promise<void> => {
+    await api.delete(`/productos/categorias/${id}/`);
   },
 
   getSubcategorias: async (categoriaId?: number): Promise<Subcategoria[]> => {
     const params = categoriaId ? { categoria: categoriaId } : undefined;
     const response = await api.get('/productos/subcategorias/', { params });
     return response.data;
+  },
+
+  createSubcategoria: async (data: Partial<Subcategoria>): Promise<Subcategoria> => {
+    const response = await api.post('/productos/subcategorias/', data);
+    return response.data;
+  },
+
+  updateSubcategoria: async (id: number, data: Partial<Subcategoria>): Promise<Subcategoria> => {
+    const response = await api.put(`/productos/subcategorias/${id}/`, data);
+    return response.data;
+  },
+
+  deleteSubcategoria: async (id: number): Promise<void> => {
+    await api.delete(`/productos/subcategorias/${id}/`);
   },
 };
 
@@ -130,6 +173,20 @@ export const promocionesAPI = {
     const response = await api.get(`/promociones/${id}/`);
     return response.data;
   },
+
+  create: async (data: Partial<Promocion>): Promise<Promocion> => {
+    const response = await api.post('/promociones/', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: Partial<Promocion>): Promise<Promocion> => {
+    const response = await api.put(`/promociones/${id}/`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/promociones/${id}/`);
+  },
 };
 
 // ========== Clientes API (Admin/Vendedor) ==========
@@ -156,6 +213,10 @@ export const clientesAPI = {
   update: async (id: number, data: Partial<User>): Promise<User> => {
     const response = await api.put(`/auth/users/${id}/`, data);
     return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/auth/users/${id}/`);
   },
 };
 

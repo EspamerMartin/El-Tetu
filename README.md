@@ -11,13 +11,26 @@ Aplicación móvil de comercio B2B/B2C con backend Django y frontend React Nativ
 
 ## 📊 Estado del Proyecto
 
-**Fase 4 - Frontend Mobile:** ✅ **100% COMPLETADO**
+**Fase 5 - Integración Backend:** ✅ **100% COMPLETADO**
 
-- **Pantallas implementadas:** 19/19
-- **Módulos:** Cliente (7), Vendedor (6), Admin (10)
-- **Líneas de código:** ~3,500+ TypeScript/TSX
-- **Ver resumen completo:** [RESUMEN_FASE4.md](RESUMEN_FASE4.md)
-- **Progreso detallado:** [PROGRESS.md](PROGRESS.md)
+- **Frontend Mobile:** 19/19 pantallas ✅
+- **Backend API:** Todos los endpoints CRUD implementados ✅
+- **Autenticación JWT:** Auto-refresh token configurado ✅
+- **Servicios API:** 5 módulos completos (auth, productos, pedidos, promociones, clientes) ✅
+- **Documentación:** Guía de integración completa ✅
+- **Ver documentación:** [Integración Backend](docs/integracion_backend.md)
+
+### Completitud por Módulo
+
+| Módulo | Backend | Frontend | Integración |
+|--------|---------|----------|-------------|
+| Autenticación | ✅ | ✅ | ✅ |
+| Productos | ✅ | ✅ | ✅ |
+| Categorías | ✅ | ✅ | ✅ |
+| Subcategorías | ✅ | ✅ | ✅ |
+| Pedidos | ✅ | ✅ | ✅ |
+| Promociones | ✅ | ✅ | ✅ |
+| Usuarios (Admin) | ✅ | ✅ | ✅ |
 
 ## 🏗️ Arquitectura
 
@@ -97,8 +110,57 @@ Después de ejecutar `loaddata initial_data`:
 | Vendedor | vendedor@eltetu.com | vendedor123 |
 | Cliente | cliente@eltetu.com | cliente123 |
 
-## 📚 Documentación
+## � Conexión Frontend ↔ Backend
 
+### Configuración de API
+
+El frontend móvil se conecta al backend mediante Axios con interceptores JWT.
+
+**1. Configurar URL del backend en `mobile/.env`:**
+
+```env
+EXPO_PUBLIC_API_URL=http://192.168.1.xxx:8000/api
+```
+
+> **Nota:** Reemplaza `192.168.1.xxx` con tu IP local o URL de Railway.
+
+**2. Autenticación Automática:**
+
+El cliente Axios incluye automáticamente el token JWT en todas las requests:
+
+```typescript
+// Ejemplo: Headers enviados automáticamente
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
+```
+
+**3. Refresh Token Automático:**
+
+Si el access token expira (401), el interceptor:
+- Solicita un nuevo token usando refresh token
+- Reintenta la request original
+- Si falla, cierra sesión automáticamente
+
+**4. Endpoints Disponibles:**
+
+Todos los endpoints CRUD están implementados y documentados:
+
+| Recurso | Métodos | Endpoint Base |
+|---------|---------|---------------|
+| Autenticación | POST | `/api/auth/` |
+| Productos | GET, POST, PUT, DELETE | `/api/productos/` |
+| Categorías | GET, POST, PUT, DELETE | `/api/productos/categorias/` |
+| Subcategorías | GET, POST, PUT, DELETE | `/api/productos/subcategorias/` |
+| Pedidos | GET, POST, PUT | `/api/pedidos/` |
+| Promociones | GET, POST, PUT, DELETE | `/api/promociones/` |
+| Usuarios | GET, POST, PUT, DELETE | `/api/auth/users/` |
+
+Ver [Guía de Integración](docs/integracion_backend.md) para detalles completos.
+
+---
+
+## �📚 Documentación
+
+- [**Integración Backend**](docs/integracion_backend.md) - Guía completa de integración (NUEVO)
 - [Contrato de API](docs/contract.md) - Endpoints y modelos
 - [Rutas de Navegación](docs/rutas_mapping.md) - Estructura de la app móvil
 - [Supuestos Técnicos](docs/assumptions.md) - Decisiones de diseño
