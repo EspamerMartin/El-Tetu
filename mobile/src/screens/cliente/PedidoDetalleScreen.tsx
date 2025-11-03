@@ -81,7 +81,11 @@ const PedidoDetalleScreen = ({ route }: Props) => {
   }
 
   const formatPrice = (price: string) => {
-    return `$${parseFloat(price).toFixed(2)}`;
+    const numPrice = parseFloat(price);
+    if (isNaN(numPrice)) {
+      return '$0.00';
+    }
+    return `$${numPrice.toFixed(2)}`;
   };
 
   const formatDate = (dateString: string) => {

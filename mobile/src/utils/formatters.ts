@@ -4,8 +4,12 @@
  * @param currency - El símbolo de moneda (por defecto '$')
  * @returns El precio formateado como string
  */
-export const formatPrice = (price: number, currency: string = '$'): string => {
-  return `${currency}${price.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+export const formatPrice = (price: number | string, currency: string = '$'): string => {
+  const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+  if (isNaN(numPrice)) {
+    return `${currency}0.00`;
+  }
+  return `${currency}${numPrice.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
 };
 
 /**

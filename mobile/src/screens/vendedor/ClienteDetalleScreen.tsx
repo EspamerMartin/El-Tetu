@@ -117,7 +117,13 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
           <View style={styles.statBox}>
             <Icon name="cash-multiple" size={32} color={theme.colors.secondary} />
             <Text variant="headlineSmall" style={styles.statValue}>
-              ${pedidos.reduce((acc, p) => acc + parseFloat(p.total), 0).toFixed(2)}
+              ${(() => {
+                const total = pedidos.reduce((acc, p) => {
+                  const num = parseFloat(p.total);
+                  return acc + (isNaN(num) ? 0 : num);
+                }, 0);
+                return total.toFixed(2);
+              })()}
             </Text>
             <Text variant="bodySmall" style={styles.statLabel}>Total Gastado</Text>
           </View>

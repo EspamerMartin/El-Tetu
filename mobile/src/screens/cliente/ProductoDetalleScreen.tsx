@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Image } from 'react-native';
 import { Text, Button, Surface, Chip, IconButton, Snackbar } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { ClienteStackParamList } from '@/navigation/ClienteStack';
 import { productosAPI } from '@/services/api';
 import { Producto } from '@/types';
@@ -34,6 +35,13 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
   useEffect(() => {
     fetchProducto();
   }, [productoId]);
+
+  // Recargar producto cuando la pantalla vuelve al foco
+  useFocusEffect(
+    useCallback(() => {
+      fetchProducto();
+    }, [productoId])
+  );
 
   const fetchProducto = async () => {
     try {
@@ -86,7 +94,11 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
   }
 
   const formatPrice = (price: string) => {
-    return `$${parseFloat(price).toFixed(2)}`;
+    const numPrice = parseFloat(price);
+    if (isNaN(numPrice)) {
+      return '$0.00';
+    }
+    return `$${numPrice.toFixed(2)}`;
   };
 
   const maxCantidad = Math.min(10, producto.stock);
@@ -229,10 +241,15 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
         duration={3000}
         action={{
           label: 'Ver Carrito',
-          onPress: () => navigation.navigate('ClienteTabs'),
+          onPress: () => {
+            setSnackbarVisible(false);
+            navigation.navigate('ClienteTabs', { screen: 'Carrito' } as any);
+          },
+          labelStyle: { color: theme.colors.primary },
         }}
+        style={styles.snackbar}
       >
-        {cantidad} {cantidad === 1 ? 'producto agregado' : 'productos agregados'} al carrito
+        ✓ {cantidad} {cantidad === 1 ? 'producto agregado' : 'productos agregados'} al carrito
       </Snackbar>
     </>
   );
@@ -344,6 +361,10 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
     textAlign: 'center',
     marginBottom: spacing.lg,
+  },
+  snackbar: {
+    backgroundColor: '#4CAF50',
+    marginBottom: spacing.md,
   },
 });
 

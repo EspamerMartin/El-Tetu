@@ -66,7 +66,7 @@ const AdminHomeScreen = () => {
           <Surface style={[styles.kpiCard, { backgroundColor: '#E8F5E9' }]} elevation={2}>
             <Icon name="cash-multiple" size={40} color="#4CAF50" />
             <Text variant="headlineLarge" style={[styles.kpiValue, { color: '#4CAF50' }]}>
-              ${stats.ventasMes.toFixed(2)}
+              ${!isNaN(stats.ventasMes) ? stats.ventasMes.toFixed(2) : '0.00'}
             </Text>
             <Text variant="bodyMedium" style={styles.kpiLabel}>Ventas del Mes</Text>
           </Surface>

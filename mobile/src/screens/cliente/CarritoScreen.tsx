@@ -22,10 +22,14 @@ type Props = NativeStackScreenProps<ClienteTabParamList, 'Carrito'>;
  */
 const CarritoScreen = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
-  const { items, subtotal, descuento, total } = useAppSelector((state) => state.cart);
+  const { items, total } = useAppSelector((state) => state.cart);
   const { user } = useAppSelector((state) => state.auth);
   
   const [loading, setLoading] = useState(false);
+
+  // Calcular subtotal y descuento localmente
+  const subtotal = total;
+  const descuento = 0; // Por ahora sin descuentos en el carrito
 
   const handleIncrement = (productoId: number, currentQty: number, stock: number) => {
     if (currentQty < stock) {
@@ -72,28 +76,39 @@ const CarritoScreen = ({ navigation }: Props) => {
         })),
       };
 
+      console.log('Enviando pedido:', JSON.stringify(pedidoData, null, 2));
       const pedido = await pedidosAPI.create(pedidoData);
+      console.log('Pedido recibido:', JSON.stringify(pedido, null, 2));
       
       dispatch(clearCart());
       
       Alert.alert(
         'Pedido realizado',
-        `Tu pedido #${pedido.id} ha sido creado exitosamente`,
+        `Tu pedido #${pedido?.id || 'N/A'} ha sido creado exitosamente`,
         [
           {
-            text: 'Ver pedido',
+            text: 'Ver pedidos',
             onPress: () => navigation.navigate('MisPedidos'),
           },
         ]
       );
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.error || 'Error al crear el pedido');
+      console.error('Error al crear pedido:', error);
+      console.error('Response data:', error.response?.data);
+      const errorMessage = error.response?.data?.error 
+        || error.response?.data?.message
+        || error.response?.data?.detail
+        || 'Error al crear el pedido';
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const formatPrice = (price: number) => {
+    if (isNaN(price)) {
+      return '$0.00';
+    }
     return `$${price.toFixed(2)}`;
   };
 

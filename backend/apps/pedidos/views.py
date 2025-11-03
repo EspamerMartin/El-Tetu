@@ -77,6 +77,18 @@ class PedidoListCreateView(generics.ListCreateAPIView):
         else:
             # Admin/vendedor pueden especificar cliente
             serializer.save()
+    
+    def create(self, request, *args, **kwargs):
+        """Sobrescribe create para retornar PedidoSerializer en la respuesta."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        
+        # Retornar con PedidoSerializer completo
+        pedido = serializer.instance
+        output_serializer = PedidoSerializer(pedido)
+        headers = self.get_success_headers(output_serializer.data)
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class PedidoDetailView(generics.RetrieveAPIView):

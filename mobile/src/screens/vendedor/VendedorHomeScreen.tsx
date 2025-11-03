@@ -79,7 +79,7 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
             <View style={styles.kpiHeader}>
               <Icon name="cash-multiple" size={32} color={colors.secondary} />
               <Text variant="headlineSmall" style={[styles.kpiValue, { color: colors.secondary }]}>
-                ${stats.ventasDelDia.toFixed(2)}
+                ${!isNaN(stats.ventasDelDia) ? stats.ventasDelDia.toFixed(2) : '0.00'}
               </Text>
             </View>
             <Text variant="bodyMedium" style={styles.kpiLabel}>Ventas del Día</Text>

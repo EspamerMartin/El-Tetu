@@ -22,7 +22,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
   showAddButton = true,
 }) => {
   const formatPrice = (price: string) => {
-    return `$${parseFloat(price).toFixed(2)}`;
+    const numPrice = parseFloat(price);
+    if (isNaN(numPrice)) {
+      return '$0.00';
+    }
+    return `$${numPrice.toFixed(2)}`;
   };
 
   return (
@@ -94,11 +98,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
         {showAddButton && producto.tiene_stock && onAddToCart && (
           <Button
             mode="contained"
-            icon="cart-plus"
+            icon="eye"
             onPress={onAddToCart}
             style={styles.button}
           >
-            Agregar al carrito
+            Ver producto
           </Button>
         )}
       </Card.Content>

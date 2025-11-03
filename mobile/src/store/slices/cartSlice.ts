@@ -13,9 +13,13 @@ const initialState: CartState = {
 
 const calculateTotal = (items: CartItem[], listaPrecio: 'lista_3' | 'lista_4' = 'lista_3'): number => {
   return items.reduce((sum, item) => {
-    const precio = listaPrecio === 'lista_3' 
-      ? parseFloat(item.producto.precio_lista_3)
-      : parseFloat(item.producto.precio_lista_4);
+    const precioStr = listaPrecio === 'lista_3' 
+      ? item.producto.precio_lista_3
+      : item.producto.precio_lista_4;
+    const precio = parseFloat(precioStr);
+    if (isNaN(precio)) {
+      return sum;
+    }
     return sum + (precio * item.cantidad);
   }, 0);
 };

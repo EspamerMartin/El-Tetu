@@ -1,26 +1,33 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, FlatList } from 'react-native';
-import { Text, Searchbar, Chip, Menu, Button } from 'react-native-paper';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ClienteTabParamList } from '@/navigation/ClienteStack';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, StyleSheet, FlatList, SectionList } from 'react-native';
+import { Text, Searchbar, Chip } from 'react-native-paper';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ClienteStackParamList } from '@/navigation/ClienteStack';
 import { productosAPI } from '@/services/api';
 import { Producto, Categoria, Subcategoria } from '@/types';
 import { ProductCard, LoadingOverlay } from '@/components';
 import { useAppDispatch } from '@/store';
-import { addToCart } from '@/store/slices/cartSlice';
 import { theme, spacing } from '@/theme';
 
-type Props = NativeStackScreenProps<ClienteTabParamList, 'Catalogo'>;
+type NavigationProp = NativeStackNavigationProp<ClienteStackParamList>;
+
+interface ProductoSection {
+  title: string;
+  data: Producto[];
+}
 
 /**
  * CatalogoScreen
  * 
- * Pantalla de catálogo con filtros por:
+ * Pantalla de catálogo organizada por categorías con:
  * - Búsqueda de texto
- * - Categoría
- * - Subcategoría
+ * - Filtros rápidos por categoría (chips)
+ * - Subcategorías agrupadas
+ * - Animación al agregar al carrito
  */
-const CatalogoScreen = ({ navigation }: Props) => {
+const CatalogoScreen = () => {
+  const navigation = useNavigation<NavigationProp>();
   const dispatch = useAppDispatch();
   
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -30,10 +37,7 @@ const CatalogoScreen = ({ navigation }: Props) => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoria, setSelectedCategoria] = useState<number | null>(null);
-  const [selectedSubcategoria, setSelectedSubcategoria] = useState<number | null>(null);
-  
-  const [categoriaMenuVisible, setCategoriaMenuVisible] = useState(false);
-  const [subcategoriaMenuVisible, setSubcategoriaMenuVisible] = useState(false);
+  const [viewMode] = useState<'all' | 'grouped'>('grouped');
 
   useEffect(() => {
     fetchInitialData();
@@ -41,7 +45,14 @@ const CatalogoScreen = ({ navigation }: Props) => {
 
   useEffect(() => {
     fetchProductos();
-  }, [searchQuery, selectedCategoria, selectedSubcategoria]);
+  }, [searchQuery, selectedCategoria]);
+
+  // Actualizar productos cuando la pantalla vuelve al foco
+  useFocusEffect(
+    useCallback(() => {
+      fetchProductos();
+    }, [searchQuery, selectedCategoria])
+  );
 
   const fetchInitialData = async () => {
     try {
@@ -49,10 +60,12 @@ const CatalogoScreen = ({ navigation }: Props) => {
         productosAPI.getCategorias(),
         productosAPI.getSubcategorias(),
       ]);
-      setCategorias(categoriasData);
-      setSubcategorias(subcategoriasData);
+      setCategorias(Array.isArray(categoriasData) ? categoriasData : []);
+      setSubcategorias(Array.isArray(subcategoriasData) ? subcategoriasData : []);
     } catch (err) {
       console.error('Error al cargar categorías:', err);
+      setCategorias([]);
+      setSubcategorias([]);
     }
   };
 
@@ -63,19 +76,20 @@ const CatalogoScreen = ({ navigation }: Props) => {
       
       if (searchQuery) params.search = searchQuery;
       if (selectedCategoria) params.categoria = selectedCategoria;
-      if (selectedSubcategoria) params.subcategoria = selectedSubcategoria;
       
       const data = await productosAPI.getAll(params);
-      setProductos(data.results);
+      setProductos(Array.isArray(data.results) ? data.results : Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error al cargar productos:', err);
+      setProductos([]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleAddToCart = (producto: Producto) => {
-    dispatch(addToCart({ producto, cantidad: 1 }));
+    // Navegar al detalle del producto en lugar de agregar directamente
+    navigation.navigate('ProductoDetalle', { productoId: producto.id });
   };
 
   const handleProductPress = (producto: Producto) => {
@@ -85,12 +99,40 @@ const CatalogoScreen = ({ navigation }: Props) => {
   const handleClearFilters = () => {
     setSearchQuery('');
     setSelectedCategoria(null);
-    setSelectedSubcategoria(null);
   };
 
-  const filteredSubcategorias = selectedCategoria
-    ? subcategorias.filter((s) => s.categoria === selectedCategoria)
-    : subcategorias;
+  // Agrupar productos por subcategoría
+  const getGroupedProducts = (): ProductoSection[] => {
+    if (searchQuery || !selectedCategoria) {
+      return [{ title: 'Todos los productos', data: productos }];
+    }
+
+    const subcatsMap = new Map<number | null, Producto[]>();
+    
+    productos.forEach((producto) => {
+      const subcatId = producto.subcategoria || null;
+      if (!subcatsMap.has(subcatId)) {
+        subcatsMap.set(subcatId, []);
+      }
+      subcatsMap.get(subcatId)!.push(producto);
+    });
+
+    const sections: ProductoSection[] = [];
+    
+    subcatsMap.forEach((prods, subcatId) => {
+      if (subcatId === null) {
+        sections.push({ title: 'Sin subcategoría', data: prods });
+      } else {
+        const subcat = subcategorias.find((s) => s.id === subcatId);
+        sections.push({
+          title: subcat?.nombre || 'Otros',
+          data: prods,
+        });
+      }
+    });
+
+    return sections;
+  };
 
   const renderProduct = ({ item }: { item: Producto }) => (
     <ProductCard
@@ -100,13 +142,15 @@ const CatalogoScreen = ({ navigation }: Props) => {
     />
   );
 
-  const selectedCategoriaName = selectedCategoria
-    ? categorias.find((c) => c.id === selectedCategoria)?.nombre
-    : null;
+  const renderSectionHeader = ({ section }: { section: ProductoSection }) => (
+    <View style={styles.sectionHeader}>
+      <Text variant="titleMedium" style={styles.sectionTitle}>
+        {section.title} ({section.data.length})
+      </Text>
+    </View>
+  );
 
-  const selectedSubcategoriaName = selectedSubcategoria
-    ? subcategorias.find((s) => s.id === selectedSubcategoria)?.nombre
-    : null;
+  const groupedProducts = getGroupedProducts();
 
   return (
     <View style={styles.container}>
@@ -120,117 +164,48 @@ const CatalogoScreen = ({ navigation }: Props) => {
         />
       </View>
 
-      {/* Filtros */}
-      <View style={styles.filtersContainer}>
-        {/* Categoría */}
-        <Menu
-          visible={categoriaMenuVisible}
-          onDismiss={() => setCategoriaMenuVisible(false)}
-          anchor={
-            <Button
-              mode="outlined"
-              onPress={() => setCategoriaMenuVisible(true)}
-              style={styles.filterButton}
-            >
-              {selectedCategoriaName || 'Categoría'}
-            </Button>
-          }
-        >
-          <Menu.Item
-            onPress={() => {
-              setSelectedCategoria(null);
-              setSelectedSubcategoria(null);
-              setCategoriaMenuVisible(false);
-            }}
-            title="Todas"
-          />
-          {categorias.map((cat) => (
-            <Menu.Item
-              key={cat.id}
-              onPress={() => {
-                setSelectedCategoria(cat.id);
-                setSelectedSubcategoria(null);
-                setCategoriaMenuVisible(false);
-              }}
-              title={cat.nombre}
-            />
-          ))}
-        </Menu>
-
-        {/* Subcategoría */}
-        <Menu
-          visible={subcategoriaMenuVisible}
-          onDismiss={() => setSubcategoriaMenuVisible(false)}
-          anchor={
-            <Button
-              mode="outlined"
-              onPress={() => setSubcategoriaMenuVisible(true)}
-              disabled={!selectedCategoria}
-              style={styles.filterButton}
-            >
-              {selectedSubcategoriaName || 'Subcategoría'}
-            </Button>
-          }
-        >
-          <Menu.Item
-            onPress={() => {
-              setSelectedSubcategoria(null);
-              setSubcategoriaMenuVisible(false);
-            }}
-            title="Todas"
-          />
-          {filteredSubcategorias.map((sub) => (
-            <Menu.Item
-              key={sub.id}
-              onPress={() => {
-                setSelectedSubcategoria(sub.id);
-                setSubcategoriaMenuVisible(false);
-              }}
-              title={sub.nombre}
-            />
-          ))}
-        </Menu>
-
-        {/* Botón limpiar filtros */}
-        {(selectedCategoria || selectedSubcategoria || searchQuery) && (
-          <Button
-            mode="text"
-            onPress={handleClearFilters}
-            compact
+      {/* Chips de categorías */}
+      {!searchQuery && (
+        <View style={styles.categoriesContainer}>
+          <Chip
+            icon={!selectedCategoria ? 'check' : undefined}
+            selected={!selectedCategoria}
+            onPress={() => setSelectedCategoria(null)}
+            style={styles.categoryChip}
           >
-            Limpiar
-          </Button>
-        )}
-      </View>
-
-      {/* Chips de filtros activos */}
-      {(selectedCategoria || selectedSubcategoria) && (
-        <View style={styles.activeFiltersContainer}>
-          {selectedCategoriaName && (
+            Todos
+          </Chip>
+          {Array.isArray(categorias) && categorias.map((cat) => (
             <Chip
-              onClose={() => {
-                setSelectedCategoria(null);
-                setSelectedSubcategoria(null);
-              }}
-              style={styles.filterChip}
+              key={cat.id}
+              icon={selectedCategoria === cat.id ? 'check' : undefined}
+              selected={selectedCategoria === cat.id}
+              onPress={() => setSelectedCategoria(cat.id)}
+              style={styles.categoryChip}
             >
-              {selectedCategoriaName}
+              {cat.nombre}
             </Chip>
-          )}
-          {selectedSubcategoriaName && (
-            <Chip
-              onClose={() => setSelectedSubcategoria(null)}
-              style={styles.filterChip}
-            >
-              {selectedSubcategoriaName}
-            </Chip>
-          )}
+          ))}
         </View>
       )}
 
       {/* Lista de productos */}
       {loading ? (
         <LoadingOverlay visible message="Cargando productos..." />
+      ) : viewMode === 'grouped' && selectedCategoria && !searchQuery ? (
+        <SectionList
+          sections={groupedProducts}
+          renderItem={renderProduct}
+          renderSectionHeader={renderSectionHeader}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.list}
+          stickySectionHeadersEnabled={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text variant="bodyLarge">No se encontraron productos</Text>
+            </View>
+          }
+        />
       ) : (
         <FlatList
           data={productos}
@@ -261,23 +236,25 @@ const styles = StyleSheet.create({
   searchbar: {
     elevation: 0,
   },
-  filtersContainer: {
+  categoriesContainer: {
     flexDirection: 'row',
     padding: spacing.md,
     gap: spacing.sm,
-    alignItems: 'center',
+    flexWrap: 'wrap',
   },
-  filterButton: {
-    flex: 1,
+  categoryChip: {
+    marginRight: spacing.xs,
+    marginBottom: spacing.xs,
   },
-  activeFiltersContainer: {
-    flexDirection: 'row',
+  sectionHeader: {
+    backgroundColor: theme.colors.surfaceVariant,
     paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.sm,
   },
-  filterChip: {
-    backgroundColor: theme.colors.primaryContainer,
+  sectionTitle: {
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
   list: {
     padding: spacing.md,
