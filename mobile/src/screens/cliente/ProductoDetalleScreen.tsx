@@ -151,19 +151,12 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
 
           <View style={styles.section}>
             <Text variant="titleMedium" style={styles.sectionTitle}>
-              Precios
+              Precio
             </Text>
             <View style={styles.pricesContainer}>
               <View style={styles.priceBox}>
-                <Text variant="labelMedium">Lista 3</Text>
-                <Text variant="headlineSmall" style={styles.price}>
+                <Text variant="headlineLarge" style={styles.price}>
                   {formatPrice(producto.precio_lista_3)}
-                </Text>
-              </View>
-              <View style={styles.priceBox}>
-                <Text variant="labelMedium">Lista 4</Text>
-                <Text variant="headlineMedium" style={styles.priceSecondary}>
-                  {formatPrice(producto.precio_lista_4)}
                 </Text>
               </View>
             </View>
@@ -249,7 +242,9 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
         }}
         style={styles.snackbar}
       >
-        ✓ {cantidad} {cantidad === 1 ? 'producto agregado' : 'productos agregados'} al carrito
+        <Text style={{ color: theme.colors.onSurface }}>
+          ✓ {cantidad} {cantidad === 1 ? 'producto agregado' : 'productos agregados'} al carrito
+        </Text>
       </Snackbar>
     </>
   );

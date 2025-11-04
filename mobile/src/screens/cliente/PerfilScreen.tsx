@@ -4,10 +4,9 @@ import { Text, Button, Surface } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ClienteTabParamList } from '@/navigation/ClienteStack';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { logout } from '@/store/slices/authSlice';
+import { logout, updateProfile } from '@/store/slices/authSlice';
 import { InputField } from '@/components';
 import { theme, spacing } from '@/theme';
-import { authAPI } from '@/services/api';
 
 type Props = NativeStackScreenProps<ClienteTabParamList, 'Perfil'>;
 
@@ -33,11 +32,11 @@ const PerfilScreen = ({ navigation }: Props) => {
   const handleSave = async () => {
     try {
       setLoading(true);
-      await authAPI.updateProfile(formData);
+      await dispatch(updateProfile(formData)).unwrap();
       Alert.alert('Éxito', 'Perfil actualizado correctamente');
       setEditing(false);
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.error || 'Error al actualizar perfil');
+      Alert.alert('Error', error || 'Error al actualizar perfil');
     } finally {
       setLoading(false);
     }

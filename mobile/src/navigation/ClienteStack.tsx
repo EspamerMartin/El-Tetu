@@ -4,7 +4,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // Screens
-import HomeScreen from '@/screens/cliente/HomeScreen';
 import CatalogoScreen from '@/screens/cliente/CatalogoScreen';
 import ProductoDetalleScreen from '@/screens/cliente/ProductoDetalleScreen';
 import CarritoScreen from '@/screens/cliente/CarritoScreen';
@@ -13,7 +12,6 @@ import PedidoDetalleScreen from '@/screens/cliente/PedidoDetalleScreen';
 import PerfilScreen from '@/screens/cliente/PerfilScreen';
 
 export type ClienteTabParamList = {
-  Home: undefined;
   Catalogo: undefined;
   Carrito: undefined;
   MisPedidos: undefined;
@@ -33,8 +31,7 @@ const Stack = createNativeStackNavigator<ClienteStackParamList>();
  * ClienteTabs
  * 
  * Bottom Tab Navigator para cliente con:
- * - Home: Pantalla principal con promociones
- * - Catálogo: Productos con filtros
+ * - Catálogo: Pantalla principal con productos y promociones
  * - Carrito: Carrito de compras
  * - Mis Pedidos: Historial de compras
  * - Perfil: Datos del usuario
@@ -49,22 +46,12 @@ const ClienteTabs = () => {
       }}
     >
       <Tab.Screen
-        name="Home"
-        component={HomeScreen}
+        name="Catalogo"
+        component={CatalogoScreen}
         options={{
           title: 'Inicio',
           tabBarIcon: ({ color, size }) => (
             <Icon name="home" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Catalogo"
-        component={CatalogoScreen}
-        options={{
-          title: 'Catálogo',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="shopping" color={color} size={size} />
           ),
         }}
       />
@@ -107,7 +94,7 @@ const ClienteTabs = () => {
  * ClienteStack
  * 
  * Stack principal para clientes con navegación a:
- * - Bottom Tabs (Home, Catálogo, Carrito, etc.)
+ * - Bottom Tabs (Catálogo, Carrito, Mis Pedidos, Perfil)
  * - Detalle de producto (modal)
  * - Detalle de pedido (modal)
  */

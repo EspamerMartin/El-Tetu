@@ -86,6 +86,19 @@ export const logout = createAsyncThunk(
   }
 );
 
+export const updateProfile = createAsyncThunk(
+  'auth/updateProfile',
+  async (data: { telefono?: string; direccion?: string }, { rejectWithValue }) => {
+    try {
+      const updatedUser = await authAPI.updateProfile(data);
+      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      return updatedUser;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.error || 'Error al actualizar perfil');
+    }
+  }
+);
+
 // Slice
 
 const authSlice = createSlice({
@@ -148,6 +161,20 @@ const authSlice = createSlice({
       state.access_token = null;
       state.refresh_token = null;
       state.isAuthenticated = false;
+    });
+
+    // Update Profile
+    builder.addCase(updateProfile.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(updateProfile.fulfilled, (state, action) => {
+      state.loading = false;
+      state.user = action.payload;
+    });
+    builder.addCase(updateProfile.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload as string;
     });
   },
 });

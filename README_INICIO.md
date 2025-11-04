@@ -107,24 +107,7 @@ npm start
 
 ## 👥 Usuarios de Prueba
 
-Al ejecutar `start_backend.bat`, se crean automáticamente estos usuarios:
-
-### 🔐 **Administrador**
-- **Email:** `admin@eltetu.com`
-- **Password:** `admin123`
-- **Permisos:** Acceso completo al sistema
-
-### 👔 **Vendedor**
-- **Email:** `vendedor@eltetu.com`
-- **Password:** `vendedor123`
-- **Permisos:** Gestión de productos y pedidos
-
-### 👤 **Cliente**
-- **Email:** `cliente@eltetu.com`
-- **Password:** `cliente123`
-- **Permisos:** Realizar pedidos
-
----
+Al ejecutar `start_backend.bat`, se crean automáticamente estos usuarios
 
 ## 🛠️ Comandos Útiles
 

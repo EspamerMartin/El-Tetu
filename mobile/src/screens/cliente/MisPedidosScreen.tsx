@@ -1,21 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Text } from 'react-native-paper';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ClienteTabParamList } from '@/navigation/ClienteStack';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ClienteStackParamList } from '@/navigation/ClienteStack';
 import { pedidosAPI } from '@/services/api';
 import { Pedido } from '@/types';
 import { PedidoCard, LoadingOverlay } from '@/components';
 import { theme, spacing } from '@/theme';
 
-type Props = NativeStackScreenProps<ClienteTabParamList, 'MisPedidos'>;
+type NavigationProp = NativeStackNavigationProp<ClienteStackParamList>;
 
 /**
  * MisPedidosScreen
  * 
  * Pantalla con el historial de pedidos del cliente
  */
-const MisPedidosScreen = ({ navigation }: Props) => {
+const MisPedidosScreen = () => {
+  const navigation = useNavigation<NavigationProp>();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -25,11 +27,20 @@ const MisPedidosScreen = ({ navigation }: Props) => {
     fetchPedidos();
   }, []);
 
+  // Recargar pedidos cuando la pantalla recibe foco
+  useFocusEffect(
+    useCallback(() => {
+      fetchPedidos();
+    }, [])
+  );
+
   const fetchPedidos = async () => {
     try {
       setError(null);
       const data = await pedidosAPI.getAll({ mine: true });
-      setPedidos(data.results);
+      // Manejar tanto respuestas paginadas como arrays directos
+      const pedidosList = Array.isArray(data) ? data : (data.results || []);
+      setPedidos(pedidosList);
     } catch (err: any) {
       setError('Error al cargar pedidos');
       console.error(err);

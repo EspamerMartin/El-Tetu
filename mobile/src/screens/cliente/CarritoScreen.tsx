@@ -185,7 +185,7 @@ const CarritoScreen = ({ navigation }: Props) => {
         </Text>
         <Button
           mode="contained"
-          onPress={() => navigation.navigate('Home')}
+          onPress={() => navigation.navigate('Catalogo')}
           style={styles.emptyButton}
         >
           Ir al catálogo

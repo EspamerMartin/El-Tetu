@@ -51,19 +51,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
         <View style={styles.priceContainer}>
           <View>
-            <Text variant="labelSmall" style={styles.priceLabel}>
-              Lista 3
-            </Text>
-            <Text variant="titleLarge" style={styles.price}>
+            <Text variant="headlineMedium" style={styles.price}>
               {formatPrice(producto.precio_lista_3)}
-            </Text>
-          </View>
-          <View>
-            <Text variant="labelSmall" style={styles.priceLabel}>
-              Lista 4
-            </Text>
-            <Text variant="titleMedium" style={styles.priceSecondary}>
-              {formatPrice(producto.precio_lista_4)}
             </Text>
           </View>
         </View>
@@ -95,11 +84,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </View>
 
-        {showAddButton && producto.tiene_stock && onAddToCart && (
+        {showAddButton && producto.tiene_stock && (
           <Button
             mode="contained"
             icon="eye"
-            onPress={onAddToCart}
+            onPress={onPress}
             style={styles.button}
           >
             Ver producto

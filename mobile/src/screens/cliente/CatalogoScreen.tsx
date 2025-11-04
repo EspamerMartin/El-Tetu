@@ -93,11 +93,6 @@ const CatalogoScreen = () => {
     }
   };
 
-  const handleAddToCart = (producto: Producto) => {
-    // Navegar al detalle del producto en lugar de agregar directamente
-    navigation.navigate('ProductoDetalle', { productoId: producto.id });
-  };
-
   const handleProductPress = (producto: Producto) => {
     navigation.navigate('ProductoDetalle', { productoId: producto.id });
   };
@@ -144,7 +139,6 @@ const CatalogoScreen = () => {
     <ProductCard
       producto={item}
       onPress={() => handleProductPress(item)}
-      onAddToCart={() => handleAddToCart(item)}
     />
   );
 
