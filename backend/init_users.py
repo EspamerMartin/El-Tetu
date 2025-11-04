@@ -18,7 +18,7 @@ User = get_user_model()
 # Definir usuarios de prueba
 USUARIOS_INICIALES = [
     {
-        'email': 'admin@eltetu.com',
+        'email': 'admin@mail.com',
         'password': 'admin123',
         'nombre': 'Admin',
         'apellido': 'Principal',
@@ -29,7 +29,7 @@ USUARIOS_INICIALES = [
         'direccion': 'Montevideo, Uruguay'
     },
     {
-        'email': 'vendedor@eltetu.com',
+        'email': 'vendedor@mail.com',
         'password': 'vendedor123',
         'nombre': 'Carlos',
         'apellido': 'Vendedor',
@@ -40,7 +40,7 @@ USUARIOS_INICIALES = [
         'direccion': 'Montevideo, Uruguay'
     },
     {
-        'email': 'cliente@eltetu.com',
+        'email': 'cliente@mail.com',
         'password': 'cliente123',
         'nombre': 'María',
         'apellido': 'Cliente',
@@ -73,13 +73,13 @@ def crear_usuarios():
     print("CREDENCIALES DE ACCESO")
     print("="*60)
     print("\n🔐 ADMINISTRADOR:")
-    print("   Email: admin@eltetu.com")
+    print("   Email: admin@mail.com")
     print("   Password: admin123")
     print("\n👔 VENDEDOR:")
-    print("   Email: vendedor@eltetu.com")
+    print("   Email: vendedor@mail.com")
     print("   Password: vendedor123")
     print("\n👤 CLIENTE:")
-    print("   Email: cliente@eltetu.com")
+    print("   Email: cliente@mail.com")
     print("   Password: cliente123")
     print("\n" + "="*60 + "\n")
 
