@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Surface, useTheme } from 'react-native-paper';
+import { Text, Surface, useTheme, Avatar } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { clientesAPI, productosAPI, pedidosAPI } from '@/services/api';
 import { LoadingOverlay } from '@/components';
+import { useAppSelector } from '@/store';
 import { spacing } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -13,30 +15,54 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
  */
 const AdminHomeScreen = () => {
   const { colors } = useTheme();
+  const { user } = useAppSelector((state) => state.auth);
 
-  const { data: usuarios, loading: loadingUsuarios } = useFetch(() => clientesAPI.getAll());
-  const { data: productos, loading: loadingProductos } = useFetch(() => productosAPI.getAll());
-  const { data: pedidos, loading: loadingPedidos } = useFetch(() => pedidosAPI.getAll());
+  const { data: usuarios, loading: loadingUsuarios, refetch: refetchUsuarios } = useFetch(() => clientesAPI.getAll());
+  const { data: productos, loading: loadingProductos, refetch: refetchProductos } = useFetch(() => productosAPI.getAll());
+  const { data: pedidos, loading: loadingPedidos, refetch: refetchPedidos } = useFetch(() => pedidosAPI.getAll());
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refetchUsuarios();
+      refetchProductos();
+      refetchPedidos();
+    }, [])
+  );
 
   const loading = loadingUsuarios || loadingProductos || loadingPedidos;
+
+  const totalPedidos = pedidos?.results?.length || 0;
+  const hoy = new Date();
+  const pedidosMes = pedidos?.results?.filter((p: any) => {
+    const fechaPedido = new Date(p.fecha_pedido);
+    return fechaPedido.getMonth() === hoy.getMonth() && 
+           fechaPedido.getFullYear() === hoy.getFullYear();
+  }) || [];
 
   const stats = {
     totalUsuarios: usuarios?.count || 0,
     productosActivos: productos?.results?.filter((p: any) => p.activo).length || 0,
-    pedidosMes: pedidos?.results?.filter((p: any) => {
-      const fechaPedido = new Date(p.fecha_pedido);
-      const hoy = new Date();
-      return fechaPedido.getMonth() === hoy.getMonth() && fechaPedido.getFullYear() === hoy.getFullYear();
-    }).length || 0,
-    ventasMes: pedidos?.results?.reduce((acc: number, p: any) => acc + parseFloat(p.total), 0) || 0,
+    pedidosMes: pedidosMes.length,
+    ventasMes: pedidosMes.reduce((acc: number, p: any) => {
+      const total = parseFloat(p.total) || 0;
+      return acc + total;
+    }, 0),
   };
+
+  const iniciales = user ? `${user.nombre.charAt(0)}${user.apellido.charAt(0)}` : 'AD';
 
   return (
     <View style={styles.container}>
       {loading && <LoadingOverlay visible message="Cargando estadísticas..." />}
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text variant="headlineMedium" style={styles.title}>Dashboard Administrativo</Text>
+        <View style={styles.header}>
+          <View>
+            <Text variant="headlineMedium" style={styles.title}>Dashboard</Text>
+            <Text variant="bodyMedium" style={styles.subtitle}>Bienvenido, {user?.nombre}</Text>
+          </View>
+          <Avatar.Text size={48} label={iniciales} style={{ backgroundColor: colors.primary }} />
+        </View>
 
         <View style={styles.kpiContainer}>
           <Surface style={[styles.kpiCard, { backgroundColor: colors.primaryContainer }]} elevation={2}>
@@ -83,9 +109,18 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing.md,
   },
-  title: {
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: spacing.lg,
+  },
+  title: {
     fontWeight: 'bold',
+  },
+  subtitle: {
+    opacity: 0.7,
+    marginTop: spacing.xs,
   },
   kpiContainer: {
     flexDirection: 'row',

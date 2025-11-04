@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, FAB, Card, Chip, IconButton } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { promocionesAPI } from '@/services/api';
 import { LoadingOverlay } from '@/components';
 import { theme, spacing } from '@/theme';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const PromocionesListScreen = ({ navigation }: any) => {
   const { data: promocionesData, loading, refetch } = useFetch(() => promocionesAPI.getAll());
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refetch();
+    }, [])
+  );
 
   const promociones = promocionesData?.results || [];
 
@@ -57,6 +65,12 @@ const PromocionesListScreen = ({ navigation }: any) => {
               </Card.Content>
             </Card>
           )}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Icon name="tag-percent" size={64} color={theme.colors.outline} />
+              <Text variant="bodyLarge">No hay promociones</Text>
+            </View>
+          }
         />
       )}
 
@@ -71,6 +85,7 @@ const styles = StyleSheet.create({
   card: { marginBottom: spacing.md },
   actions: { flexDirection: 'row' },
   chip: { marginTop: spacing.sm },
+  empty: { alignItems: 'center', padding: spacing.xxl },
   fab: { position: 'absolute', bottom: spacing.lg, right: spacing.lg },
 });
 

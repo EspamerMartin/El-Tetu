@@ -1,21 +1,46 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, FAB, Card, Avatar, Chip, IconButton, Searchbar } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { clientesAPI } from '@/services/api';
 import { LoadingOverlay } from '@/components';
 import { theme, spacing } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
+const getRolLabel = (rol: string) => {
+  const roles: Record<string, string> = {
+    admin: 'Administrador',
+    vendedor: 'Vendedor',
+    cliente: 'Cliente',
+  };
+  return roles[rol] || rol;
+};
+
+const getRolColor = (rol: string, colors: any) => {
+  const roleColors: Record<string, string> = {
+    admin: colors.error,
+    vendedor: colors.tertiary,
+    cliente: colors.primary,
+  };
+  return roleColors[rol] || colors.primary;
+};
+
 const UsuariosListScreen = ({ navigation }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { data: usuariosData, loading, refetch } = useFetch(() => clientesAPI.getAll());
 
+  useFocusEffect(
+    React.useCallback(() => {
+      refetch();
+    }, [])
+  );
+
   const usuarios = usuariosData?.results || [];
   const usuariosFiltrados = searchQuery
     ? usuarios.filter((u: any) =>
-        u.usuario.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.usuario.email.toLowerCase().includes(searchQuery.toLowerCase())
+        u.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : usuarios;
 
@@ -56,9 +81,9 @@ const UsuariosListScreen = ({ navigation }: any) => {
           renderItem={({ item }: any) => (
             <Card style={styles.card}>
               <Card.Title
-                title={`${item.usuario.nombre} ${item.usuario.apellido}`}
-                subtitle={item.usuario.email}
-                left={(props) => <Avatar.Text {...props} label={item.usuario.nombre.charAt(0)} size={40} />}
+                title={`${item.nombre} ${item.apellido}`}
+                subtitle={item.email}
+                left={(props) => <Avatar.Text {...props} label={item.nombre.charAt(0)} size={40} />}
                 right={(props) => (
                   <View style={styles.actions}>
                     <IconButton {...props} icon="pencil" onPress={() => navigation.navigate('UsuarioForm', { usuarioId: item.id })} />
@@ -67,9 +92,22 @@ const UsuariosListScreen = ({ navigation }: any) => {
                 )}
               />
               <Card.Content>
-                <Chip icon={item.usuario.is_active ? 'check' : 'close'} compact>
-                  {item.usuario.is_active ? 'Activo' : 'Inactivo'}
-                </Chip>
+                <View style={styles.chipsRow}>
+                  <Chip 
+                    icon={item.is_active ? 'check' : 'close'} 
+                    compact 
+                    style={styles.chipSpacing}
+                  >
+                    {item.is_active ? 'Activo' : 'Inactivo'}
+                  </Chip>
+                  <Chip 
+                    compact
+                    textStyle={{ color: getRolColor(item.rol, theme.colors) }}
+                    style={[styles.chipSpacing, { borderColor: getRolColor(item.rol, theme.colors) }]}
+                  >
+                    {getRolLabel(item.rol)}
+                  </Chip>
+                </View>
               </Card.Content>
             </Card>
           )}
@@ -93,6 +131,8 @@ const styles = StyleSheet.create({
   list: { padding: spacing.md },
   card: { marginBottom: spacing.md },
   actions: { flexDirection: 'row' },
+  chipsRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
+  chipSpacing: { marginRight: spacing.xs },
   empty: { alignItems: 'center', padding: spacing.xxl },
   fab: { position: 'absolute', bottom: spacing.lg, right: spacing.lg },
 });

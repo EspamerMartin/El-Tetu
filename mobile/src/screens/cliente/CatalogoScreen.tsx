@@ -1,14 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, SectionList } from 'react-native';
-import { Text, Searchbar, Chip } from 'react-native-paper';
+import { Text, Searchbar, Chip, Card, Button } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ClienteStackParamList } from '@/navigation/ClienteStack';
-import { productosAPI } from '@/services/api';
-import { Producto, Categoria, Subcategoria } from '@/types';
+import { productosAPI, promocionesAPI } from '@/services/api';
+import { Producto, Categoria, Subcategoria, Promocion } from '@/types';
 import { ProductCard, LoadingOverlay } from '@/components';
 import { useAppDispatch } from '@/store';
 import { theme, spacing } from '@/theme';
+import { formatPrice } from '@/utils';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type NavigationProp = NativeStackNavigationProp<ClienteStackParamList>;
 
@@ -33,6 +35,7 @@ const CatalogoScreen = () => {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([]);
+  const [promociones, setPromociones] = useState<Promocion[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,16 +59,19 @@ const CatalogoScreen = () => {
 
   const fetchInitialData = async () => {
     try {
-      const [categoriasData, subcategoriasData] = await Promise.all([
+      const [categoriasData, subcategoriasData, promocionesData] = await Promise.all([
         productosAPI.getCategorias(),
         productosAPI.getSubcategorias(),
+        promocionesAPI.getAll(),
       ]);
-      setCategorias(Array.isArray(categoriasData) ? categoriasData : []);
-      setSubcategorias(Array.isArray(subcategoriasData) ? subcategoriasData : []);
+      setCategorias(categoriasData?.results || []);
+      setSubcategorias(subcategoriasData?.results || []);
+      setPromociones(promocionesData?.results?.filter((p: Promocion) => p.activo && p.es_vigente) || []);
     } catch (err) {
       console.error('Error al cargar categorías:', err);
       setCategorias([]);
       setSubcategorias([]);
+      setPromociones([]);
     }
   };
 
@@ -78,7 +84,7 @@ const CatalogoScreen = () => {
       if (selectedCategoria) params.categoria = selectedCategoria;
       
       const data = await productosAPI.getAll(params);
-      setProductos(Array.isArray(data.results) ? data.results : Array.isArray(data) ? data : []);
+      setProductos(data?.results || []);
     } catch (err) {
       console.error('Error al cargar productos:', err);
       setProductos([]);
@@ -164,6 +170,40 @@ const CatalogoScreen = () => {
         />
       </View>
 
+      {/* Promociones activas */}
+      {!searchQuery && promociones.length > 0 && (
+        <View style={styles.promocionesContainer}>
+          <Text variant="titleMedium" style={styles.promocionesTitle}>🎉 Promociones Activas</Text>
+          <FlatList
+            horizontal
+            data={promociones}
+            keyExtractor={(item) => item.id.toString()}
+            showsHorizontalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <Card style={styles.promocionCard}>
+                <Card.Content>
+                  <View style={styles.promocionBadge}>
+                    <Icon name="tag" size={16} color={theme.colors.onPrimary} />
+                    <Text variant="labelSmall" style={{ color: theme.colors.onPrimary }}>
+                      {item.tipo === 'descuento_porcentaje' && `${item.descuento_porcentaje}% OFF`}
+                      {item.tipo === 'descuento_fijo' && `$${item.descuento_fijo} OFF`}
+                      {item.tipo === 'caja_cerrada' && 'Caja Cerrada'}
+                    </Text>
+                  </View>
+                  <Text variant="titleSmall" style={styles.promocionNombre}>{item.nombre}</Text>
+                  <Text variant="bodySmall" numberOfLines={2}>{item.descripcion}</Text>
+                  {item.cantidad_minima > 1 && (
+                    <Text variant="labelSmall" style={styles.promocionCondicion}>
+                      Mín: {item.cantidad_minima} unidades
+                    </Text>
+                  )}
+                </Card.Content>
+              </Card>
+            )}
+          />
+        </View>
+      )}
+
       {/* Chips de categorías */}
       {!searchQuery && (
         <View style={styles.categoriesContainer}>
@@ -235,6 +275,40 @@ const styles = StyleSheet.create({
   },
   searchbar: {
     elevation: 0,
+  },
+  promocionesContainer: {
+    paddingVertical: spacing.md,
+    backgroundColor: theme.colors.surfaceVariant,
+  },
+  promocionesTitle: {
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    fontWeight: '600',
+  },
+  promocionCard: {
+    width: 250,
+    marginLeft: spacing.md,
+    backgroundColor: theme.colors.primaryContainer,
+  },
+  promocionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: spacing.xs,
+    gap: 4,
+  },
+  promocionNombre: {
+    fontWeight: 'bold',
+    marginBottom: spacing.xs,
+  },
+  promocionCondicion: {
+    marginTop: spacing.xs,
+    color: theme.colors.secondary,
+    fontStyle: 'italic',
   },
   categoriesContainer: {
     flexDirection: 'row',

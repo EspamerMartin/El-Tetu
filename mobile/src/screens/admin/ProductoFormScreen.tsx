@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Button, Switch } from 'react-native-paper';
+import { Text, Button, Switch, Menu } from 'react-native-paper';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
 import { InputField, LoadingOverlay } from '@/components';
 import { theme, spacing } from '@/theme';
+import { Categoria, Subcategoria } from '@/types';
 
 const ProductoFormScreen = ({ route, navigation }: any) => {
   const { productoId } = route.params || {};
@@ -16,12 +17,30 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
   const [stock, setStock] = useState('0');
   const [precioLista3, setPrecioLista3] = useState('');
   const [precioLista4, setPrecioLista4] = useState('');
+  const [categoria, setCategoria] = useState<number | null>(null);
+  const [subcategoria, setSubcategoria] = useState<number | null>(null);
   const [activo, setActivo] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [categoriaMenuVisible, setCategoriaMenuVisible] = useState(false);
+  const [subcategoriaMenuVisible, setSubcategoriaMenuVisible] = useState(false);
 
   const { data: producto, loading } = useFetch(
     isEdit ? () => productosAPI.getById(productoId) : () => Promise.resolve(null)
   );
+
+  const { data: categoriasData, loading: loadingCategorias, refetch: refetchCategorias } = useFetch(() => productosAPI.getCategorias());
+  const { data: subcategoriasData, loading: loadingSubcategorias, refetch: refetchSubcategorias } = useFetch(() => 
+    categoria ? productosAPI.getSubcategorias(categoria) : Promise.resolve(null)
+  );
+
+  const categorias: Categoria[] = categoriasData?.results || [];
+  const subcategorias: Subcategoria[] = subcategoriasData?.results || [];
+
+  useEffect(() => {
+    if (categoria) {
+      refetchSubcategorias();
+    }
+  }, [categoria]);
 
   useEffect(() => {
     if (producto) {
@@ -31,27 +50,34 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
       setStock(producto.stock.toString());
       setPrecioLista3(producto.precio_lista_3 || '');
       setPrecioLista4(producto.precio_lista_4 || '');
+      setCategoria(producto.categoria || null);
+      setSubcategoria(producto.subcategoria || null);
       setActivo(producto.activo);
     }
   }, [producto]);
 
   const handleSave = async () => {
-    if (!nombre || !precioLista3) {
-      Alert.alert('Error', 'Nombre y precio son obligatorios');
+    if (!nombre || !precioLista3 || !categoria) {
+      Alert.alert('Error', 'Nombre, precio y categoría son obligatorios');
       return;
     }
 
     try {
       setSaving(true);
-      const data = {
+      const data: any = {
         nombre,
         descripcion,
         codigo,
         stock: parseInt(stock) || 0,
         precio_lista_3: precioLista3,
         precio_lista_4: precioLista4,
+        categoria,
         activo,
       };
+
+      if (subcategoria) {
+        data.subcategoria = subcategoria;
+      }
 
       if (isEdit) {
         await productosAPI.update(productoId, data);
@@ -70,9 +96,12 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
 
   if (loading) return <LoadingOverlay visible message="Cargando..." />;
 
+  const hayCategorias = categorias.length > 0;
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {saving && <LoadingOverlay visible message="Guardando..." />}
+      {loadingCategorias && <LoadingOverlay visible message="Cargando categorías..." />}
 
       <Text variant="headlineSmall" style={styles.title}>
         {isEdit ? 'Editar Producto' : 'Nuevo Producto'}
@@ -81,6 +110,81 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
       <InputField label="Nombre" value={nombre} onChangeText={setNombre} />
       <InputField label="Descripción" value={descripcion} onChangeText={setDescripcion} multiline numberOfLines={3} />
       <InputField label="Código" value={codigo} onChangeText={setCodigo} />
+      
+      <View style={styles.menuContainer}>
+        <Text variant="labelLarge" style={styles.label}>Categoría *</Text>
+        {!hayCategorias && !loadingCategorias && (
+          <Text variant="bodySmall" style={styles.errorText}>
+            No hay categorías disponibles. Crea una categoría primero.
+          </Text>
+        )}
+        <Menu
+          visible={categoriaMenuVisible}
+          onDismiss={() => setCategoriaMenuVisible(false)}
+          anchor={
+            <Button 
+              mode="outlined" 
+              onPress={() => setCategoriaMenuVisible(true)}
+              icon="chevron-down"
+              contentStyle={styles.menuButton}
+              disabled={!hayCategorias}
+            >
+              {categoria ? categorias.find(c => c.id === categoria)?.nombre || 'Seleccionar categoría' : 'Seleccionar categoría'}
+            </Button>
+          }
+        >
+          {categorias.map((cat) => (
+            <Menu.Item
+              key={cat.id}
+              onPress={() => {
+                setCategoria(cat.id);
+                setSubcategoria(null);
+                setCategoriaMenuVisible(false);
+              }}
+              title={cat.nombre}
+            />
+          ))}
+        </Menu>
+      </View>
+
+      {categoria && subcategorias && subcategorias.length > 0 && (
+        <View style={styles.menuContainer}>
+          <Text variant="labelLarge" style={styles.label}>Subcategoría</Text>
+          <Menu
+            visible={subcategoriaMenuVisible}
+            onDismiss={() => setSubcategoriaMenuVisible(false)}
+            anchor={
+              <Button 
+                mode="outlined" 
+                onPress={() => setSubcategoriaMenuVisible(true)}
+                icon="chevron-down"
+                contentStyle={styles.menuButton}
+              >
+                {subcategoria ? subcategorias.find(s => s.id === subcategoria)?.nombre || 'Seleccionar subcategoría' : 'Seleccionar subcategoría'}
+              </Button>
+            }
+          >
+            <Menu.Item
+              onPress={() => {
+                setSubcategoria(null);
+                setSubcategoriaMenuVisible(false);
+              }}
+              title="Sin subcategoría"
+            />
+            {subcategorias.map((sub) => (
+              <Menu.Item
+                key={sub.id}
+                onPress={() => {
+                  setSubcategoria(sub.id);
+                  setSubcategoriaMenuVisible(false);
+                }}
+                title={sub.nombre}
+              />
+            ))}
+          </Menu>
+        </View>
+      )}
+
       <InputField label="Stock" value={stock} onChangeText={setStock} keyboardType="numeric" />
       <InputField label="Precio Lista 3" value={precioLista3} onChangeText={setPrecioLista3} keyboardType="decimal-pad" />
       <InputField label="Precio Lista 4" value={precioLista4} onChangeText={setPrecioLista4} keyboardType="decimal-pad" />
@@ -101,6 +205,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   content: { padding: spacing.md },
   title: { marginBottom: spacing.lg, fontWeight: 'bold' },
+  menuContainer: { marginVertical: spacing.sm },
+  label: { marginBottom: spacing.xs },
+  menuButton: { justifyContent: 'flex-start' },
+  errorText: { color: theme.colors.error, marginBottom: spacing.sm },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: spacing.md },
   button: { marginTop: spacing.lg },
 });

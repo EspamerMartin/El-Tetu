@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
 import { Text, Chip } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { pedidosAPI } from '@/services/api';
 import { PedidoCard, LoadingOverlay } from '@/components';
@@ -14,6 +15,12 @@ const PedidosAdminListScreen = ({ navigation }: any) => {
 
   const { data: pedidosData, loading, refetch } = useFetch(
     () => pedidosAPI.getAll(estadoFilter ? { estado: estadoFilter } : {})
+  );
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refetch();
+    }, [])
   );
 
   const pedidos = pedidosData?.results || [];

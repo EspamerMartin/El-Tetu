@@ -141,6 +141,33 @@ def update_estado_view(request, pk):
         )
 
 
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated, IsAdminOrVendedor])
+def rechazar_pedido_view(request, pk):
+    """
+    Vista para rechazar un pedido (cambiar estado a CANCELADO).
+    PUT /api/pedidos/{id}/rechazar/
+    
+    Solo admin y vendedor pueden rechazar pedidos.
+    Solo se pueden rechazar pedidos en estado PENDIENTE.
+    """
+    pedido = get_object_or_404(Pedido, pk=pk)
+    
+    if pedido.estado != 'PENDIENTE':
+        return Response(
+            {'error': 'Solo se pueden rechazar pedidos pendientes'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    pedido.estado = 'CANCELADO'
+    pedido.save()
+    
+    return Response(
+        PedidoSerializer(pedido).data,
+        status=status.HTTP_200_OK
+    )
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def export_pdf_view(request, pk):

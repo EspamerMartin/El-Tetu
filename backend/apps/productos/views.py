@@ -20,9 +20,14 @@ class CategoriaListCreateView(generics.ListCreateAPIView):
     Vista para listar y crear categorías.
     GET/POST /api/productos/categorias/
     """
-    queryset = Categoria.objects.filter(activo=True)
     serializer_class = CategoriaSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Admin ve todas, otros solo activas."""
+        if self.request.user.is_admin():
+            return Categoria.objects.all()
+        return Categoria.objects.filter(activo=True)
     
     def get_permissions(self):
         """Solo admin puede crear categorías."""
@@ -48,11 +53,17 @@ class SubcategoriaListCreateView(generics.ListCreateAPIView):
     Vista para listar y crear subcategorías.
     GET/POST /api/productos/subcategorias/
     """
-    queryset = Subcategoria.objects.filter(activo=True).select_related('categoria')
     serializer_class = SubcategoriaSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['categoria']
+    
+    def get_queryset(self):
+        """Admin ve todas, otros solo activas."""
+        queryset = Subcategoria.objects.select_related('categoria')
+        if self.request.user.is_admin():
+            return queryset
+        return queryset.filter(activo=True)
     
     def get_permissions(self):
         """Solo admin puede crear subcategorías."""

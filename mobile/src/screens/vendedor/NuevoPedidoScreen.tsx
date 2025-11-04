@@ -42,8 +42,8 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
   const clientesFiltrados = searchCliente
     ? clientes.filter(c => 
-        c.usuario.nombre.toLowerCase().includes(searchCliente.toLowerCase()) ||
-        c.usuario.email.toLowerCase().includes(searchCliente.toLowerCase())
+        c.nombre.toLowerCase().includes(searchCliente.toLowerCase()) ||
+        c.email.toLowerCase().includes(searchCliente.toLowerCase())
       )
     : clientes;
 
@@ -153,8 +153,8 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
           {clientesFiltrados.map((cliente) => (
             <List.Item
               key={cliente.id}
-              title={`${cliente.usuario.nombre} ${cliente.usuario.apellido}`}
-              description={cliente.usuario.email}
+              title={`${cliente.nombre} ${cliente.apellido}`}
+              description={cliente.email}
               left={(props) => <List.Icon {...props} icon="account" />}
               onPress={() => handleSelectCliente(cliente)}
             />
@@ -167,7 +167,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
         <View style={styles.container}>
           <Surface style={styles.clienteCard} elevation={2}>
             <Text variant="titleSmall">Cliente seleccionado:</Text>
-            <Text variant="bodyLarge">{clienteSeleccionado?.usuario.nombre} {clienteSeleccionado?.usuario.apellido}</Text>
+            <Text variant="bodyLarge">{clienteSeleccionado?.nombre} {clienteSeleccionado?.apellido}</Text>
             <Button mode="text" onPress={() => setPaso(1)}>Cambiar</Button>
           </Surface>
 
@@ -215,7 +215,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
           <Surface style={styles.resumenSection} elevation={1}>
             <Text variant="titleMedium">Cliente</Text>
-            <Text variant="bodyLarge">{clienteSeleccionado?.usuario.nombre} {clienteSeleccionado?.usuario.apellido}</Text>
+            <Text variant="bodyLarge">{clienteSeleccionado?.nombre} {clienteSeleccionado?.apellido}</Text>
           </Surface>
 
           <Surface style={styles.resumenSection} elevation={1}>

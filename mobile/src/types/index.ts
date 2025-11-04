@@ -37,6 +37,9 @@ export interface AuthResponse {
   refresh: string;
 }
 
+// Cliente es un alias de User (para compatibilidad)
+export type Cliente = User;
+
 // ========== Product Types ==========
 
 export interface Categoria {

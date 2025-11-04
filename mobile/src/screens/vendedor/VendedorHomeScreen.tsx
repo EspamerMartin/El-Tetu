@@ -1,11 +1,13 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Surface, useTheme } from 'react-native-paper';
+import { Text, Surface, useTheme, Avatar } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { useFetch } from '@/hooks';
 import { pedidosAPI, productosAPI } from '@/services/api';
 import { LoadingOverlay } from '@/components';
+import { useAppSelector } from '@/store';
 import { spacing } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -27,20 +29,29 @@ interface DashboardStats {
  */
 const VendedorHomeScreen = ({ navigation }: Props) => {
   const { colors } = useTheme();
+  const { user } = useAppSelector((state) => state.auth);
 
   // Fetch pedidos activos (no cancelados ni entregados)
-  const { data: pedidos, loading: loadingPedidos } = useFetch(
+  const { data: pedidos, loading: loadingPedidos, refetch: refetchPedidos } = useFetch(
     () => pedidosAPI.getAll({ estado__in: 'PENDIENTE,CONFIRMADO,EN_CAMINO' })
   );
 
   // Fetch ventas del día (pedidos confirmados de hoy)
-  const { data: ventasHoy, loading: loadingVentas } = useFetch(
+  const { data: ventasHoy, loading: loadingVentas, refetch: refetchVentas } = useFetch(
     () => pedidosAPI.getAll({ fecha_pedido__gte: new Date().toISOString().split('T')[0] })
   );
 
   // Fetch productos con stock bajo (< 10)
-  const { data: productosBajoStock, loading: loadingProductos } = useFetch(
+  const { data: productosBajoStock, loading: loadingProductos, refetch: refetchProductos } = useFetch(
     () => productosAPI.getAll({ stock__lt: 10 })
+  );
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refetchPedidos();
+      refetchVentas();
+      refetchProductos();
+    }, [])
   );
 
   const loading = loadingPedidos || loadingVentas || loadingProductos;
@@ -51,12 +62,20 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
     productosConBajoStock: productosBajoStock?.results?.length || 0,
   };
 
+  const iniciales = user ? `${user.nombre.charAt(0)}${user.apellido.charAt(0)}` : 'VE';
+
   return (
     <View style={styles.container}>
       {loading && <LoadingOverlay visible message="Cargando estadísticas..." />}
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text variant="headlineMedium" style={styles.title}>Dashboard</Text>
+        <View style={styles.header}>
+          <View>
+            <Text variant="headlineMedium" style={styles.title}>Dashboard</Text>
+            <Text variant="bodyMedium" style={styles.subtitle}>Hola, {user?.nombre}</Text>
+          </View>
+          <Avatar.Text size={48} label={iniciales} style={{ backgroundColor: colors.tertiary }} />
+        </View>
 
         {/* KPI Cards */}
         <View style={styles.kpiContainer}>
@@ -155,9 +174,18 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing.md,
   },
-  title: {
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: spacing.lg,
+  },
+  title: {
     fontWeight: 'bold',
+  },
+  subtitle: {
+    opacity: 0.7,
+    marginTop: spacing.xs,
   },
   kpiContainer: {
     gap: spacing.md,

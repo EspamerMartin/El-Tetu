@@ -48,8 +48,8 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
     return <LoadingOverlay visible message="Cargando información del cliente..." />;
   }
 
-  const nombreCompleto = `${cliente.usuario.nombre} ${cliente.usuario.apellido}`;
-  const iniciales = `${cliente.usuario.nombre.charAt(0)}${cliente.usuario.apellido.charAt(0)}`;
+  const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`;
+  const iniciales = `${cliente.nombre.charAt(0)}${cliente.apellido.charAt(0)}`;
 
   return (
     <ScrollView style={styles.container}>
@@ -60,13 +60,13 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
           {nombreCompleto}
         </Text>
         <Chip
-          icon={cliente.usuario.is_active ? 'check-circle' : 'close-circle'}
+          icon={cliente.is_active ? 'check-circle' : 'close-circle'}
           style={[
             styles.statusChip,
-            { backgroundColor: cliente.usuario.is_active ? theme.colors.tertiaryContainer : theme.colors.errorContainer },
+            { backgroundColor: cliente.is_active ? theme.colors.tertiaryContainer : theme.colors.errorContainer },
           ]}
         >
-          {cliente.usuario.is_active ? 'Activo' : 'Inactivo'}
+          {cliente.is_active ? 'Activo' : 'Inactivo'}
         </Chip>
       </Surface>
 
@@ -77,7 +77,7 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
         
         <List.Item
           title="Email"
-          description={cliente.usuario.email}
+          description={cliente.email}
           left={(props) => <List.Icon {...props} icon="email" />}
         />
         {cliente.telefono && (

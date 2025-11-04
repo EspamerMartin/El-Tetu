@@ -14,6 +14,7 @@ import PedidosAdminListScreen from '@/screens/admin/PedidosAdminListScreen';
 import PedidoAdminDetalleScreen from '@/screens/admin/PedidoAdminDetalleScreen';
 import PromocionesListScreen from '@/screens/admin/PromocionesListScreen';
 import PromocionFormScreen from '@/screens/admin/PromocionFormScreen';
+import PerfilAdminScreen from '@/screens/admin/PerfilAdminScreen';
 
 export type AdminDrawerParamList = {
   AdminHome: undefined;
@@ -22,6 +23,7 @@ export type AdminDrawerParamList = {
   Categorias: undefined;
   Pedidos: undefined;
   Promociones: undefined;
+  Perfil: undefined;
 };
 
 export type AdminStackParamList = {
@@ -112,6 +114,16 @@ const AdminDrawer = () => {
           title: 'Promociones',
           drawerIcon: ({ color, size }) => (
             <Icon name="sale" color={color} size={size} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Perfil"
+        component={PerfilAdminScreen}
+        options={{
+          title: 'Mi Perfil',
+          drawerIcon: ({ color, size }) => (
+            <Icon name="account-circle" color={color} size={size} />
           ),
         }}
       />

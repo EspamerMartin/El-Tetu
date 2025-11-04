@@ -1,14 +1,22 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, FAB, Card, Chip, IconButton, Searchbar } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
 import { ProductCard, LoadingOverlay } from '@/components';
 import { theme, spacing } from '@/theme';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const ProductosListScreen = ({ navigation }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { data: productosData, loading, refetch } = useFetch(() => productosAPI.getAll());
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refetch();
+    }, [])
+  );
 
   const productos = productosData?.results || [];
   const productosFiltrados = searchQuery
@@ -63,6 +71,12 @@ const ProductosListScreen = ({ navigation }: any) => {
               </Card.Content>
             </Card>
           )}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Icon name="package-variant-closed" size={64} color={theme.colors.outline} />
+              <Text variant="bodyLarge">No hay productos</Text>
+            </View>
+          }
         />
       )}
 
@@ -78,6 +92,7 @@ const styles = StyleSheet.create({
   card: { marginBottom: spacing.md },
   actions: { flexDirection: 'row' },
   chip: { marginTop: spacing.sm },
+  empty: { alignItems: 'center', padding: spacing.xxl },
   fab: { position: 'absolute', bottom: spacing.lg, right: spacing.lg },
 });
 

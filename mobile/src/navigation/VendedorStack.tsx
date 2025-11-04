@@ -10,11 +10,13 @@ import ClienteDetalleScreen from '@/screens/vendedor/ClienteDetalleScreen';
 import PedidosListScreen from '@/screens/vendedor/PedidosListScreen';
 import PedidoDetalleScreen from '@/screens/vendedor/PedidoDetalleScreen';
 import NuevoPedidoScreen from '@/screens/vendedor/NuevoPedidoScreen';
+import PerfilVendedorScreen from '@/screens/vendedor/PerfilVendedorScreen';
 
 export type VendedorDrawerParamList = {
   VendedorHome: undefined;
   Clientes: undefined;
   Pedidos: undefined;
+  Perfil: undefined;
 };
 
 export type VendedorStackParamList = {
@@ -71,6 +73,16 @@ const VendedorDrawer = () => {
           title: 'Pedidos',
           drawerIcon: ({ color, size }) => (
             <Icon name="clipboard-list" color={color} size={size} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Perfil"
+        component={PerfilVendedorScreen}
+        options={{
+          title: 'Mi Perfil',
+          drawerIcon: ({ color, size }) => (
+            <Icon name="account-circle" color={color} size={size} />
           ),
         }}
       />

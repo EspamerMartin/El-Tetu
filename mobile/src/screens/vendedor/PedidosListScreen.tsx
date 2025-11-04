@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
 import { Text, Chip, FAB } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { useFetch } from '@/hooks';
 import { pedidosAPI } from '@/services/api';
@@ -23,6 +24,12 @@ const PedidosListScreen = ({ navigation }: Props) => {
 
   const { data: pedidosData, loading, refetch } = useFetch(
     () => pedidosAPI.getAll(estadoFilter === 'TODOS' ? {} : { estado: estadoFilter })
+  );
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refetch();
+    }, [])
   );
 
   const pedidos = pedidosData?.results || [];

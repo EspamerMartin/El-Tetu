@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
 import { Text, Searchbar, Card, Avatar, Chip } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { clientesAPI } from '@/services/api';
 import { Cliente } from '@/types';
@@ -23,9 +24,11 @@ const ClientesListScreen = ({ navigation }: Props) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([]);
 
-  useEffect(() => {
-    fetchClientes();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchClientes();
+    }, [])
+  );
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -34,9 +37,9 @@ const ClientesListScreen = ({ navigation }: Props) => {
       const query = searchQuery.toLowerCase();
       const filtered = clientes.filter(
         (c) =>
-          c.usuario.nombre.toLowerCase().includes(query) ||
-          c.usuario.apellido.toLowerCase().includes(query) ||
-          c.usuario.email.toLowerCase().includes(query) ||
+          c.nombre.toLowerCase().includes(query) ||
+          c.apellido.toLowerCase().includes(query) ||
+          c.email.toLowerCase().includes(query) ||
           c.telefono?.toLowerCase().includes(query)
       );
       setFilteredClientes(filtered);
@@ -61,14 +64,14 @@ const ClientesListScreen = ({ navigation }: Props) => {
   };
 
   const renderCliente = ({ item }: { item: Cliente }) => {
-    const nombreCompleto = `${item.usuario.nombre} ${item.usuario.apellido}`;
-    const iniciales = `${item.usuario.nombre.charAt(0)}${item.usuario.apellido.charAt(0)}`;
+    const nombreCompleto = `${item.nombre} ${item.apellido}`;
+    const iniciales = `${item.nombre.charAt(0)}${item.apellido.charAt(0)}`;
 
     return (
       <Card style={styles.card} onPress={() => handleClientePress(item)}>
         <Card.Title
           title={nombreCompleto}
-          subtitle={item.usuario.email}
+          subtitle={item.email}
           left={(props) => (
             <Avatar.Text {...props} label={iniciales} size={48} />
           )}
@@ -91,14 +94,14 @@ const ClientesListScreen = ({ navigation }: Props) => {
           </View>
           <View style={styles.statusRow}>
             <Chip
-              icon={item.usuario.is_active ? 'check-circle' : 'close-circle'}
+              icon={item.is_active ? 'check-circle' : 'close-circle'}
               compact
               style={[
                 styles.statusChip,
-                { backgroundColor: item.usuario.is_active ? theme.colors.tertiaryContainer : theme.colors.errorContainer },
+                { backgroundColor: item.is_active ? theme.colors.tertiaryContainer : theme.colors.errorContainer },
               ]}
             >
-              {item.usuario.is_active ? 'Activo' : 'Inactivo'}
+              {item.is_active ? 'Activo' : 'Inactivo'}
             </Chip>
           </View>
         </Card.Content>

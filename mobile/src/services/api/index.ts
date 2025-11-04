@@ -85,7 +85,7 @@ export const productosAPI = {
     await api.delete(`/productos/${id}/`);
   },
 
-  getCategorias: async (): Promise<Categoria[]> => {
+  getCategorias: async (): Promise<PaginatedResponse<Categoria>> => {
     const response = await api.get('/productos/categorias/');
     return response.data;
   },
@@ -104,7 +104,7 @@ export const productosAPI = {
     await api.delete(`/productos/categorias/${id}/`);
   },
 
-  getSubcategorias: async (categoriaId?: number): Promise<Subcategoria[]> => {
+  getSubcategorias: async (categoriaId?: number): Promise<PaginatedResponse<Subcategoria>> => {
     const params = categoriaId ? { categoria: categoriaId } : undefined;
     const response = await api.get('/productos/subcategorias/', { params });
     return response.data;
@@ -153,6 +153,11 @@ export const pedidosAPI = {
     return response.data;
   },
 
+  rechazar: async (id: number): Promise<Pedido> => {
+    const response = await api.put(`/pedidos/${id}/rechazar/`);
+    return response.data;
+  },
+
   downloadPDF: async (id: number): Promise<ArrayBuffer> => {
     const response = await api.get(`/pedidos/${id}/pdf/`, {
       responseType: 'arraybuffer',
@@ -164,7 +169,7 @@ export const pedidosAPI = {
 // ========== Promociones API ==========
 
 export const promocionesAPI = {
-  getAll: async (): Promise<Promocion[]> => {
+  getAll: async (): Promise<PaginatedResponse<Promocion>> => {
     const response = await api.get('/promociones/');
     return response.data;
   },
