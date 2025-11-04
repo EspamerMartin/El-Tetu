@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
 import { Text, Chip } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
@@ -23,9 +23,26 @@ const PedidosAdminListScreen = ({ navigation }: any) => {
     }, [])
   );
 
+  // Refetch cuando cambie el filtro de estado
+  useEffect(() => {
+    refetch();
+  }, [estadoFilter]);
+
   const pedidos = pedidosData?.results || [];
 
-  const estados = ['PENDIENTE', 'CONFIRMADO', 'EN_CAMINO', 'ENTREGADO', 'CANCELADO'];
+  // Solo mostrar filtros para CONFIRMADO y CANCELADO
+  const estados = ['CONFIRMADO', 'CANCELADO'];
+
+  const getEstadoLabel = (estado: string) => {
+    switch (estado) {
+      case 'CONFIRMADO':
+        return 'Aprobados';
+      case 'CANCELADO':
+        return 'Rechazados';
+      default:
+        return estado;
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -44,7 +61,7 @@ const PedidosAdminListScreen = ({ navigation }: any) => {
             onPress={() => setEstadoFilter(estado)}
             style={styles.filterChip}
           >
-            {estado}
+            {getEstadoLabel(estado)}
           </Chip>
         ))}
       </View>

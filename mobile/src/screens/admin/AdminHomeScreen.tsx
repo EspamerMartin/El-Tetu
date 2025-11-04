@@ -31,19 +31,25 @@ const AdminHomeScreen = () => {
 
   const loading = loadingUsuarios || loadingProductos || loadingPedidos;
 
-  const totalPedidos = pedidos?.results?.length || 0;
   const hoy = new Date();
+  
+  // Pedidos del mes (todos los estados)
   const pedidosMes = pedidos?.results?.filter((p: any) => {
-    const fechaPedido = new Date(p.fecha_pedido);
+    const fechaPedido = new Date(p.fecha_creacion);
     return fechaPedido.getMonth() === hoy.getMonth() && 
            fechaPedido.getFullYear() === hoy.getFullYear();
   }) || [];
+
+  // Pedidos aprobados del mes (solo CONFIRMADO, EN_CAMINO, ENTREGADO)
+  const pedidosAprobadosMes = pedidosMes.filter((p: any) => 
+    ['CONFIRMADO', 'EN_CAMINO', 'ENTREGADO'].includes(p.estado)
+  );
 
   const stats = {
     totalUsuarios: usuarios?.count || 0,
     productosActivos: productos?.results?.filter((p: any) => p.activo).length || 0,
     pedidosMes: pedidosMes.length,
-    ventasMes: pedidosMes.reduce((acc: number, p: any) => {
+    ventasMes: pedidosAprobadosMes.reduce((acc: number, p: any) => {
       const total = parseFloat(p.total) || 0;
       return acc + total;
     }, 0),

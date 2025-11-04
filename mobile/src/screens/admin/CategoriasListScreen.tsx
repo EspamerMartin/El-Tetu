@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { Text, Button, Card, IconButton, FAB, Dialog, Portal, Chip, Avatar } from 'react-native-paper';
+import { Text, Button, Card, IconButton, FAB, Dialog, Portal, Chip, Avatar, Menu } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
@@ -10,22 +10,28 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const CategoriasListScreen = () => {
   const [dialogVisible, setDialogVisible] = useState(false);
+  const [subDialogVisible, setSubDialogVisible] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingSubId, setEditingSubId] = useState<number | null>(null);
+  const [selectedCategoriaId, setSelectedCategoriaId] = useState<number | null>(null);
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [activo, setActivo] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [expandedCategoria, setExpandedCategoria] = useState<number | null>(null);
 
   const { data: categoriasData, loading, refetch, error } = useFetch(() => productosAPI.getCategorias());
+  const { data: subcategoriasData, refetch: refetchSubcategorias } = useFetch(() => productosAPI.getSubcategorias());
 
   useFocusEffect(
     React.useCallback(() => {
       refetch();
+      refetchSubcategorias();
     }, [])
   );
 
-  // El backend retorna una respuesta paginada, no un array directo
   const categorias = categoriasData?.results || [];
+  const subcategorias = subcategoriasData?.results || [];
 
   const handleSave = async () => {
     if (!nombre.trim()) {
@@ -57,12 +63,65 @@ const CategoriasListScreen = () => {
     }
   };
 
+  const handleSaveSubcategoria = async () => {
+    if (!nombre.trim()) {
+      Alert.alert('Error', 'El nombre es obligatorio');
+      return;
+    }
+
+    if (!selectedCategoriaId && !editingSubId) {
+      Alert.alert('Error', 'Debe seleccionar una categoría');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const data: any = { 
+        nombre: nombre.trim(), 
+        descripcion: descripcion.trim(), 
+        activo
+      };
+      
+      if (selectedCategoriaId) {
+        data.categoria = selectedCategoriaId;
+      }
+      
+      if (editingSubId) {
+        await productosAPI.updateSubcategoria(editingSubId, data);
+      } else {
+        await productosAPI.createSubcategoria(data);
+      }
+
+      Alert.alert('Éxito', `Subcategoría ${editingSubId ? 'actualizada' : 'creada'} correctamente`);
+      setSubDialogVisible(false);
+      setNombre('');
+      setDescripcion('');
+      setActivo(true);
+      setEditingSubId(null);
+      setSelectedCategoriaId(null);
+      refetchSubcategorias();
+    } catch (err: any) {
+      Alert.alert('Error', err.response?.data?.error || 'No se pudo guardar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleEdit = (categoria: any) => {
     setEditingId(categoria.id);
     setNombre(categoria.nombre);
     setDescripcion(categoria.descripcion || '');
     setActivo(categoria.activo);
     setDialogVisible(true);
+  };
+
+  const handleEditSubcategoria = (subcategoria: any) => {
+    setEditingSubId(subcategoria.id);
+    setSelectedCategoriaId(subcategoria.categoria);
+    setNombre(subcategoria.nombre);
+    setDescripcion(subcategoria.descripcion || '');
+    setActivo(subcategoria.activo);
+    setSubDialogVisible(true);
   };
 
   const handleDelete = async (id: number) => {
@@ -74,9 +133,51 @@ const CategoriasListScreen = () => {
         onPress: async () => {
           try {
             await productosAPI.deleteCategoria(id);
+            Alert.alert('Éxito', 'Categoría eliminada correctamente');
             refetch();
+            refetchSubcategorias();
           } catch (err: any) {
-            Alert.alert('Error', err.response?.data?.error || 'No se pudo eliminar');
+            const errorMessage = err.response?.data?.error || err.response?.data?.detail || 'No se pudo eliminar';
+            
+            // Detectar error de productos asociados
+            if (errorMessage.includes('productos') || errorMessage.includes('constraint') || errorMessage.includes('foreign key')) {
+              Alert.alert(
+                'No se puede eliminar', 
+                'Esta categoría tiene productos asociados. Primero debes eliminar o reasignar todos los productos que pertenecen a esta categoría.',
+                [{ text: 'Entendido' }]
+              );
+            } else {
+              Alert.alert('Error', errorMessage);
+            }
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleDeleteSubcategoria = async (id: number) => {
+    Alert.alert('Confirmar', '¿Eliminar esta subcategoría?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await productosAPI.deleteSubcategoria(id);
+            Alert.alert('Éxito', 'Subcategoría eliminada correctamente');
+            refetchSubcategorias();
+          } catch (err: any) {
+            const errorMessage = err.response?.data?.error || err.response?.data?.detail || 'No se pudo eliminar';
+            
+            if (errorMessage.includes('productos') || errorMessage.includes('constraint') || errorMessage.includes('foreign key')) {
+              Alert.alert(
+                'No se puede eliminar', 
+                'Esta subcategoría tiene productos asociados. Primero debes eliminar o reasignar todos los productos que pertenecen a esta subcategoría.',
+                [{ text: 'Entendido' }]
+              );
+            } else {
+              Alert.alert('Error', errorMessage);
+            }
           }
         },
       },
@@ -91,6 +192,19 @@ const CategoriasListScreen = () => {
     setDialogVisible(true);
   };
 
+  const handleOpenSubDialog = (categoriaId: number) => {
+    setEditingSubId(null);
+    setSelectedCategoriaId(categoriaId);
+    setNombre('');
+    setDescripcion('');
+    setActivo(true);
+    setSubDialogVisible(true);
+  };
+
+  const getSubcategoriasByCategoria = (categoriaId: number) => {
+    return subcategorias.filter((sub: any) => sub.categoria === categoriaId);
+  };
+
   return (
     <View style={styles.container}>
       {loading && <LoadingOverlay visible message="Cargando categorías..." />}
@@ -99,7 +213,11 @@ const CategoriasListScreen = () => {
         data={categorias}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
+        renderItem={({ item }) => {
+          const subs = getSubcategoriasByCategoria(item.id);
+          const isExpanded = expandedCategoria === item.id;
+          
+          return (
             <Card style={styles.card}>
               <Card.Title
                 title={item.nombre}
@@ -111,16 +229,64 @@ const CategoriasListScreen = () => {
                   <View style={styles.actions}>
                     <IconButton {...props} icon="pencil" onPress={() => handleEdit(item)} />
                     <IconButton {...props} icon="delete" onPress={() => handleDelete(item.id)} />
+                    {subs.length > 0 && (
+                      <IconButton 
+                        {...props} 
+                        icon={isExpanded ? "chevron-up" : "chevron-down"} 
+                        onPress={() => setExpandedCategoria(isExpanded ? null : item.id)} 
+                      />
+                    )}
                   </View>
                 )}
               />
               <Card.Content>
-                <Chip icon={item.activo ? 'check' : 'close'} compact>
-                  {item.activo ? 'Activa' : 'Inactiva'}
-                </Chip>
+                <View style={styles.categoryInfo}>
+                  <Chip icon={item.activo ? 'check' : 'close'} compact>
+                    {item.activo ? 'Activa' : 'Inactiva'}
+                  </Chip>
+                  <Chip icon="folder-outline" compact style={{ marginLeft: spacing.sm }}>
+                    {subs.length} subcategorías
+                  </Chip>
+                </View>
+                
+                <Button 
+                  mode="outlined" 
+                  icon="plus" 
+                  onPress={() => handleOpenSubDialog(item.id)}
+                  style={{ marginTop: spacing.md }}
+                  compact
+                >
+                  Agregar Subcategoría
+                </Button>
+
+                {isExpanded && subs.length > 0 && (
+                  <View style={styles.subcategoriesContainer}>
+                    {subs.map((sub: any) => (
+                      <Card key={sub.id} style={styles.subCard}>
+                        <Card.Title
+                          title={sub.nombre}
+                          subtitle={sub.descripcion || 'Sin descripción'}
+                          left={(props) => <Avatar.Icon {...props} icon="label" size={32} />}
+                          right={(props) => (
+                            <View style={styles.actions}>
+                              <IconButton {...props} icon="pencil" size={20} onPress={() => handleEditSubcategoria(sub)} />
+                              <IconButton {...props} icon="delete" size={20} onPress={() => handleDeleteSubcategoria(sub.id)} />
+                            </View>
+                          )}
+                        />
+                        <Card.Content>
+                          <Chip icon={sub.activo ? 'check' : 'close'} compact>
+                            {sub.activo ? 'Activa' : 'Inactiva'}
+                          </Chip>
+                        </Card.Content>
+                      </Card>
+                    ))}
+                  </View>
+                )}
               </Card.Content>
             </Card>
-          )}
+          );
+        }}
         ListEmptyComponent={
           !loading ? (
             <View style={styles.empty}>
@@ -154,6 +320,26 @@ const CategoriasListScreen = () => {
             </Button>
           </Dialog.Actions>
         </Dialog>
+
+        <Dialog visible={subDialogVisible} onDismiss={() => setSubDialogVisible(false)}>
+          <Dialog.Title>{editingSubId ? 'Editar' : 'Nueva'} Subcategoría</Dialog.Title>
+          <Dialog.Content>
+            <InputField label="Nombre" value={nombre} onChangeText={setNombre} />
+            <InputField 
+              label="Descripción" 
+              value={descripcion} 
+              onChangeText={setDescripcion} 
+              multiline 
+              numberOfLines={2}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setSubDialogVisible(false)}>Cancelar</Button>
+            <Button onPress={handleSaveSubcategoria} loading={saving} disabled={saving}>
+              Guardar
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
       </Portal>
     </View>
   );
@@ -164,6 +350,21 @@ const styles = StyleSheet.create({
   list: { padding: spacing.md },
   card: { marginBottom: spacing.md },
   actions: { flexDirection: 'row' },
+  categoryInfo: { 
+    flexDirection: 'row', 
+    alignItems: 'center',
+    marginBottom: spacing.sm 
+  },
+  subcategoriesContainer: { 
+    marginTop: spacing.md,
+    paddingLeft: spacing.md,
+    borderLeftWidth: 2,
+    borderLeftColor: theme.colors.outline,
+  },
+  subCard: { 
+    marginBottom: spacing.sm,
+    backgroundColor: theme.colors.surfaceVariant,
+  },
   empty: { alignItems: 'center', padding: spacing.xxl },
   fab: { position: 'absolute', bottom: spacing.lg, right: spacing.lg },
 });

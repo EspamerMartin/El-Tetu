@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Button, Surface, Avatar } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { logout } from '@/store/slices/authSlice';
+import { logout, setUser } from '@/store/slices/authSlice';
 import { InputField } from '@/components';
 import { theme, spacing } from '@/theme';
 import { authAPI } from '@/services/api';
@@ -18,12 +19,34 @@ const PerfilAdminScreen = () => {
     direccion: user?.direccion || '',
   });
 
+  // Recargar datos del usuario al enfocar la pantalla
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchUserData();
+    }, [])
+  );
+
+  const fetchUserData = async () => {
+    try {
+      const userData = await authAPI.me();
+      dispatch(setUser(userData));
+      setFormData({
+        telefono: userData.telefono || '',
+        direccion: userData.direccion || '',
+      });
+    } catch (error) {
+      console.error('Error al cargar datos del usuario:', error);
+    }
+  };
+
   const handleSave = async () => {
     try {
       setLoading(true);
-      await authAPI.updateProfile(formData);
+      const updatedUser = await authAPI.updateProfile(formData);
+      dispatch(setUser(updatedUser));
       Alert.alert('Éxito', 'Perfil actualizado correctamente');
       setEditing(false);
+      await fetchUserData(); // Recargar datos
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.error || 'Error al actualizar perfil');
     } finally {

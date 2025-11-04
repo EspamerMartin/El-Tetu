@@ -30,17 +30,26 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
 
   const { data: categoriasData, loading: loadingCategorias, refetch: refetchCategorias } = useFetch(() => productosAPI.getCategorias());
   const { data: subcategoriasData, loading: loadingSubcategorias, refetch: refetchSubcategorias } = useFetch(() => 
-    categoria ? productosAPI.getSubcategorias(categoria) : Promise.resolve(null)
+    productosAPI.getSubcategorias()
   );
 
   const categorias: Categoria[] = categoriasData?.results || [];
-  const subcategorias: Subcategoria[] = subcategoriasData?.results || [];
+  const todasSubcategorias: Subcategoria[] = subcategoriasData?.results || [];
+  
+  // Filtrar subcategorías por categoría seleccionada
+  const subcategoriasFiltradas = categoria 
+    ? todasSubcategorias.filter(sub => sub.categoria === categoria)
+    : [];
 
+  // Limpiar subcategoría cuando se cambia de categoría
   useEffect(() => {
-    if (categoria) {
-      refetchSubcategorias();
+    if (categoria && subcategoria) {
+      const subcategoriaValida = subcategoriasFiltradas.find(sub => sub.id === subcategoria);
+      if (!subcategoriaValida) {
+        setSubcategoria(null);
+      }
     }
-  }, [categoria]);
+  }, [categoria, subcategoriasFiltradas]);
 
   useEffect(() => {
     if (producto) {
@@ -138,7 +147,6 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
               key={cat.id}
               onPress={() => {
                 setCategoria(cat.id);
-                setSubcategoria(null);
                 setCategoriaMenuVisible(false);
               }}
               title={cat.nombre}
@@ -147,9 +155,9 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
         </Menu>
       </View>
 
-      {categoria && subcategorias && subcategorias.length > 0 && (
+      {categoria && subcategoriasFiltradas && subcategoriasFiltradas.length > 0 && (
         <View style={styles.menuContainer}>
-          <Text variant="labelLarge" style={styles.label}>Subcategoría</Text>
+          <Text variant="labelLarge" style={styles.label}>Subcategoría (Opcional)</Text>
           <Menu
             visible={subcategoriaMenuVisible}
             onDismiss={() => setSubcategoriaMenuVisible(false)}
@@ -160,7 +168,7 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
                 icon="chevron-down"
                 contentStyle={styles.menuButton}
               >
-                {subcategoria ? subcategorias.find(s => s.id === subcategoria)?.nombre || 'Seleccionar subcategoría' : 'Seleccionar subcategoría'}
+                {subcategoria ? subcategoriasFiltradas.find((s: Subcategoria) => s.id === subcategoria)?.nombre || 'Seleccionar subcategoría' : 'Seleccionar subcategoría'}
               </Button>
             }
           >
@@ -171,7 +179,7 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
               }}
               title="Sin subcategoría"
             />
-            {subcategorias.map((sub) => (
+            {subcategoriasFiltradas.map((sub: Subcategoria) => (
               <Menu.Item
                 key={sub.id}
                 onPress={() => {
@@ -182,6 +190,14 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
               />
             ))}
           </Menu>
+        </View>
+      )}
+
+      {categoria && subcategoriasFiltradas.length === 0 && (
+        <View style={styles.infoContainer}>
+          <Text variant="bodySmall" style={styles.infoText}>
+            Esta categoría no tiene subcategorías. Puedes agregar subcategorías desde el panel de Categorías.
+          </Text>
         </View>
       )}
 
@@ -209,6 +225,16 @@ const styles = StyleSheet.create({
   label: { marginBottom: spacing.xs },
   menuButton: { justifyContent: 'flex-start' },
   errorText: { color: theme.colors.error, marginBottom: spacing.sm },
+  infoContainer: { 
+    marginVertical: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: 8,
+  },
+  infoText: { 
+    color: theme.colors.onSurfaceVariant,
+    fontStyle: 'italic',
+  },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: spacing.md },
   button: { marginTop: spacing.lg },
 });
