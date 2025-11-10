@@ -87,9 +87,20 @@ class ProductoCreateUpdateSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         """Valida que la subcategoría pertenezca a la categoría seleccionada."""
-        if 'subcategoria' in data and 'categoria' in data:
-            if data['subcategoria'] and data['subcategoria'].categoria != data['categoria']:
+        # Obtener categoria de data o de la instancia (si es actualización)
+        categoria = data.get('categoria', self.instance.categoria if self.instance else None)
+        subcategoria = data.get('subcategoria', None)
+        
+        # Si se proporciona subcategoría, validar que pertenezca a la categoría
+        if subcategoria:
+            if not categoria:
+                raise serializers.ValidationError({
+                    'categoria': 'Debe especificar una categoría cuando se selecciona una subcategoría.'
+                })
+            
+            if subcategoria.categoria != categoria:
                 raise serializers.ValidationError({
                     'subcategoria': 'La subcategoría debe pertenecer a la categoría seleccionada.'
                 })
+        
         return data

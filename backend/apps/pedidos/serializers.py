@@ -136,12 +136,10 @@ class PedidoUpdateEstadoSerializer(serializers.ModelSerializer):
         if not instance:
             return value
         
-        # Definir transiciones permitidas
+        # Definir transiciones permitidas (solo PENDIENTE, CONFIRMADO, CANCELADO)
         transiciones_permitidas = {
             'PENDIENTE': ['CONFIRMADO', 'CANCELADO'],
-            'CONFIRMADO': ['EN_CAMINO', 'CANCELADO'],
-            'EN_CAMINO': ['ENTREGADO', 'CANCELADO'],
-            'ENTREGADO': [],
+            'CONFIRMADO': ['CANCELADO'],
             'CANCELADO': [],
         }
         
@@ -160,11 +158,6 @@ class PedidoUpdateEstadoSerializer(serializers.ModelSerializer):
             instance.confirmar()
         elif nuevo_estado == 'CANCELADO':
             instance.cancelar()
-        elif nuevo_estado == 'ENTREGADO':
-            from django.utils import timezone
-            instance.estado = nuevo_estado
-            instance.fecha_entrega = timezone.now()
-            instance.save()
         else:
             instance.estado = nuevo_estado
             instance.save()

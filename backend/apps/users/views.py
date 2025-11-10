@@ -9,6 +9,7 @@ from django.contrib.auth.hashers import make_password, check_password
 from .models import CustomUser
 from .serializers import (
     UserSerializer,
+    UserCreateSerializer,
     UserRegistrationSerializer,
     UserLoginSerializer,
     ChangePasswordSerializer
@@ -119,8 +120,19 @@ def update_profile_view(request):
     """
     Vista para actualizar perfil del usuario autenticado.
     PUT /api/auth/profile
+    
+    Solo permite actualizar: nombre, apellido, telefono, direccion
+    No permite cambiar: email, rol, is_active (solo admin puede)
     """
-    serializer = UserSerializer(request.user, data=request.data, partial=True)
+    # Remover campos que no se pueden modificar
+    data = request.data.copy()
+    data.pop('email', None)
+    data.pop('rol', None)
+    data.pop('is_active', None)
+    data.pop('id', None)
+    data.pop('date_joined', None)
+    
+    serializer = UserSerializer(request.user, data=data, partial=True)
     serializer.is_valid(raise_exception=True)
     serializer.save()
     
@@ -165,10 +177,17 @@ class UserListCreateView(generics.ListCreateAPIView):
     """
     Vista para listar y crear usuarios (solo admin).
     GET/POST /api/auth/users
+    
+    El admin puede crear usuarios con cualquier rol (admin, vendedor, cliente).
     """
     queryset = CustomUser.objects.all()
-    serializer_class = UserSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get_serializer_class(self):
+        """Usa UserCreateSerializer para POST, UserSerializer para GET."""
+        if self.request.method == 'POST':
+            return UserCreateSerializer
+        return UserSerializer
     
     def get_queryset(self):
         """Filtrar usuarios según rol."""

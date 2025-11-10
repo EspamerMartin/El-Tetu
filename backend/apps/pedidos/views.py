@@ -149,23 +149,28 @@ def rechazar_pedido_view(request, pk):
     PUT /api/pedidos/{id}/rechazar/
     
     Solo admin y vendedor pueden rechazar pedidos.
-    Solo se pueden rechazar pedidos en estado PENDIENTE.
+    Solo se pueden rechazar pedidos por aprobar.
     """
     pedido = get_object_or_404(Pedido, pk=pk)
     
-    if pedido.estado != 'PENDIENTE':
+    if pedido.estado in ['CANCELADO']:
         return Response(
-            {'error': 'Solo se pueden rechazar pedidos pendientes'},
+            {'error': 'No se puede rechazar un pedido ya cancelado.'},
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    pedido.estado = 'CANCELADO'
-    pedido.save()
-    
-    return Response(
-        PedidoSerializer(pedido).data,
-        status=status.HTTP_200_OK
-    )
+    try:
+        # Usar el método cancelar() del modelo para restaurar stock si es necesario
+        pedido.cancelar()
+        return Response(
+            PedidoSerializer(pedido).data,
+            status=status.HTTP_200_OK
+        )
+    except ValueError as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 @api_view(['GET'])

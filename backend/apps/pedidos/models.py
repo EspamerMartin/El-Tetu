@@ -10,8 +10,6 @@ class Pedido(models.Model):
     ESTADO_CHOICES = (
         ('PENDIENTE', 'Pendiente'),
         ('CONFIRMADO', 'Confirmado'),
-        ('EN_CAMINO', 'En Camino'),
-        ('ENTREGADO', 'Entregado'),
         ('CANCELADO', 'Cancelado'),
     )
     
@@ -151,8 +149,8 @@ class Pedido(models.Model):
     
     def cancelar(self):
         """Cancela el pedido y restaura stock si fue confirmado."""
-        if self.estado in ['ENTREGADO', 'CANCELADO']:
-            raise ValueError('No se puede cancelar un pedido entregado o ya cancelado.')
+        if self.estado == 'CANCELADO':
+            raise ValueError('El pedido ya está cancelado.')
         
         # Si estaba confirmado, restaurar stock
         if self.estado == 'CONFIRMADO':

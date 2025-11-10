@@ -4,7 +4,7 @@ from .models import CustomUser
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Serializer para el modelo CustomUser."""
+    """Serializer para el modelo CustomUser (lectura y para admin)."""
     
     full_name = serializers.ReadOnlyField()
     
@@ -14,7 +14,28 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'email', 'nombre', 'apellido', 'full_name',
             'rol', 'telefono', 'direccion', 'is_active', 'date_joined'
         ]
-        read_only_fields = ['id', 'date_joined']
+        read_only_fields = ['id', 'date_joined', 'email', 'rol', 'is_active']
+
+
+class UserCreateSerializer(serializers.ModelSerializer):
+    """Serializer para crear usuarios (solo admin, permite cualquier rol)."""
+    
+    password = serializers.CharField(write_only=True, min_length=6)
+    
+    class Meta:
+        model = CustomUser
+        fields = [
+            'email', 'password', 'nombre', 'apellido',
+            'rol', 'telefono', 'direccion', 'is_active'
+        ]
+    
+    def create(self, validated_data):
+        """Crea un nuevo usuario con la contraseña hasheada."""
+        password = validated_data.pop('password')
+        user = CustomUser(**validated_data)
+        user.password = make_password(password)
+        user.save()
+        return user
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -36,12 +57,22 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 'password': 'Las contraseñas no coinciden.'
             })
+        
+        # Prevenir que usuarios se registren como admin o vendedor
+        if 'rol' in data and data.get('rol') in ['admin', 'vendedor']:
+            raise serializers.ValidationError({
+                'rol': 'No se puede registrar con este rol. Solo se permite el rol de cliente.'
+            })
+        
         return data
     
     def create(self, validated_data):
         """Crea un nuevo usuario con la contraseña hasheada."""
         validated_data.pop('password_confirm')
         password = validated_data.pop('password')
+        
+        # Forzar rol de cliente para registros públicos
+        validated_data['rol'] = 'cliente'
         
         user = CustomUser(**validated_data)
         user.password = make_password(password)

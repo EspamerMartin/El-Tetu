@@ -39,8 +39,6 @@ const getExpoHostIp = (): string | null => {
 
 // Determinar la URL base según la plataforma
 
-
-
 // Generaliza: si la URL contiene "localhost" y estamos en Expo Go en dispositivo físico,
 // la reemplaza por la IP del host detectada por Expo
 let API_URL = 'http://localhost:8000/api';
@@ -68,7 +66,6 @@ api.interceptors.request.use(
       method: config.method?.toUpperCase(),
       url: config.url,
       baseURL: config.baseURL,
-      data: config.data,
     });
     
     const token = await AsyncStorage.getItem('access_token');
@@ -89,7 +86,6 @@ api.interceptors.response.use(
     console.log('✅ RESPONSE:', {
       status: response.status,
       url: response.config.url,
-      data: response.data,
     });
     return response;
   },
@@ -97,9 +93,7 @@ api.interceptors.response.use(
     console.log('❌ RESPONSE ERROR:', {
       message: error.message,
       status: error.response?.status,
-      data: error.response?.data,
       url: error.config?.url,
-      headers: error.response?.headers,
     });
     
     const originalRequest = error.config;

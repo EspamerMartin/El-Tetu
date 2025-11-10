@@ -90,7 +90,7 @@ export interface CartItem {
 
 // ========== Pedido Types ==========
 
-export type PedidoEstado = 'PENDIENTE' | 'CONFIRMADO' | 'EN_CAMINO' | 'ENTREGADO' | 'CANCELADO';
+export type PedidoEstado = 'PENDIENTE' | 'CONFIRMADO' | 'CANCELADO';
 export type ListaPrecio = 'lista_3' | 'lista_4';
 
 export interface PedidoItem {

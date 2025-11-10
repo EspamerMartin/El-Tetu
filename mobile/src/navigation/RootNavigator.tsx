@@ -44,19 +44,18 @@ const RootNavigator = () => {
         {!isAuthenticated ? (
           // Usuario no autenticado → AuthStack
           <Stack.Screen name="Auth" component={AuthStack} />
+        ) : user?.rol === 'cliente' ? (
+          // Usuario cliente
+          <Stack.Screen name="Cliente" component={ClienteStack} />
+        ) : user?.rol === 'vendedor' ? (
+          // Usuario vendedor
+          <Stack.Screen name="Vendedor" component={VendedorStack} />
+        ) : user?.rol === 'admin' ? (
+          // Usuario admin
+          <Stack.Screen name="Admin" component={AdminStack} />
         ) : (
-          // Usuario autenticado → Stack según rol
-          <>
-            {user?.rol === 'cliente' && (
-              <Stack.Screen name="Cliente" component={ClienteStack} />
-            )}
-            {user?.rol === 'vendedor' && (
-              <Stack.Screen name="Vendedor" component={VendedorStack} />
-            )}
-            {user?.rol === 'admin' && (
-              <Stack.Screen name="Admin" component={AdminStack} />
-            )}
-          </>
+          // Rol inválido o desconocido → volver a Auth
+          <Stack.Screen name="Auth" component={AuthStack} />
         )}
       </Stack.Navigator>
     </NavigationContainer>
