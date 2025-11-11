@@ -99,8 +99,8 @@ class ProductoListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['categoria', 'subcategoria', 'activo']
-    search_fields = ['nombre', 'codigo', 'descripcion']
-    ordering_fields = ['nombre', 'codigo', 'precio_lista_3', 'precio_lista_4', 'stock']
+    search_fields = ['nombre', 'codigo', 'descripcion'] 
+    ordering_fields = ['nombre', 'codigo', 'stock'] 
     ordering = ['nombre']
     
     def get_serializer_class(self):

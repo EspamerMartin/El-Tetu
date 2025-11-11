@@ -175,36 +175,50 @@ def change_password_view(request):
 
 class UserListCreateView(generics.ListCreateAPIView):
     """
-    Vista para listar y crear usuarios (solo admin).
-    GET/POST /api/auth/users
-    
-    El admin puede crear usuarios con cualquier rol (admin, vendedor, cliente).
+    Vista para listar y crear usuarios.
+    GET: Admin y vendedores pueden ver usuarios.
+    POST: Solo admin puede crear usuarios.
     """
     queryset = CustomUser.objects.all()
-    permission_classes = [IsAuthenticated, IsAdmin]
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
     
-    def get_serializer_class(self):
-        """Usa UserCreateSerializer para POST, UserSerializer para GET."""
+    def get_permissions(self):
+        """Vendedores pueden listar, solo admin puede crear."""
+        user = self.request.user
         if self.request.method == 'POST':
-            return UserCreateSerializer
-        return UserSerializer
+            return [IsAuthenticated(), IsAdmin()]
+        if user.is_vendedor() or user.is_admin():
+            return [IsAuthenticated()]
+        return [IsAuthenticated(), IsAdmin()]
     
     def get_queryset(self):
-        """Filtrar usuarios según rol."""
-        queryset = super().get_queryset()
-        rol = self.request.query_params.get('rol', None)
+        """Admin ve todos, vendedores solo clientes."""
+        user = self.request.user
         
-        if rol:
-            queryset = queryset.filter(rol=rol)
+        if user.is_admin():
+            return CustomUser.objects.all()
         
-        return queryset
+        if user.is_vendedor():
+            return CustomUser.objects.filter(rol='cliente')
+        
+        return CustomUser.objects.none()
 
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
-    Vista para obtener, actualizar y eliminar usuario (solo admin).
-    GET/PUT/DELETE /api/auth/users/{id}
+    Vista para obtener, actualizar y eliminar usuario.
+    GET: Admin y vendedores pueden ver detalles.
+    PUT/DELETE: Solo admin puede modificar/eliminar.
     """
     queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        """Vendedores pueden ver, solo admin puede modificar."""
+        if self.request.method == 'GET':
+            user = self.request.user
+            if user.is_vendedor() or user.is_admin():
+                return [IsAuthenticated()]
+        return [IsAuthenticated(), IsAdmin()]
