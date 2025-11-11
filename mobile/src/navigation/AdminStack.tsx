@@ -14,6 +14,9 @@ import PedidosAdminListScreen from '@/screens/admin/PedidosAdminListScreen';
 import PedidoAdminDetalleScreen from '@/screens/admin/PedidoAdminDetalleScreen';
 import PromocionesListScreen from '@/screens/admin/PromocionesListScreen';
 import PromocionFormScreen from '@/screens/admin/PromocionFormScreen';
+import ListasPreciosScreen from '@/screens/admin/ListasPreciosScreen';
+import ListaPrecioFormScreen from '@/screens/admin/ListaPrecioFormScreen';
+import AsignarListasClientesScreen from '@/screens/admin/AsignarListasClientesScreen';
 import PerfilAdminScreen from '@/screens/admin/PerfilAdminScreen';
 
 export type AdminDrawerParamList = {
@@ -21,6 +24,7 @@ export type AdminDrawerParamList = {
   Usuarios: undefined;
   Productos: undefined;
   Categorias: undefined;
+  ListasPrecios: undefined;
   Pedidos: undefined;
   Promociones: undefined;
   Perfil: undefined;
@@ -30,6 +34,8 @@ export type AdminStackParamList = {
   AdminDrawer: undefined;
   UsuarioForm: { usuarioId?: number };
   ProductoForm: { productoId?: number };
+  ListaPrecioForm: { listaId?: number };
+  AsignarListasClientes: undefined;
   PedidoAdminDetalle: { pedidoId: number };
   PromocionForm: { promocionId?: number };
 };
@@ -98,6 +104,16 @@ const AdminDrawer = () => {
         }}
       />
       <Drawer.Screen
+        name="ListasPrecios"
+        component={ListasPreciosScreen}
+        options={{
+          title: 'Listas de Precios',
+          drawerIcon: ({ color, size }) => (
+            <Icon name="format-list-bulleted" color={color} size={size} />
+          ),
+        }}
+      />
+      <Drawer.Screen
         name="Pedidos"
         component={PedidosAdminListScreen}
         options={{
@@ -160,6 +176,18 @@ const AdminStack = () => {
         options={({ route }) => ({
           title: route.params?.productoId ? 'Editar Producto' : 'Nuevo Producto',
         })}
+      />
+      <Stack.Screen
+        name="ListaPrecioForm"
+        component={ListaPrecioFormScreen}
+        options={({ route }) => ({
+          title: route.params?.listaId ? 'Editar Lista' : 'Nueva Lista',
+        })}
+      />
+      <Stack.Screen
+        name="AsignarListasClientes"
+        component={AsignarListasClientesScreen}
+        options={{ title: 'Asignar Listas a Clientes' }}
       />
       <Stack.Screen
         name="PedidoAdminDetalle"

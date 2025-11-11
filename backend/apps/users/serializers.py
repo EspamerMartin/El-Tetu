@@ -7,14 +7,16 @@ class UserSerializer(serializers.ModelSerializer):
     """Serializer para el modelo CustomUser (lectura y para admin)."""
     
     full_name = serializers.ReadOnlyField()
+    lista_precio_nombre = serializers.CharField(source='lista_precio.nombre', read_only=True, allow_null=True)
     
     class Meta:
         model = CustomUser
         fields = [
             'id', 'email', 'nombre', 'apellido', 'full_name',
-            'rol', 'telefono', 'direccion', 'is_active', 'date_joined'
+            'rol', 'telefono', 'direccion', 'lista_precio', 'lista_precio_nombre',
+            'is_active', 'date_joined'
         ]
-        read_only_fields = ['id', 'date_joined', 'email', 'rol', 'is_active']
+        read_only_fields = ['id', 'date_joined']
 
 
 class UserCreateSerializer(serializers.ModelSerializer):

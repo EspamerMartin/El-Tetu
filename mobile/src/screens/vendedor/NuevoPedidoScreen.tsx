@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.md,
-    paddingBottom: spacing.xl * 2, // Espacio extra para evitar solapamiento
+    paddingBottom: spacing.xl * 3, // Más espacio para evitar solapamiento con botones del sistema
   },
   title: {
     marginBottom: spacing.md,
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: spacing.md,
-    paddingBottom: spacing.xl, // Espacio para botones del sistema
+    paddingBottom: spacing.xl * 2, // Más espacio para botones del sistema
   },
   resumenSection: {
     padding: spacing.md,
@@ -441,7 +441,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: spacing.md,
-    marginBottom: spacing.xl, // Espacio adicional para botones del sistema
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl * 2, // Mucho espacio para evitar tocar botones del sistema
+    paddingHorizontal: spacing.md,
   },
 });
 

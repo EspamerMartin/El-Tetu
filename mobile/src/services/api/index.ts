@@ -217,7 +217,7 @@ export const clientesAPI = {
   },
 
   update: async (id: number, data: Partial<User>): Promise<User> => {
-    const response = await api.put(`/auth/users/${id}/`, data);
+    const response = await api.patch(`/auth/users/${id}/`, data);
     return response.data;
   },
 
