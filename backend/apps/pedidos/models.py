@@ -13,11 +13,6 @@ class Pedido(models.Model):
         ('CANCELADO', 'Cancelado'),
     )
     
-    LISTA_PRECIO_CHOICES = (
-        ('lista_3', 'Lista 3'),
-        ('lista_4', 'Lista 4'),
-    )
-    
     cliente = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -32,11 +27,15 @@ class Pedido(models.Model):
         verbose_name='Estado'
     )
     
-    lista_precio = models.CharField(
-        max_length=10,
-        choices=LISTA_PRECIO_CHOICES,
-        default='lista_3',
-        verbose_name='Lista de Precio'
+    # Lista de precios utilizada en este pedido
+    lista_precio = models.ForeignKey(
+        'productos.ListaPrecio',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='pedidos',
+        verbose_name='Lista de Precio',
+        help_text='Lista de precios aplicada. Null = Lista Base'
     )
     
     subtotal = models.DecimalField(

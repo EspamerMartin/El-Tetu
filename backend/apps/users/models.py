@@ -47,6 +47,17 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     telefono = models.CharField(max_length=20, blank=True, null=True, verbose_name='Teléfono')
     direccion = models.TextField(blank=True, null=True, verbose_name='Dirección')
     
+    # Lista de precios asignada (null = usa lista base)
+    lista_precio = models.ForeignKey(
+        'productos.ListaPrecio',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='clientes',
+        verbose_name='Lista de Precios',
+        help_text='Si no se asigna, usa la lista base sin descuentos'
+    )
+    
     is_active = models.BooleanField(default=True, verbose_name='Activo')
     is_staff = models.BooleanField(default=False, verbose_name='Staff')
     date_joined = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de registro')

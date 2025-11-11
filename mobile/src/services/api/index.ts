@@ -11,6 +11,7 @@ import {
   Pedido,
   CreatePedidoData,
   Promocion,
+  ListaPrecio,
 } from '@/types';
 
 // ========== Auth API ==========
@@ -225,6 +226,34 @@ export const clientesAPI = {
   },
 };
 
+// ========== Listas de Precios API (Admin) ==========
+
+export const listasAPI = {
+  getAll: async (): Promise<PaginatedResponse<ListaPrecio>> => {
+    const response = await api.get('/productos/listas-precios/');
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<ListaPrecio> => {
+    const response = await api.get(`/productos/listas-precios/${id}/`);
+    return response.data;
+  },
+
+  create: async (data: Partial<ListaPrecio>): Promise<ListaPrecio> => {
+    const response = await api.post('/productos/listas-precios/', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: Partial<ListaPrecio>): Promise<ListaPrecio> => {
+    const response = await api.put(`/productos/listas-precios/${id}/`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/productos/listas-precios/${id}/`);
+  },
+};
+
 // Export todo junto
 export default {
   auth: authAPI,
@@ -232,4 +261,5 @@ export default {
   pedidos: pedidosAPI,
   promociones: promocionesAPI,
   clientes: clientesAPI,
+  listas: listasAPI,
 };

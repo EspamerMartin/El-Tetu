@@ -64,7 +64,7 @@ const ProductosListScreen = ({ navigation }: any) => {
                 )}
               />
               <Card.Content>
-                <Text variant="bodyLarge">${item.precio_lista_3}</Text>
+                <Text variant="bodyLarge">${item.precio_base}</Text>
                 <Chip icon={item.activo ? 'check' : 'close'} compact style={styles.chip}>
                   {item.activo ? 'Activo' : 'Inactivo'}
                 </Chip>

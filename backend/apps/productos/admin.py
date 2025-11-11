@@ -1,5 +1,16 @@
 from django.contrib import admin
-from .models import Categoria, Subcategoria, Producto
+from .models import ListaPrecio, Categoria, Subcategoria, Producto
+
+
+@admin.register(ListaPrecio)
+class ListaPrecioAdmin(admin.ModelAdmin):
+    """Admin para el modelo ListaPrecio."""
+    
+    list_display = ['nombre', 'codigo', 'descuento_porcentaje', 'activo', 'fecha_creacion']
+    list_filter = ['activo', 'fecha_creacion']
+    search_fields = ['nombre', 'codigo']
+    ordering = ['nombre']
+    readonly_fields = ['fecha_creacion']
 
 
 @admin.register(Categoria)
@@ -28,7 +39,7 @@ class ProductoAdmin(admin.ModelAdmin):
     
     list_display = [
         'codigo', 'nombre', 'categoria', 'subcategoria',
-        'precio_lista_3', 'precio_lista_4', 'stock', 'activo'
+        'precio_base', 'stock', 'activo'
     ]
     list_filter = ['categoria', 'subcategoria', 'activo', 'fecha_creacion']
     search_fields = ['codigo', 'nombre', 'descripcion']
@@ -41,8 +52,9 @@ class ProductoAdmin(admin.ModelAdmin):
         ('Categorización', {
             'fields': ('categoria', 'subcategoria')
         }),
-        ('Precios', {
-            'fields': ('precio_lista_3', 'precio_lista_4')
+        ('Precio', {
+            'fields': ('precio_base',),
+            'description': 'El precio base es el precio sin descuentos. Los descuentos se aplican por lista de precios.'
         }),
         ('Inventario', {
             'fields': ('stock', 'stock_minimo')

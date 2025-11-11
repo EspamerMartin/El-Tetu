@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Button, Searchbar, List, Divider, Card, Chip, Surface } from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Alert, SafeAreaView } from 'react-native';
+import { Text, Button, Searchbar, List, Divider, Card, Chip, Surface, Menu } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { useFetch } from '@/hooks';
-import { clientesAPI, productosAPI, pedidosAPI } from '@/services/api';
-import { Cliente, Producto } from '@/types';
+import { clientesAPI, productosAPI, pedidosAPI, listasAPI } from '@/services/api';
+import { Cliente, Producto, CreatePedidoData, ListaPrecio } from '@/types';
 import { LoadingOverlay } from '@/components';
 import { theme, spacing } from '@/theme';
 import { formatPrice } from '@/utils';
@@ -32,13 +32,25 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   const [items, setItems] = useState<ItemPedido[]>([]);
   const [searchCliente, setSearchCliente] = useState('');
   const [searchProducto, setSearchProducto] = useState('');
+  const [listaSeleccionada, setListaSeleccionada] = useState<ListaPrecio | null>(null);
+  const [menuVisible, setMenuVisible] = useState(false);
   const [creating, setCreating] = useState(false);
 
   const { data: clientesData, loading: loadingClientes } = useFetch(() => clientesAPI.getAll());
   const { data: productosData, loading: loadingProductos } = useFetch(() => productosAPI.getAll({ activo: true }));
+  const { data: listasData, loading: loadingListas } = useFetch(() => listasAPI.getAll());
 
   const clientes = clientesData?.results || [];
   const productos = productosData?.results || [];
+  const listas = listasData?.results || [];
+
+  // Seleccionar Lista Base por defecto
+  useEffect(() => {
+    if (listas.length > 0 && !listaSeleccionada) {
+      const listaBase = listas.find(l => l.codigo === 'base') || listas[0];
+      setListaSeleccionada(listaBase);
+    }
+  }, [listas]);
 
   const clientesFiltrados = searchCliente
     ? clientes.filter(c => 
@@ -51,6 +63,16 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
     ? productos.filter(p => p.nombre.toLowerCase().includes(searchProducto.toLowerCase()))
     : productos;
 
+  // Agrupar productos por categoría
+  const productosAgrupados = productosFiltrados.reduce((acc, producto) => {
+    const categoria = producto.categoria_nombre || 'Sin categoría';
+    if (!acc[categoria]) {
+      acc[categoria] = [];
+    }
+    acc[categoria].push(producto);
+    return acc;
+  }, {} as Record<string, Producto[]>);
+
   const handleSelectCliente = (cliente: Cliente) => {
     setClienteSeleccionado(cliente);
     setPaso(2);
@@ -59,13 +81,24 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
   const handleAddProducto = (producto: Producto) => {
     const existente = items.find(i => i.producto.id === producto.id);
+    
     if (existente) {
+      // Validar que no exceda el stock
+      if (existente.cantidad + 1 > producto.stock) {
+        Alert.alert('Stock insuficiente', `Solo hay ${producto.stock} unidades disponibles`);
+        return;
+      }
       setItems(items.map(i => 
         i.producto.id === producto.id 
           ? { ...i, cantidad: i.cantidad + 1 }
           : i
       ));
     } else {
+      // Validar que haya stock
+      if (producto.stock < 1) {
+        Alert.alert('Sin stock', 'Este producto no tiene stock disponible');
+        return;
+      }
       setItems([...items, { producto, cantidad: 1 }]);
     }
   };
@@ -77,36 +110,43 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   const handleUpdateCantidad = (productoId: number, cantidad: number) => {
     if (cantidad < 1) {
       handleRemoveItem(productoId);
-    } else {
-      setItems(items.map(i => 
-        i.producto.id === productoId 
-          ? { ...i, cantidad }
-          : i
-      ));
+      return;
     }
+    
+    const item = items.find(i => i.producto.id === productoId);
+    if (item && cantidad > item.producto.stock) {
+      Alert.alert('Stock insuficiente', `Solo hay ${item.producto.stock} unidades disponibles`);
+      return;
+    }
+    
+    setItems(items.map(i => 
+      i.producto.id === productoId 
+        ? { ...i, cantidad }
+        : i
+    ));
   };
 
   const calcularTotal = () => {
     return items.reduce((acc, item) => {
-      const precio = parseFloat(item.producto.precio_lista_3 || item.producto.precio_lista_1);
+      const precio = parseFloat(item.producto.precio);
       return acc + (precio * item.cantidad);
     }, 0);
   };
 
   const handleConfirmarPedido = async () => {
-    if (!clienteSeleccionado || items.length === 0) {
-      Alert.alert('Error', 'Debe seleccionar un cliente y agregar productos');
+    if (!clienteSeleccionado || items.length === 0 || !listaSeleccionada) {
+      Alert.alert('Error', 'Debe seleccionar un cliente, una lista de precios y agregar productos');
       return;
     }
 
     try {
       setCreating(true);
-      const payload = {
-        cliente_id: clienteSeleccionado.id,
+      const payload: CreatePedidoData = {
+        cliente: clienteSeleccionado.id,
+        lista_precio: listaSeleccionada.id,
         items: items.map(i => ({
-          producto_id: i.producto.id,
+          producto: i.producto.id,
           cantidad: i.cantidad,
-          precio_unitario: parseFloat(i.producto.precio_lista_3 || i.producto.precio_lista_1),
         })),
       };
 
@@ -122,8 +162,8 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   };
 
   return (
-    <View style={styles.container}>
-      {(loadingClientes || loadingProductos || creating) && <LoadingOverlay visible message="Procesando..." />}
+    <SafeAreaView style={styles.container}>
+      {(loadingClientes || loadingProductos || loadingListas || creating) && <LoadingOverlay visible message="Procesando..." />}
 
       {/* Stepper */}
       <View style={styles.stepper}>
@@ -171,6 +211,30 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
             <Button mode="text" onPress={() => setPaso(1)}>Cambiar</Button>
           </Surface>
 
+          <Surface style={styles.listaPrecioCard} elevation={1}>
+            <Text variant="titleSmall" style={styles.listaPrecioTitle}>Lista de Precios:</Text>
+            <Menu
+              visible={menuVisible}
+              onDismiss={() => setMenuVisible(false)}
+              anchor={
+                <Button mode="outlined" onPress={() => setMenuVisible(true)}>
+                  {listaSeleccionada?.nombre || 'Seleccionar lista'}
+                </Button>
+              }
+            >
+              {listas.map((lista) => (
+                <Menu.Item
+                  key={lista.id}
+                  onPress={() => {
+                    setListaSeleccionada(lista);
+                    setMenuVisible(false);
+                  }}
+                  title={`${lista.nombre} (${lista.descuento_porcentaje}% desc.)`}
+                />
+              ))}
+            </Menu>
+          </Surface>
+
           <Searchbar
             placeholder="Buscar productos..."
             onChangeText={setSearchProducto}
@@ -179,19 +243,31 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
           />
 
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            {productosFiltrados.map((producto) => (
-              <Card key={producto.id} style={styles.productoCard}>
-                <Card.Content>
-                  <Text variant="titleMedium">{producto.nombre}</Text>
-                  <Text variant="bodySmall">Stock: {producto.stock}</Text>
-                  <Text variant="bodyLarge" style={styles.precio}>
-                    {formatPrice(producto.precio_lista_3 || producto.precio_lista_1)}
-                  </Text>
-                </Card.Content>
-                <Card.Actions>
-                  <Button onPress={() => handleAddProducto(producto)}>Agregar</Button>
-                </Card.Actions>
-              </Card>
+            {Object.entries(productosAgrupados).map(([categoria, productos]) => (
+              <View key={categoria}>
+                <Text variant="titleMedium" style={styles.categoriaTitle}>{categoria}</Text>
+                {productos.map((producto) => (
+                  <Card key={producto.id} style={styles.productoCard}>
+                    <Card.Content>
+                      <Text variant="titleMedium">{producto.nombre}</Text>
+                      <Text variant="bodySmall" style={{ color: producto.stock > 0 ? theme.colors.onSurface : theme.colors.error }}>
+                        Stock: {producto.stock} {producto.stock === 0 && '(Sin stock)'}
+                      </Text>
+                      <Text variant="bodyLarge" style={styles.precio}>
+                        {formatPrice(producto.precio)}
+                      </Text>
+                    </Card.Content>
+                    <Card.Actions>
+                      <Button 
+                        onPress={() => handleAddProducto(producto)}
+                        disabled={producto.stock === 0}
+                      >
+                        Agregar
+                      </Button>
+                    </Card.Actions>
+                  </Card>
+                ))}
+              </View>
             ))}
           </ScrollView>
 
@@ -219,18 +295,25 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
           </Surface>
 
           <Surface style={styles.resumenSection} elevation={1}>
+            <Text variant="titleMedium">Lista de Precios</Text>
+            <Text variant="bodyLarge">{listaSeleccionada?.nombre} ({listaSeleccionada?.descuento_porcentaje}% desc.)</Text>
+          </Surface>
+
+          <Surface style={styles.resumenSection} elevation={1}>
             <Text variant="titleMedium" style={styles.sectionTitle}>Productos ({items.length})</Text>
             {items.map((item, index) => (
               <View key={index} style={styles.itemRow}>
                 <View style={styles.itemInfo}>
                   <Text variant="bodyMedium">{item.producto.nombre}</Text>
-                  <Text variant="bodySmall">x{item.cantidad} - {formatPrice(item.producto.precio_lista_3 || item.producto.precio_lista_1)}</Text>
+                  <Text variant="bodySmall">
+                    x{item.cantidad} - {formatPrice(item.producto.precio)}
+                  </Text>
                 </View>
                 <Button mode="text" icon="minus" compact onPress={() => handleUpdateCantidad(item.producto.id, item.cantidad - 1)}>
                   {item.cantidad}
                 </Button>
-                <Button mode="text" icon="plus" compact onPress={() => handleUpdateCantidad(item.producto.id, item.cantidad + 1)} />
-                <Button mode="text" icon="delete" compact onPress={() => handleRemoveItem(item.producto.id)} />
+                <Button mode="text" icon="plus" compact onPress={() => handleUpdateCantidad(item.producto.id, item.cantidad + 1)}>+</Button>
+                <Button mode="text" icon="delete" compact onPress={() => handleRemoveItem(item.producto.id)}>X</Button>
               </View>
             ))}
           </Surface>
@@ -245,7 +328,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
           </View>
         </ScrollView>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -280,6 +363,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.md,
+    paddingBottom: spacing.xl * 2, // Espacio extra para evitar solapamiento
   },
   title: {
     marginBottom: spacing.md,
@@ -287,11 +371,32 @@ const styles = StyleSheet.create({
   },
   searchbar: {
     marginBottom: spacing.md,
+    marginHorizontal: spacing.md,
+  },
+  categoriaTitle: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
   },
   clienteCard: {
     padding: spacing.md,
     margin: spacing.md,
     borderRadius: 8,
+  },
+  listaPrecioCard: {
+    padding: spacing.md,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
+    borderRadius: 8,
+  },
+  listaPrecioTitle: {
+    marginBottom: spacing.xs,
+    fontWeight: 'bold',
+  },
+  radioRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
   productoCard: {
     marginBottom: spacing.md,
@@ -306,6 +411,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: spacing.md,
+    paddingBottom: spacing.xl, // Espacio para botones del sistema
   },
   resumenSection: {
     padding: spacing.md,
@@ -335,6 +441,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: spacing.md,
+    marginBottom: spacing.xl, // Espacio adicional para botones del sistema
   },
 });
 

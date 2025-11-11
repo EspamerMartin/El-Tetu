@@ -52,7 +52,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <View style={styles.priceContainer}>
           <View>
             <Text variant="headlineMedium" style={styles.price}>
-              {formatPrice(producto.precio_lista_3)}
+              {formatPrice(producto.precio)}
             </Text>
           </View>
         </View>

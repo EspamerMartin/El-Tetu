@@ -7,8 +7,16 @@ from .views import (
     ProductoListCreateView,
     ProductoDetailView,
 )
+from .views_listas import (
+    ListaPrecioListCreateView,
+    ListaPrecioDetailView,
+)
 
 urlpatterns = [
+    # Listas de Precios
+    path('listas-precios/', ListaPrecioListCreateView.as_view(), name='lista_precio_list_create'),
+    path('listas-precios/<int:pk>/', ListaPrecioDetailView.as_view(), name='lista_precio_detail'),
+    
     # Categorías
     path('categorias/', CategoriaListCreateView.as_view(), name='categoria_list_create'),
     path('categorias/<int:pk>/', CategoriaDetailView.as_view(), name='categoria_detail'),

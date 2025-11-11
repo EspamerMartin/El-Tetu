@@ -11,12 +11,9 @@ const initialState: CartState = {
   total: 0,
 };
 
-const calculateTotal = (items: CartItem[], listaPrecio: 'lista_3' | 'lista_4' = 'lista_3'): number => {
+const calculateTotal = (items: CartItem[]): number => {
   return items.reduce((sum, item) => {
-    const precioStr = listaPrecio === 'lista_3' 
-      ? item.producto.precio_lista_3
-      : item.producto.precio_lista_4;
-    const precio = parseFloat(precioStr);
+    const precio = parseFloat(item.producto.precio);
     if (isNaN(precio)) {
       return sum;
     }
@@ -66,10 +63,6 @@ const cartSlice = createSlice({
       state.items = [];
       state.total = 0;
     },
-
-    recalculateTotal: (state, action: PayloadAction<'lista_3' | 'lista_4'>) => {
-      state.total = calculateTotal(state.items, action.payload);
-    },
   },
 });
 
@@ -78,7 +71,6 @@ export const {
   removeFromCart,
   updateQuantity,
   clearCart,
-  recalculateTotal,
 } = cartSlice.actions;
 
 export default cartSlice.reducer;

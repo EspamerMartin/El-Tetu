@@ -156,7 +156,7 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
             <View style={styles.pricesContainer}>
               <View style={styles.priceBox}>
                 <Text variant="headlineLarge" style={styles.price}>
-                  {formatPrice(producto.precio_lista_3)}
+                  {formatPrice(producto.precio)}
                 </Text>
               </View>
             </View>

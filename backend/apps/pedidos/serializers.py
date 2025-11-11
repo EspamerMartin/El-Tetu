@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from apps.productos.serializers import ProductoListSerializer
+from apps.productos.models import ListaPrecio
 from apps.promociones.serializers import PromocionSerializer
 from .models import Pedido, PedidoItem
 
@@ -94,6 +95,11 @@ class PedidoCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Crea pedido con items y aplica promociones."""
         items_data = validated_data.pop('items')
+        cliente = validated_data.get('cliente')
+        
+        # Si no se especifica lista_precio, usar la del cliente (o None para lista base)
+        if 'lista_precio' not in validated_data or validated_data['lista_precio'] is None:
+            validated_data['lista_precio'] = getattr(cliente, 'lista_precio', None)
         
         # Crear pedido
         pedido = Pedido.objects.create(**validated_data)
@@ -103,11 +109,8 @@ class PedidoCreateSerializer(serializers.ModelSerializer):
             producto = item_data['producto']
             cantidad = item_data['cantidad']
             
-            # Determinar precio según lista
-            if pedido.lista_precio == 'lista_3':
-                precio_unitario = producto.precio_lista_3
-            else:
-                precio_unitario = producto.precio_lista_4
+            # Calcular precio según la lista del pedido
+            precio_unitario = producto.get_precio_lista(pedido.lista_precio)
             
             PedidoItem.objects.create(
                 pedido=pedido,

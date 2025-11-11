@@ -11,6 +11,8 @@ export interface User {
   rol: UserRole;
   telefono?: string;
   direccion?: string;
+  lista_precio?: number;
+  lista_precio_nombre?: string;
   is_active: boolean;
   date_joined: string;
 }
@@ -69,8 +71,8 @@ export interface Producto {
   categoria_nombre: string;
   subcategoria?: number;
   subcategoria_nombre?: string;
-  precio_lista_3: string;
-  precio_lista_4: string;
+  precio_base: string;
+  precio: string; // Precio calculado según la lista del usuario
   stock: number;
   stock_minimo: number;
   tiene_stock: boolean;
@@ -91,7 +93,15 @@ export interface CartItem {
 // ========== Pedido Types ==========
 
 export type PedidoEstado = 'PENDIENTE' | 'CONFIRMADO' | 'CANCELADO';
-export type ListaPrecio = 'lista_3' | 'lista_4';
+
+export interface ListaPrecio {
+  id: number;
+  nombre: string;
+  codigo: string;
+  descuento_porcentaje: string;
+  activo: boolean;
+  fecha_creacion: string;
+}
 
 export interface PedidoItem {
   id: number;
@@ -127,7 +137,8 @@ export interface Pedido {
   cliente: number;
   cliente_nombre: string;
   estado: PedidoEstado;
-  lista_precio: ListaPrecio;
+  lista_precio: number;
+  lista_precio_nombre: string;
   subtotal: string;
   descuento_total: string;
   total: string;
@@ -142,7 +153,7 @@ export interface Pedido {
 
 export interface CreatePedidoData {
   cliente?: number;
-  lista_precio: ListaPrecio;
+  lista_precio: number;
   items: Array<{
     producto: number;
     cantidad: number;

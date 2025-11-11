@@ -1,4 +1,38 @@
 from django.db import models
+from decimal import Decimal
+
+
+class ListaPrecio(models.Model):
+    """Modelo para listas de precios con descuentos."""
+    
+    nombre = models.CharField(max_length=100, unique=True, verbose_name='Nombre')
+    codigo = models.CharField(max_length=50, unique=True, verbose_name='Código')
+    descuento_porcentaje = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        verbose_name='Descuento (%)',
+        help_text='Porcentaje de descuento aplicado sobre el precio base'
+    )
+    activo = models.BooleanField(default=True, verbose_name='Activo')
+    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de creación')
+    
+    class Meta:
+        verbose_name = 'Lista de Precio'
+        verbose_name_plural = 'Listas de Precios'
+        ordering = ['nombre']
+    
+    def __str__(self):
+        if self.descuento_porcentaje > 0:
+            return f"{self.nombre} ({self.descuento_porcentaje}% desc.)"
+        return self.nombre
+    
+    def calcular_precio(self, precio_base):
+        """Calcula el precio aplicando el descuento de esta lista."""
+        if self.descuento_porcentaje > 0:
+            factor = Decimal('1') - (self.descuento_porcentaje / Decimal('100'))
+            return precio_base * factor
+        return precio_base
 
 
 class Categoria(models.Model):
@@ -64,16 +98,13 @@ class Producto(models.Model):
         verbose_name='Subcategoría'
     )
     
-    # Precios por lista
-    precio_lista_3 = models.DecimalField(
+    # Precio base (sin descuentos)
+    precio_base = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        verbose_name='Precio Lista 3'
-    )
-    precio_lista_4 = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        verbose_name='Precio Lista 4'
+        default=0,
+        verbose_name='Precio Base',
+        help_text='Precio sin descuentos'
     )
     
     stock = models.IntegerField(default=0, verbose_name='Stock')
@@ -97,6 +128,15 @@ class Producto(models.Model):
     
     def __str__(self):
         return f"{self.codigo} - {self.nombre}"
+    
+    def get_precio_lista(self, lista_precio=None):
+        """
+        Obtiene el precio según la lista de precios.
+        Si no se proporciona lista, retorna el precio base.
+        """
+        if lista_precio and lista_precio.activo:
+            return lista_precio.calcular_precio(self.precio_base)
+        return self.precio_base
     
     @property
     def tiene_stock(self):

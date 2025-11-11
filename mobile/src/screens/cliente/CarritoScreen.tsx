@@ -64,12 +64,19 @@ const CarritoScreen = ({ navigation }: Props) => {
       return;
     }
 
+    if (!user) {
+      Alert.alert('Error', 'Debes estar autenticado para realizar un pedido');
+      return;
+    }
+
     try {
       setLoading(true);
       
+      // Si el usuario tiene una lista asignada, usarla. Si no, buscar Lista Base (código 'base')
+      // En el backend, si lista_precio es null, se usa Lista Base automáticamente
       const pedidoData = {
-        cliente: user!.id,
-        lista_precio: 'lista_3' as const,
+        cliente: user.id,
+        lista_precio: user.lista_precio || 1, // ID 1 es Lista Base por defecto
         items: items.map((item) => ({
           producto: item.producto.id,
           cantidad: item.cantidad,
@@ -124,7 +131,7 @@ const CarritoScreen = ({ navigation }: Props) => {
               Código: {item.producto.codigo}
             </Text>
             <Text variant="titleMedium" style={styles.itemPrecio}>
-              {formatPrice(parseFloat(item.producto.precio_lista_3))}
+              {formatPrice(parseFloat(item.producto.precio))}
             </Text>
           </View>
           <IconButton
@@ -163,7 +170,7 @@ const CarritoScreen = ({ navigation }: Props) => {
         <View style={styles.subtotalRow}>
           <Text variant="bodyMedium">Subtotal:</Text>
           <Text variant="titleMedium" style={styles.subtotalPrice}>
-            {formatPrice(parseFloat(item.producto.precio_lista_3) * item.cantidad)}
+            {formatPrice(parseFloat(item.producto.precio) * item.cantidad)}
           </Text>
         </View>
       </Card.Content>

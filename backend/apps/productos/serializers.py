@@ -1,5 +1,14 @@
 from rest_framework import serializers
-from .models import Categoria, Subcategoria, Producto
+from .models import Categoria, Subcategoria, Producto, ListaPrecio
+
+
+class ListaPrecioSerializer(serializers.ModelSerializer):
+    """Serializer para el modelo ListaPrecio."""
+    
+    class Meta:
+        model = ListaPrecio
+        fields = ['id', 'nombre', 'codigo', 'descuento_porcentaje', 'activo', 'fecha_creacion']
+        read_only_fields = ['id', 'fecha_creacion']
 
 
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -33,14 +42,25 @@ class ProductoListSerializer(serializers.ModelSerializer):
     tiene_stock = serializers.ReadOnlyField()
     stock_bajo = serializers.ReadOnlyField()
     
+    # Precio calculado según lista del usuario actual
+    precio = serializers.SerializerMethodField()
+    
     class Meta:
         model = Producto
         fields = [
             'id', 'codigo', 'nombre', 'categoria', 'categoria_nombre',
-            'subcategoria', 'subcategoria_nombre', 'precio_lista_3',
-            'precio_lista_4', 'stock', 'tiene_stock', 'stock_bajo',
+            'subcategoria', 'subcategoria_nombre', 'precio_base', 'precio',
+            'stock', 'tiene_stock', 'stock_bajo',
             'activo', 'imagen'
         ]
+    
+    def get_precio(self, obj):
+        """Calcula el precio según la lista del usuario."""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            lista_precio = getattr(request.user, 'lista_precio', None)
+            return str(obj.get_precio_lista(lista_precio))
+        return str(obj.precio_base)
 
 
 class ProductoDetailSerializer(serializers.ModelSerializer):
@@ -51,18 +71,29 @@ class ProductoDetailSerializer(serializers.ModelSerializer):
     tiene_stock = serializers.ReadOnlyField()
     stock_bajo = serializers.ReadOnlyField()
     
+    # Precio calculado según lista del usuario actual
+    precio = serializers.SerializerMethodField()
+    
     class Meta:
         model = Producto
         fields = [
             'id', 'codigo', 'nombre', 'descripcion',
             'categoria', 'categoria_nombre',
             'subcategoria', 'subcategoria_nombre',
-            'precio_lista_3', 'precio_lista_4',
+            'precio_base', 'precio',
             'stock', 'stock_minimo', 'tiene_stock', 'stock_bajo',
             'imagen', 'activo',
             'fecha_creacion', 'fecha_actualizacion'
         ]
         read_only_fields = ['id', 'fecha_creacion', 'fecha_actualizacion']
+    
+    def get_precio(self, obj):
+        """Calcula el precio según la lista del usuario."""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            lista_precio = getattr(request.user, 'lista_precio', None)
+            return str(obj.get_precio_lista(lista_precio))
+        return str(obj.precio_base)
 
 
 class ProductoCreateUpdateSerializer(serializers.ModelSerializer):
@@ -73,7 +104,7 @@ class ProductoCreateUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'codigo', 'nombre', 'descripcion',
             'categoria', 'subcategoria',
-            'precio_lista_3', 'precio_lista_4',
+            'precio_base',
             'stock', 'stock_minimo',
             'imagen', 'activo'
         ]

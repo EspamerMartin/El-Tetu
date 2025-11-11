@@ -15,8 +15,7 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
   const [descripcion, setDescripcion] = useState('');
   const [codigo, setCodigo] = useState('');
   const [stock, setStock] = useState('0');
-  const [precioLista3, setPrecioLista3] = useState('');
-  const [precioLista4, setPrecioLista4] = useState('');
+  const [precioBase, setPrecioBase] = useState('');
   const [categoria, setCategoria] = useState<number | null>(null);
   const [subcategoria, setSubcategoria] = useState<number | null>(null);
   const [activo, setActivo] = useState(true);
@@ -57,8 +56,7 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
       setDescripcion(producto.descripcion || '');
       setCodigo(producto.codigo || '');
       setStock(producto.stock.toString());
-      setPrecioLista3(producto.precio_lista_3 || '');
-      setPrecioLista4(producto.precio_lista_4 || '');
+      setPrecioBase(producto.precio_base || '');
       setCategoria(producto.categoria || null);
       setSubcategoria(producto.subcategoria || null);
       setActivo(producto.activo);
@@ -66,8 +64,8 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
   }, [producto]);
 
   const handleSave = async () => {
-    if (!nombre || !precioLista3 || !categoria) {
-      Alert.alert('Error', 'Nombre, precio y categoría son obligatorios');
+    if (!nombre || !precioBase || !categoria) {
+      Alert.alert('Error', 'Nombre, precio base y categoría son obligatorios');
       return;
     }
 
@@ -78,8 +76,7 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
         descripcion,
         codigo,
         stock: parseInt(stock) || 0,
-        precio_lista_3: precioLista3,
-        precio_lista_4: precioLista4,
+        precio_base: precioBase,
         categoria,
         activo,
       };
@@ -202,8 +199,7 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
       )}
 
       <InputField label="Stock" value={stock} onChangeText={setStock} keyboardType="numeric" />
-      <InputField label="Precio Lista 3" value={precioLista3} onChangeText={setPrecioLista3} keyboardType="decimal-pad" />
-      <InputField label="Precio Lista 4" value={precioLista4} onChangeText={setPrecioLista4} keyboardType="decimal-pad" />
+      <InputField label="Precio Base" value={precioBase} onChangeText={setPrecioBase} keyboardType="decimal-pad" />
 
       <View style={styles.switchRow}>
         <Text variant="bodyLarge">Producto activo</Text>
