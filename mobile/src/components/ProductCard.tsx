@@ -30,70 +30,73 @@ const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   return (
-    <Card style={styles.card} onPress={onPress}>
-      <Card.Content>
-        {producto.imagen && (
-          <Image
-            source={{ uri: producto.imagen }}
-            style={styles.image}
-            resizeMode="cover"
-          />
-        )}
-        
-        <View style={styles.header}>
-          <Text variant="titleMedium" style={styles.nombre} numberOfLines={2}>
-            {producto.nombre}
-          </Text>
-          <Text variant="bodySmall" style={styles.codigo}>
-            Código: {producto.codigo}
-          </Text>
-        </View>
-
-        <View style={styles.priceContainer}>
-          <View>
-            <Text variant="headlineMedium" style={styles.price}>
-              {formatPrice(producto.precio)}
+    <Card style={styles.card} onPress={onPress} mode="elevated">
+      <Card.Content style={styles.cardContent}>
+        {/* Imagen del producto o placeholder */}
+        <View style={styles.imageContainer}>
+          {producto.imagen ? (
+            <Image
+              source={{ uri: producto.imagen }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Text variant="displaySmall" style={styles.placeholderIcon}>📦</Text>
+            </View>
+          )}
+          
+          {/* Stock badge en la imagen */}
+          <View style={[
+            styles.stockBadge,
+            producto.tiene_stock 
+              ? (producto.stock_bajo ? styles.stockBadgeWarning : styles.stockBadgeSuccess)
+              : styles.stockBadgeError
+          ]}>
+            <Text variant="labelSmall" style={styles.stockBadgeText} numberOfLines={1}>
+              {producto.tiene_stock 
+                ? `Stock: ${producto.stock}` 
+                : 'Sin stock'}
             </Text>
           </View>
         </View>
-
-        <View style={styles.stockContainer}>
-          {producto.tiene_stock ? (
-            <Chip
-              icon="check-circle"
-              style={[
-                styles.chip,
-                producto.stock_bajo
-                  ? styles.chipWarning
-                  : styles.chipSuccess,
-              ]}
-              textStyle={styles.chipText}
-            >
-              {producto.stock_bajo
-                ? `Stock bajo (${producto.stock})`
-                : `Stock: ${producto.stock}`}
-            </Chip>
-          ) : (
-            <Chip
-              icon="alert-circle"
-              style={[styles.chip, styles.chipError]}
-              textStyle={styles.chipText}
-            >
-              Sin stock
-            </Chip>
-          )}
+        
+        {/* Info del producto */}
+        <View style={styles.infoContainer}>
+          {/* Categoría y Subcategoría */}
+          <View style={styles.infoRow}>
+            <Text variant="labelSmall" style={styles.infoLabel}>Categoría: </Text>
+            <Text variant="labelSmall" style={styles.categoryValue}>
+              {producto.categoria_nombre}
+            </Text>
+            {producto.subcategoria_nombre && (
+              <>
+                <Text variant="labelSmall" style={styles.categorySeparator}> • </Text>
+                <Text variant="labelSmall" style={styles.subcategoryValue}>
+                  {producto.subcategoria_nombre}
+                </Text>
+              </>
+            )}
+          </View>
+          
+          {/* Nombre del producto */}
+          <View style={styles.infoRow}>
+            <Text variant="labelSmall" style={styles.infoLabel}>Producto: </Text>
+            <Text variant="bodySmall" style={styles.nombre} numberOfLines={2}>
+              {producto.nombre}
+            </Text>
+          </View>
+          
+          {/* Código */}
+          <Text variant="labelSmall" style={styles.codigo} numberOfLines={1}>
+            Cód: {producto.codigo}
+          </Text>
+          
+          {/* Precio */}
+          <Text variant="titleMedium" style={styles.price}>
+            {formatPrice(producto.precio)}
+          </Text>
         </View>
-
-        {showAddButton && producto.tiene_stock && (
-          <Button
-            mode="contained"
-            icon="eye"
-            onPress={onPress}
-            style={styles.button}
-          >
-            Ver producto
-          </Button>
-        )}
       </Card.Content>
     </Card>
   );
@@ -101,26 +104,124 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    marginBottom: spacing.md,
-    elevation: 2,
+    flex: 1,
+    elevation: 3,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: 'white',
+  },
+  cardContent: {
+    padding: 0,
+  },
+  imageContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 140,
+    backgroundColor: theme.colors.surfaceVariant,
   },
   image: {
     width: '100%',
-    height: 180,
-    borderRadius: 8,
-    marginBottom: spacing.sm,
-    backgroundColor: theme.colors.surfaceVariant,
+    height: '100%',
   },
-  header: {
-    marginBottom: spacing.sm,
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  placeholderIcon: {
+    opacity: 0.3,
+  },
+  stockBadge: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    elevation: 2,
+    maxWidth: '90%',
+  },
+  stockBadgeSuccess: {
+    backgroundColor: '#4CAF50',
+  },
+  stockBadgeWarning: {
+    backgroundColor: '#FF9800',
+  },
+  stockBadgeError: {
+    backgroundColor: '#F44336',
+  },
+  stockBadgeText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 10,
+  },
+  infoContainer: {
+    padding: 10,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 3,
+    flexWrap: 'wrap',
+  },
+  infoLabel: {
+    color: theme.colors.onSurfaceVariant,
+    fontWeight: '600',
+    fontSize: 10,
+  },
+  categoryValue: {
+    color: theme.colors.primary,
+    fontWeight: '500',
+    fontSize: 10,
+  },
+  subcategoryValue: {
+    color: theme.colors.secondary,
+    fontWeight: '500',
+    fontSize: 10,
+  },
+  categoriesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    flexWrap: 'wrap',
+  },
+  categoryLabel: {
+    color: theme.colors.primary,
+    fontWeight: '600',
+    fontSize: 9,
+    textTransform: 'uppercase',
+  },
+  categorySeparator: {
+    color: theme.colors.outline,
+    fontSize: 10,
+  },
+  subcategoryLabel: {
+    color: theme.colors.secondary,
+    fontWeight: '500',
+    fontSize: 9,
+    textTransform: 'uppercase',
   },
   nombre: {
     fontWeight: '600',
     color: theme.colors.onSurface,
+    flex: 1,
+    fontSize: 12,
   },
   codigo: {
     color: theme.colors.onSurfaceVariant,
-    marginTop: spacing.xs,
+    marginBottom: 6,
+    fontSize: 10,
+  },
+  price: {
+    color: theme.colors.primary,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  // Estilos legacy para compatibilidad
+  header: {
+    marginBottom: spacing.sm,
   },
   priceContainer: {
     flexDirection: 'row',
@@ -130,10 +231,6 @@ const styles = StyleSheet.create({
   },
   priceLabel: {
     color: theme.colors.onSurfaceVariant,
-  },
-  price: {
-    color: theme.colors.primary,
-    fontWeight: 'bold',
   },
   priceSecondary: {
     color: theme.colors.secondary,
