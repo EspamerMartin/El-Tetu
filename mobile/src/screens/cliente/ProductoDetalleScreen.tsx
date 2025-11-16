@@ -6,10 +6,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import { ClienteStackParamList } from '@/navigation/ClienteStack';
 import { productosAPI } from '@/services/api';
 import { Producto } from '@/types';
-import { LoadingOverlay } from '@/components';
+import { LoadingOverlay, ScreenContainer } from '@/components';
 import { useAppDispatch } from '@/store';
 import { addToCart } from '@/store/slices/cartSlice';
 import { theme, spacing } from '@/theme';
+import { formatPrice } from '@/utils';
 
 type Props = NativeStackScreenProps<ClienteStackParamList, 'ProductoDetalle'>;
 
@@ -82,30 +83,25 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
 
   if (error || !producto) {
     return (
-      <View style={styles.errorContainer}>
-        <Text variant="bodyLarge" style={styles.errorText}>
-          {error || 'Producto no encontrado'}
-        </Text>
-        <Button mode="contained" onPress={() => navigation.goBack()}>
-          Volver
-        </Button>
-      </View>
+      <ScreenContainer>
+        <View style={styles.errorContainer}>
+          <Text variant="bodyLarge" style={styles.errorText}>
+            {error || 'Producto no encontrado'}
+          </Text>
+          <Button mode="contained" onPress={() => navigation.goBack()}>
+            Volver
+          </Button>
+        </View>
+      </ScreenContainer>
     );
   }
 
-  const formatPrice = (price: string) => {
-    const numPrice = parseFloat(price);
-    if (isNaN(numPrice)) {
-      return '$0.00';
-    }
-    return `$${numPrice.toFixed(2)}`;
-  };
 
   const maxCantidad = Math.min(10, producto.stock);
 
   return (
-    <>
-      <ScrollView style={styles.container}>
+    <ScreenContainer>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <Surface style={styles.surface}>
           {producto.imagen && (
             <Image
@@ -246,20 +242,22 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
           ✓ {cantidad} {cantidad === 1 ? 'producto agregado' : 'productos agregados'} al carrito
         </Text>
       </Snackbar>
-    </>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  scrollView: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+  },
+  scrollContent: {
+    padding: spacing.md,
   },
   surface: {
-    margin: spacing.md,
     padding: spacing.lg,
     borderRadius: 12,
     elevation: 2,
+    backgroundColor: theme.colors.surface,
   },
   image: {
     width: '100%',

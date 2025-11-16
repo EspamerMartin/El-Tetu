@@ -4,8 +4,9 @@ import { Text, FAB, Card, Chip, IconButton, Searchbar } from 'react-native-paper
 import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
-import { ProductCard, LoadingOverlay } from '@/components';
+import { ProductCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
 import { theme, spacing } from '@/theme';
+import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const ProductosListScreen = ({ navigation }: any) => {
@@ -41,7 +42,7 @@ const ProductosListScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer>
       <Searchbar placeholder="Buscar productos..." onChangeText={setSearchQuery} value={searchQuery} style={styles.searchbar} />
 
       {loading ? (
@@ -64,7 +65,7 @@ const ProductosListScreen = ({ navigation }: any) => {
                 )}
               />
               <Card.Content>
-                <Text variant="bodyLarge">${item.precio_base}</Text>
+                <Text variant="bodyLarge">{formatPrice(item.precio_base)}</Text>
                 <Chip icon={item.activo ? 'check' : 'close'} compact style={styles.chip}>
                   {item.activo ? 'Activo' : 'Inactivo'}
                 </Chip>
@@ -72,27 +73,26 @@ const ProductosListScreen = ({ navigation }: any) => {
             </Card>
           )}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Icon name="package-variant-closed" size={64} color={theme.colors.outline} />
-              <Text variant="bodyLarge">No hay productos</Text>
-            </View>
+            <EmptyState
+              icon="package-variant-closed"
+              title="No hay productos"
+              message="Crea tu primer producto para comenzar"
+            />
           }
         />
       )}
 
       <FAB icon="plus" style={styles.fab} onPress={() => navigation.navigate('ProductoForm')} />
-    </View>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
   searchbar: { margin: spacing.md },
   list: { padding: spacing.md },
   card: { marginBottom: spacing.md },
   actions: { flexDirection: 'row' },
   chip: { marginTop: spacing.sm },
-  empty: { alignItems: 'center', padding: spacing.xxl },
   fab: { position: 'absolute', bottom: spacing.lg, right: spacing.lg },
 });
 

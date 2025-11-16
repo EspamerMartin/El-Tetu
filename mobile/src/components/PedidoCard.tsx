@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { Card, Text, Chip, Divider } from 'react-native-paper';
 import { Pedido } from '@/types';
 import { theme, spacing } from '@/theme';
+import { formatPrice, formatDate } from '@/utils';
 
 interface PedidoCardProps {
   pedido: Pedido;
@@ -14,22 +15,6 @@ interface PedidoCardProps {
  * Tarjeta reutilizable para mostrar pedidos
  */
 const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onPress }) => {
-  const formatPrice = (price: string) => {
-    const numPrice = parseFloat(price);
-    if (isNaN(numPrice)) {
-      return '$0.00';
-    }
-    return `$${numPrice.toFixed(2)}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  };
 
   const getEstadoColor = (estado: string) => {
     switch (estado) {
@@ -74,7 +59,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onPress }) => {
               Pedido #{pedido.id}
             </Text>
             <Text variant="bodySmall" style={styles.date}>
-              {formatDate(pedido.fecha_creacion)}
+              {formatDate(pedido.fecha_creacion, 'short')}
             </Text>
           </View>
           <Chip

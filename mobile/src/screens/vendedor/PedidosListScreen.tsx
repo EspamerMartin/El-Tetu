@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { useFetch } from '@/hooks';
 import { pedidosAPI } from '@/services/api';
-import { PedidoCard, LoadingOverlay } from '@/components';
+import { PedidoCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
 import { theme, spacing } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -48,7 +48,7 @@ const PedidosListScreen = ({ navigation }: Props) => {
   ];
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer>
       {/* Filtros por Estado */}
       <View style={styles.filtersContainer}>
         <FlatList
@@ -87,18 +87,15 @@ const PedidosListScreen = ({ navigation }: Props) => {
           refreshing={loading}
           onRefresh={refetch}
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Icon name="clipboard-off" size={64} color={theme.colors.outline} />
-              <Text variant="titleMedium" style={styles.emptyText}>
-                No hay pedidos
-              </Text>
-              <Text variant="bodySmall" style={styles.emptySubtext}>
-                {estadoFilter === 'TODOS' 
+            <EmptyState
+              icon="clipboard-off"
+              title="No hay pedidos"
+              message={
+                estadoFilter === 'TODOS' 
                   ? 'Aún no hay pedidos registrados'
                   : `No hay pedidos con estado "${estados.find(e => e.value === estadoFilter)?.label}"`
-                }
-              </Text>
-            </View>
+              }
+            />
           }
         />
       )}
@@ -110,15 +107,11 @@ const PedidosListScreen = ({ navigation }: Props) => {
         style={styles.fab}
         onPress={() => navigation.navigate('NuevoPedido')}
       />
-    </View>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
   filtersContainer: {
     backgroundColor: theme.colors.surface,
     elevation: 2,
@@ -133,20 +126,6 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: spacing.md,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    padding: spacing.xl,
-    marginTop: spacing.xxl,
-  },
-  emptyText: {
-    marginTop: spacing.md,
-    color: theme.colors.onSurfaceVariant,
-  },
-  emptySubtext: {
-    marginTop: spacing.xs,
-    color: theme.colors.outline,
-    textAlign: 'center',
   },
   fab: {
     position: 'absolute',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Surface, DataTable, Divider, Chip, Button, Menu } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -23,6 +23,7 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
   const { pedidoId } = route.params;
   const [updating, setUpdating] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const menuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: pedido, loading, error, refetch } = useFetch(
     () => pedidosAPI.getById(pedidoId)
@@ -65,6 +66,34 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
     };
     return labels[estado] || estado;
   };
+
+  // Limpiar timeout al desmontar
+  useEffect(() => {
+    return () => {
+      if (menuTimeoutRef.current) {
+        clearTimeout(menuTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleOpenMenu = useCallback(() => {
+    if (menuTimeoutRef.current) {
+      clearTimeout(menuTimeoutRef.current);
+      menuTimeoutRef.current = null;
+    }
+    menuTimeoutRef.current = setTimeout(() => {
+      setMenuVisible(true);
+      menuTimeoutRef.current = null;
+    }, 50);
+  }, []);
+
+  const handleCloseMenu = useCallback(() => {
+    if (menuTimeoutRef.current) {
+      clearTimeout(menuTimeoutRef.current);
+      menuTimeoutRef.current = null;
+    }
+    setMenuVisible(false);
+  }, []);
 
   const handleUpdateEstado = async (nuevoEstado: EstadoPedido) => {
     try {
@@ -193,12 +222,12 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
         
         <Menu
           visible={menuVisible}
-          onDismiss={() => setMenuVisible(false)}
+          onDismiss={handleCloseMenu}
           anchor={
             <Button
               mode="contained"
               icon="swap-horizontal"
-              onPress={() => setMenuVisible(true)}
+              onPress={handleOpenMenu}
               disabled={pedido.estado === 'ENTREGADO' || pedido.estado === 'CANCELADO'}
             >
               Cambiar a...

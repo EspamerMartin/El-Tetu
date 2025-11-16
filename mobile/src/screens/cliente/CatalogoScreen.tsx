@@ -6,10 +6,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ClienteStackParamList } from '@/navigation/ClienteStack';
 import { productosAPI, promocionesAPI } from '@/services/api';
 import { Producto, Categoria, Subcategoria, Promocion } from '@/types';
-import { ProductCard, LoadingOverlay } from '@/components';
+import { ProductCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
 import { useAppDispatch } from '@/store';
 import { theme, spacing } from '@/theme';
-import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type NavigationProp = NativeStackNavigationProp<ClienteStackParamList>;
@@ -229,7 +228,7 @@ const CatalogoScreen = () => {
   const subcategoriasFiltradas = getSubcategoriasFiltradas();
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer>
       {/* Header con búsqueda y filtros */}
       <Surface style={styles.header} elevation={2}>
         <View style={styles.searchRow}>
@@ -416,20 +415,13 @@ const CatalogoScreen = () => {
       {loading ? (
         <LoadingOverlay visible message="Cargando productos..." />
       ) : productos.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Icon name="package-variant-closed" size={64} color={theme.colors.outline} />
-          <Text variant="titleMedium" style={styles.emptyTitle}>
-            No hay productos
-          </Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
-            {filters.search ? 'Intenta con otra búsqueda' : 'Ajusta los filtros para ver más productos'}
-          </Text>
-          {activeFiltersCount > 0 && (
-            <Button mode="contained" onPress={clearAllFilters} style={styles.emptyButton}>
-              Limpiar filtros
-            </Button>
-          )}
-        </View>
+        <EmptyState
+          icon="package-variant-closed"
+          title="No hay productos"
+          message={filters.search ? 'Intenta con otra búsqueda' : 'Ajusta los filtros para ver más productos'}
+          actionLabel={activeFiltersCount > 0 ? 'Limpiar filtros' : undefined}
+          onAction={activeFiltersCount > 0 ? clearAllFilters : undefined}
+        />
       ) : (
         <FlatList
           data={productos}
@@ -441,15 +433,11 @@ const CatalogoScreen = () => {
           key="two-column-layout"
         />
       )}
-    </View>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
   header: {
     backgroundColor: 'white',
     paddingHorizontal: 16,
@@ -642,26 +630,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    marginTop: 16,
-    marginBottom: 8,
-    fontWeight: '600',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: theme.colors.onSurfaceVariant,
-    marginBottom: 16,
-  },
-  emptyButton: {
-    marginTop: 8,
   },
   searchContainer: {
     padding: spacing.md,

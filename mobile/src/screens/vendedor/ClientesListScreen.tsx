@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { clientesAPI } from '@/services/api';
 import { Cliente } from '@/types';
-import { LoadingOverlay } from '@/components';
+import { LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
 import { theme, spacing } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -110,7 +110,7 @@ const ClientesListScreen = ({ navigation }: Props) => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer>
       <View style={styles.searchContainer}>
         <Searchbar
           placeholder="Buscar por nombre, email o teléfono..."
@@ -128,29 +128,19 @@ const ClientesListScreen = ({ navigation }: Props) => {
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Icon name="account-off" size={64} color={theme.colors.outline} />
-              <Text variant="titleMedium" style={styles.emptyText}>
-                No se encontraron clientes
-              </Text>
-              {searchQuery && (
-                <Text variant="bodySmall" style={styles.emptySubtext}>
-                  Intenta con otros términos de búsqueda
-                </Text>
-              )}
-            </View>
+            <EmptyState
+              icon="account-off"
+              title="No se encontraron clientes"
+              message={searchQuery ? 'Intenta con otros términos de búsqueda' : undefined}
+            />
           }
         />
       )}
-    </View>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
   searchContainer: {
     padding: spacing.md,
     backgroundColor: theme.colors.surface,
@@ -175,19 +165,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   statusChip: {},
-  emptyContainer: {
-    alignItems: 'center',
-    padding: spacing.xl,
-    marginTop: spacing.xxl,
-  },
-  emptyText: {
-    marginTop: spacing.md,
-    color: theme.colors.onSurfaceVariant,
-  },
-  emptySubtext: {
-    marginTop: spacing.xs,
-    color: theme.colors.outline,
-  },
 });
 
 export default ClientesListScreen;

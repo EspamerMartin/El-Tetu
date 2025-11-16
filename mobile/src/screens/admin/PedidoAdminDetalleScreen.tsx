@@ -5,8 +5,9 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AdminStackParamList } from '@/navigation/AdminStack';
 import { pedidosAPI } from '@/services/api';
 import { Pedido } from '@/types';
-import { LoadingOverlay } from '@/components';
+import { LoadingOverlay, ScreenContainer } from '@/components';
 import { theme, spacing } from '@/theme';
+import { formatPrice, formatDateTime } from '@/utils';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'PedidoAdminDetalle'>;
 
@@ -112,35 +113,18 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
 
   if (error || !pedido) {
     return (
-      <View style={styles.errorContainer}>
-        <Text variant="bodyLarge" style={styles.errorText}>
-          {error || 'Pedido no encontrado'}
-        </Text>
-        <Button mode="contained" onPress={() => navigation.goBack()} style={styles.backButton}>
-          Volver
-        </Button>
-      </View>
+      <ScreenContainer>
+        <View style={styles.errorContainer}>
+          <Text variant="bodyLarge" style={styles.errorText}>
+            {error || 'Pedido no encontrado'}
+          </Text>
+          <Button mode="contained" onPress={() => navigation.goBack()} style={styles.backButton}>
+            Volver
+          </Button>
+        </View>
+      </ScreenContainer>
     );
   }
-
-  const formatPrice = (price: string) => {
-    const numPrice = parseFloat(price);
-    if (isNaN(numPrice)) {
-      return '$0.00';
-    }
-    return `$${numPrice.toFixed(2)}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   const getEstadoColor = (estado: string) => {
     switch (estado) {
@@ -177,8 +161,9 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Surface style={styles.surface}>
+    <ScreenContainer>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <Surface style={styles.surface}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerInfo}>
@@ -186,7 +171,7 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
               Pedido #{pedido.id}
             </Text>
             <Text variant="bodyMedium" style={styles.date}>
-              {formatDate(pedido.fecha_creacion)}
+              {formatDateTime(pedido.fecha_creacion)}
             </Text>
           </View>
           <Chip
@@ -325,22 +310,24 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
           )}
         </View>
       </Surface>
-
+      </ScrollView>
       <LoadingOverlay visible={processing} message="Procesando..." />
-    </ScrollView>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  scrollView: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+  },
+  scrollContent: {
+    padding: spacing.md,
   },
   surface: {
-    margin: spacing.md,
     padding: spacing.lg,
-    borderRadius: 8,
+    borderRadius: 12,
     elevation: 2,
+    backgroundColor: theme.colors.surface,
   },
   errorContainer: {
     flex: 1,

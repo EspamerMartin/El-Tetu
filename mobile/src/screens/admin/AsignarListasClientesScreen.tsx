@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, Card, Menu, Button, Searchbar, Chip } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -21,6 +21,7 @@ const AsignarListasClientesScreen = ({ navigation }: Props) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [menuVisible, setMenuVisible] = useState<number | null>(null);
   const [updating, setUpdating] = useState(false);
+  const menuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: clientesData, loading: loadingClientes, refetch: refetchClientes } = useFetch(() => 
     clientesAPI.getAll()
@@ -37,6 +38,34 @@ const AsignarListasClientesScreen = ({ navigation }: Props) => {
     }, [refetchClientes])
   );
 
+  // Limpiar timeout al desmontar
+  useEffect(() => {
+    return () => {
+      if (menuTimeoutRef.current) {
+        clearTimeout(menuTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleOpenMenu = useCallback((itemId: number) => {
+    if (menuTimeoutRef.current) {
+      clearTimeout(menuTimeoutRef.current);
+      menuTimeoutRef.current = null;
+    }
+    menuTimeoutRef.current = setTimeout(() => {
+      setMenuVisible(itemId);
+      menuTimeoutRef.current = null;
+    }, 50);
+  }, []);
+
+  const handleCloseMenu = useCallback(() => {
+    if (menuTimeoutRef.current) {
+      clearTimeout(menuTimeoutRef.current);
+      menuTimeoutRef.current = null;
+    }
+    setMenuVisible(null);
+  }, []);
+
   const clientesFiltrados = searchQuery
     ? clientes.filter(cliente =>
         cliente.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -48,7 +77,7 @@ const AsignarListasClientesScreen = ({ navigation }: Props) => {
   const handleAsignarLista = async (cliente: User, listaId: number | null) => {
     try {
       setUpdating(true);
-      setMenuVisible(null);
+      handleCloseMenu();
 
       // Enviar explícitamente null si no hay lista
       const updateData: any = {
@@ -112,12 +141,12 @@ const AsignarListasClientesScreen = ({ navigation }: Props) => {
       <Card.Actions>
         <Menu
           visible={menuVisible === item.id}
-          onDismiss={() => setMenuVisible(null)}
+          onDismiss={handleCloseMenu}
           anchor={
             <Button
               mode="outlined"
               icon="pencil"
-              onPress={() => setMenuVisible(item.id)}
+              onPress={() => handleOpenMenu(item.id)}
             >
               Cambiar Lista
             </Button>

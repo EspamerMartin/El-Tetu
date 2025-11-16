@@ -3,6 +3,7 @@ import { View, StyleSheet, Image } from 'react-native';
 import { Card, Text, Button, Chip } from 'react-native-paper';
 import { Producto } from '@/types';
 import { theme, spacing } from '@/theme';
+import { formatPrice } from '@/utils';
 
 interface ProductCardProps {
   producto: Producto;
@@ -21,13 +22,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onAddToCart,
   showAddButton = true,
 }) => {
-  const formatPrice = (price: string) => {
-    const numPrice = parseFloat(price);
-    if (isNaN(numPrice)) {
-      return '$0.00';
-    }
-    return `$${numPrice.toFixed(2)}`;
-  };
 
   return (
     <Card style={styles.card} onPress={onPress} mode="elevated">
@@ -135,27 +129,36 @@ const styles = StyleSheet.create({
   },
   stockBadge: {
     position: 'absolute',
-    bottom: 6,
-    left: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    bottom: 8,
+    left: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 8,
-    elevation: 2,
-    maxWidth: '90%',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    maxWidth: '85%',
+    borderWidth: 1.5,
   },
   stockBadgeSuccess: {
     backgroundColor: '#4CAF50',
+    borderColor: '#2E7D32',
   },
   stockBadgeWarning: {
     backgroundColor: '#FF9800',
+    borderColor: '#F57C00',
   },
   stockBadgeError: {
     backgroundColor: '#F44336',
+    borderColor: '#C62828',
   },
   stockBadgeText: {
     color: 'white',
-    fontWeight: '600',
-    fontSize: 10,
+    fontWeight: '700',
+    fontSize: 11,
+    letterSpacing: 0.3,
   },
   infoContainer: {
     padding: 10,

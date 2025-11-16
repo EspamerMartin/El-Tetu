@@ -11,6 +11,7 @@ import PedidosListScreen from '@/screens/vendedor/PedidosListScreen';
 import PedidoDetalleScreen from '@/screens/vendedor/PedidoDetalleScreen';
 import NuevoPedidoScreen from '@/screens/vendedor/NuevoPedidoScreen';
 import PerfilVendedorScreen from '@/screens/vendedor/PerfilVendedorScreen';
+import ProductosBajoStockScreen from '@/screens/vendedor/ProductosBajoStockScreen';
 
 export type VendedorDrawerParamList = {
   VendedorHome: undefined;
@@ -24,6 +25,7 @@ export type VendedorStackParamList = {
   ClienteDetalle: { clienteId: number };
   PedidoDetalle: { pedidoId: number };
   NuevoPedido: { clienteId?: number };
+  ProductosBajoStock: undefined;
 };
 
 const Drawer = createDrawerNavigator<VendedorDrawerParamList>();
@@ -121,6 +123,11 @@ const VendedorStack = () => {
         name="NuevoPedido"
         component={NuevoPedidoScreen}
         options={{ title: 'Nuevo Pedido' }}
+      />
+      <Stack.Screen
+        name="ProductosBajoStock"
+        component={ProductosBajoStockScreen}
+        options={{ title: 'Productos con Bajo Stock' }}
       />
     </Stack.Navigator>
   );

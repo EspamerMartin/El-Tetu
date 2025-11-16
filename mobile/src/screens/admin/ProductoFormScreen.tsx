@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Button, Switch, Menu } from 'react-native-paper';
 import { useFetch } from '@/hooks';
@@ -22,6 +22,8 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
   const [saving, setSaving] = useState(false);
   const [categoriaMenuVisible, setCategoriaMenuVisible] = useState(false);
   const [subcategoriaMenuVisible, setSubcategoriaMenuVisible] = useState(false);
+  const categoriaMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const subcategoriaMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: producto, loading } = useFetch(
     isEdit ? () => productosAPI.getById(productoId) : () => Promise.resolve(null)
@@ -49,6 +51,70 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
       }
     }
   }, [categoria, subcategoriasFiltradas]);
+
+  // Limpiar timeouts al desmontar
+  useEffect(() => {
+    return () => {
+      if (categoriaMenuTimeoutRef.current) {
+        clearTimeout(categoriaMenuTimeoutRef.current);
+      }
+      if (subcategoriaMenuTimeoutRef.current) {
+        clearTimeout(subcategoriaMenuTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleOpenCategoriaMenu = useCallback(() => {
+    if (categoriaMenuTimeoutRef.current) {
+      clearTimeout(categoriaMenuTimeoutRef.current);
+      categoriaMenuTimeoutRef.current = null;
+    }
+    categoriaMenuTimeoutRef.current = setTimeout(() => {
+      setCategoriaMenuVisible(true);
+      categoriaMenuTimeoutRef.current = null;
+    }, 50);
+  }, []);
+
+  const handleCloseCategoriaMenu = useCallback(() => {
+    if (categoriaMenuTimeoutRef.current) {
+      clearTimeout(categoriaMenuTimeoutRef.current);
+      categoriaMenuTimeoutRef.current = null;
+    }
+    setCategoriaMenuVisible(false);
+  }, []);
+
+  const handleSelectCategoria = useCallback((catId: number) => {
+    setCategoriaMenuVisible(false);
+    setTimeout(() => {
+      setCategoria(catId);
+    }, 100);
+  }, []);
+
+  const handleOpenSubcategoriaMenu = useCallback(() => {
+    if (subcategoriaMenuTimeoutRef.current) {
+      clearTimeout(subcategoriaMenuTimeoutRef.current);
+      subcategoriaMenuTimeoutRef.current = null;
+    }
+    subcategoriaMenuTimeoutRef.current = setTimeout(() => {
+      setSubcategoriaMenuVisible(true);
+      subcategoriaMenuTimeoutRef.current = null;
+    }, 50);
+  }, []);
+
+  const handleCloseSubcategoriaMenu = useCallback(() => {
+    if (subcategoriaMenuTimeoutRef.current) {
+      clearTimeout(subcategoriaMenuTimeoutRef.current);
+      subcategoriaMenuTimeoutRef.current = null;
+    }
+    setSubcategoriaMenuVisible(false);
+  }, []);
+
+  const handleSelectSubcategoria = useCallback((subId: number | null) => {
+    setSubcategoriaMenuVisible(false);
+    setTimeout(() => {
+      setSubcategoria(subId);
+    }, 100);
+  }, []);
 
   useEffect(() => {
     if (producto) {
@@ -126,11 +192,11 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
         )}
         <Menu
           visible={categoriaMenuVisible}
-          onDismiss={() => setCategoriaMenuVisible(false)}
+          onDismiss={handleCloseCategoriaMenu}
           anchor={
             <Button 
               mode="outlined" 
-              onPress={() => setCategoriaMenuVisible(true)}
+              onPress={handleOpenCategoriaMenu}
               icon="chevron-down"
               contentStyle={styles.menuButton}
               disabled={!hayCategorias}
@@ -142,10 +208,7 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
           {categorias.map((cat) => (
             <Menu.Item
               key={cat.id}
-              onPress={() => {
-                setCategoria(cat.id);
-                setCategoriaMenuVisible(false);
-              }}
+              onPress={() => handleSelectCategoria(cat.id)}
               title={cat.nombre}
             />
           ))}
@@ -157,11 +220,11 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
           <Text variant="labelLarge" style={styles.label}>Subcategoría (Opcional)</Text>
           <Menu
             visible={subcategoriaMenuVisible}
-            onDismiss={() => setSubcategoriaMenuVisible(false)}
+            onDismiss={handleCloseSubcategoriaMenu}
             anchor={
               <Button 
                 mode="outlined" 
-                onPress={() => setSubcategoriaMenuVisible(true)}
+                onPress={handleOpenSubcategoriaMenu}
                 icon="chevron-down"
                 contentStyle={styles.menuButton}
               >
@@ -170,19 +233,13 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
             }
           >
             <Menu.Item
-              onPress={() => {
-                setSubcategoria(null);
-                setSubcategoriaMenuVisible(false);
-              }}
+              onPress={() => handleSelectSubcategoria(null)}
               title="Sin subcategoría"
             />
             {subcategoriasFiltradas.map((sub: Subcategoria) => (
               <Menu.Item
                 key={sub.id}
-                onPress={() => {
-                  setSubcategoria(sub.id);
-                  setSubcategoriaMenuVisible(false);
-                }}
+                onPress={() => handleSelectSubcategoria(sub.id)}
                 title={sub.nombre}
               />
             ))}

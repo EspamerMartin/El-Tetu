@@ -6,8 +6,9 @@ import { ClienteTabParamList } from '@/navigation/ClienteStack';
 import { useAppSelector, useAppDispatch } from '@/store';
 import { removeFromCart, updateQuantity, clearCart } from '@/store/slices/cartSlice';
 import { pedidosAPI } from '@/services/api';
-import { LoadingOverlay } from '@/components';
+import { LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
 import { theme, spacing } from '@/theme';
+import { formatPrice } from '@/utils';
 
 type Props = NativeStackScreenProps<ClienteTabParamList, 'Carrito'>;
 
@@ -112,12 +113,6 @@ const CarritoScreen = ({ navigation }: Props) => {
     }
   };
 
-  const formatPrice = (price: number) => {
-    if (isNaN(price)) {
-      return '$0.00';
-    }
-    return `$${price.toFixed(2)}`;
-  };
 
   const renderItem = ({ item }: any) => (
     <Card style={styles.card}>
@@ -131,7 +126,7 @@ const CarritoScreen = ({ navigation }: Props) => {
               Código: {item.producto.codigo}
             </Text>
             <Text variant="titleMedium" style={styles.itemPrecio}>
-              {formatPrice(parseFloat(item.producto.precio))}
+              {formatPrice(item.producto.precio)}
             </Text>
           </View>
           <IconButton
@@ -183,81 +178,77 @@ const CarritoScreen = ({ navigation }: Props) => {
 
   if (items.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text variant="headlineMedium" style={styles.emptyTitle}>
-          Carrito vacío
-        </Text>
-        <Text variant="bodyLarge" style={styles.emptyText}>
-          Agrega productos desde el catálogo
-        </Text>
-        <Button
-          mode="contained"
-          onPress={() => navigation.navigate('Catalogo')}
-          style={styles.emptyButton}
-        >
-          Ir al catálogo
-        </Button>
-      </View>
+      <ScreenContainer>
+        <EmptyState
+          icon="cart-off"
+          title="Carrito vacío"
+          message="Agrega productos desde el catálogo"
+          actionLabel="Ir al catálogo"
+          onAction={() => navigation.navigate('Catalogo')}
+        />
+      </ScreenContainer>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={items}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.producto.id.toString()}
-        contentContainerStyle={styles.list}
-      />
+    <ScreenContainer>
+      <View style={styles.content}>
+        <FlatList
+          data={items}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.producto.id.toString()}
+          contentContainerStyle={styles.list}
+        />
 
-      <Surface style={styles.totalsContainer}>
-        <View style={styles.totalRow}>
-          <Text variant="bodyLarge">Subtotal:</Text>
-          <Text variant="bodyLarge">{formatPrice(subtotal)}</Text>
-        </View>
-
-        {descuento > 0 && (
+        <Surface style={styles.totalsContainer}>
           <View style={styles.totalRow}>
-            <Text variant="bodyLarge" style={styles.discountText}>
-              Descuento:
+            <Text variant="bodyLarge">Subtotal:</Text>
+            <Text variant="bodyLarge">{formatPrice(subtotal)}</Text>
+          </View>
+
+          {descuento > 0 && (
+            <View style={styles.totalRow}>
+              <Text variant="bodyLarge" style={styles.discountText}>
+                Descuento:
+              </Text>
+              <Text variant="bodyLarge" style={styles.discountText}>
+                -{formatPrice(descuento)}
+              </Text>
+            </View>
+          )}
+
+          <Divider style={styles.divider} />
+
+          <View style={styles.totalRow}>
+            <Text variant="headlineSmall" style={styles.totalLabel}>
+              Total:
             </Text>
-            <Text variant="bodyLarge" style={styles.discountText}>
-              -{formatPrice(descuento)}
+            <Text variant="headlineMedium" style={styles.totalPrice}>
+              {formatPrice(total)}
             </Text>
           </View>
-        )}
 
-        <Divider style={styles.divider} />
-
-        <View style={styles.totalRow}>
-          <Text variant="headlineSmall" style={styles.totalLabel}>
-            Total:
-          </Text>
-          <Text variant="headlineMedium" style={styles.totalPrice}>
-            {formatPrice(total)}
-          </Text>
-        </View>
-
-        <Button
-          mode="contained"
-          icon="check"
-          onPress={handleConfirmOrder}
-          style={styles.confirmButton}
-        >
-          Confirmar Pedido
-        </Button>
-      </Surface>
-    </View>
+          <Button
+            mode="contained"
+            icon="check"
+            onPress={handleConfirmOrder}
+            style={styles.confirmButton}
+          >
+            Confirmar Pedido
+          </Button>
+        </Surface>
+      </View>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  content: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   list: {
     padding: spacing.md,
+    paddingBottom: spacing.xl,
   },
   card: {
     marginBottom: spacing.md,
@@ -311,7 +302,10 @@ const styles = StyleSheet.create({
   },
   totalsContainer: {
     padding: spacing.lg,
+    paddingBottom: spacing.xl,
     elevation: 8,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.outline + '20',
   },
   totalRow: {
     flexDirection: 'row',
@@ -329,23 +323,6 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
   confirmButton: {
-    marginTop: spacing.md,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.xl,
-  },
-  emptyTitle: {
-    marginBottom: spacing.sm,
-    fontWeight: 'bold',
-  },
-  emptyText: {
-    color: theme.colors.onSurfaceVariant,
-    marginBottom: spacing.lg,
-  },
-  emptyButton: {
     marginTop: spacing.md,
   },
 });

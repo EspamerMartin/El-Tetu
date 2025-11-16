@@ -5,7 +5,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ClienteTabParamList } from '@/navigation/ClienteStack';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { logout, updateProfile } from '@/store/slices/authSlice';
-import { InputField } from '@/components';
+import { InputField, ScreenContainer } from '@/components';
 import { theme, spacing } from '@/theme';
 
 type Props = NativeStackScreenProps<ClienteTabParamList, 'Perfil'>;
@@ -60,8 +60,9 @@ const PerfilScreen = ({ navigation }: Props) => {
   if (!user) return null;
 
   return (
-    <ScrollView style={styles.container}>
-      <Surface style={styles.surface}>
+    <ScreenContainer>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <Surface style={styles.surface}>
         <Text variant="headlineSmall" style={styles.title}>
           Mi Perfil
         </Text>
@@ -162,20 +163,23 @@ const PerfilScreen = ({ navigation }: Props) => {
           Cerrar Sesión
         </Button>
       </Surface>
-    </ScrollView>
+      </ScrollView>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  scrollView: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+  },
+  scrollContent: {
+    padding: spacing.md,
   },
   surface: {
-    margin: spacing.md,
     padding: spacing.lg,
     borderRadius: 12,
     elevation: 2,
+    backgroundColor: theme.colors.surface,
   },
   title: {
     fontWeight: 'bold',

@@ -1,17 +1,23 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text, Surface, useTheme, Avatar } from 'react-native-paper';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { DrawerScreenProps } from '@react-navigation/drawer';
 import { useFocusEffect } from '@react-navigation/native';
-import { VendedorStackParamList } from '@/navigation/VendedorStack';
+import { VendedorDrawerParamList, VendedorStackParamList } from '@/navigation/VendedorStack';
+import { CompositeScreenProps } from '@react-navigation/native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFetch } from '@/hooks';
 import { pedidosAPI, productosAPI } from '@/services/api';
-import { LoadingOverlay } from '@/components';
+import { LoadingOverlay, ScreenContainer } from '@/components';
 import { useAppSelector } from '@/store';
 import { spacing } from '@/theme';
+import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-type Props = NativeStackScreenProps<VendedorStackParamList, 'VendedorHome'>;
+type Props = CompositeScreenProps<
+  DrawerScreenProps<VendedorDrawerParamList, 'VendedorHome'>,
+  NativeStackScreenProps<VendedorStackParamList>
+>;
 
 interface DashboardStats {
   totalPedidos: number;
@@ -65,7 +71,7 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
   const iniciales = user ? `${user.nombre.charAt(0)}${user.apellido.charAt(0)}` : 'VE';
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer>
       {loading && <LoadingOverlay visible message="Cargando estadísticas..." />}
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -98,7 +104,7 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
             <View style={styles.kpiHeader}>
               <Icon name="cash-multiple" size={32} color={colors.secondary} />
               <Text variant="headlineSmall" style={[styles.kpiValue, { color: colors.secondary }]}>
-                ${!isNaN(stats.ventasDelDia) ? stats.ventasDelDia.toFixed(2) : '0.00'}
+                {formatPrice(stats.ventasDelDia)}
               </Text>
             </View>
             <Text variant="bodyMedium" style={styles.kpiLabel}>Ventas del Día</Text>
@@ -108,7 +114,14 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
           </Surface>
 
           {/* Productos con Bajo Stock */}
-          <Surface style={[styles.kpiCard, { backgroundColor: colors.errorContainer }]} elevation={2}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.getParent()?.navigate('ProductosBajoStock')}
+          >
+            <Surface 
+              style={[styles.kpiCard, { backgroundColor: colors.errorContainer }]} 
+              elevation={2}
+            >
             <View style={styles.kpiHeader}>
               <Icon name="alert-circle-outline" size={32} color={colors.error} />
               <Text variant="headlineSmall" style={[styles.kpiValue, { color: colors.error }]}>
@@ -119,58 +132,60 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
             <Text variant="bodySmall" style={styles.kpiDescription}>
               Productos con menos de 10 unidades
             </Text>
-          </Surface>
+            </Surface>
+          </TouchableOpacity>
         </View>
 
         {/* Accesos Rápidos */}
         <Text variant="titleLarge" style={styles.sectionTitle}>Accesos Rápidos</Text>
         
         <View style={styles.quickActionsContainer}>
-          <Surface
-            style={styles.actionCard}
-            elevation={1}
-            onTouchEnd={() => navigation.navigate('ClientesList')}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Clientes')}
           >
-            <Icon name="account-group" size={40} color={colors.primary} />
-            <Text variant="titleMedium" style={styles.actionTitle}>Clientes</Text>
-            <Text variant="bodySmall" style={styles.actionDescription}>
-              Ver listado de clientes
-            </Text>
-          </Surface>
+            <Surface style={styles.actionCard} elevation={1}>
+              <Icon name="account-group" size={40} color={colors.primary} />
+              <Text variant="titleMedium" style={styles.actionTitle}>Clientes</Text>
+              <Text variant="bodySmall" style={styles.actionDescription}>
+                Ver listado de clientes
+              </Text>
+            </Surface>
+          </TouchableOpacity>
 
-          <Surface
-            style={styles.actionCard}
-            elevation={1}
-            onTouchEnd={() => navigation.navigate('PedidosList')}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Pedidos')}
           >
-            <Icon name="clipboard-list" size={40} color={colors.primary} />
-            <Text variant="titleMedium" style={styles.actionTitle}>Pedidos</Text>
-            <Text variant="bodySmall" style={styles.actionDescription}>
-              Gestionar pedidos
-            </Text>
-          </Surface>
+            <Surface style={styles.actionCard} elevation={1}>
+              <Icon name="clipboard-list" size={40} color={colors.primary} />
+              <Text variant="titleMedium" style={styles.actionTitle}>Pedidos</Text>
+              <Text variant="bodySmall" style={styles.actionDescription}>
+                Gestionar pedidos
+              </Text>
+            </Surface>
+          </TouchableOpacity>
 
-          <Surface
-            style={styles.actionCard}
-            elevation={1}
-            onTouchEnd={() => navigation.navigate('NuevoPedido')}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.getParent()?.navigate('NuevoPedido')}
+            style={styles.nuevoPedidoButton}
           >
-            <Icon name="plus-circle" size={40} color={colors.secondary} />
-            <Text variant="titleMedium" style={styles.actionTitle}>Nuevo Pedido</Text>
-            <Text variant="bodySmall" style={styles.actionDescription}>
-              Crear pedido manual
-            </Text>
-          </Surface>
+            <Surface style={styles.actionCardFull} elevation={1}>
+              <Icon name="plus-circle" size={40} color={colors.secondary} />
+              <Text variant="titleMedium" style={styles.actionTitle}>Nuevo Pedido</Text>
+              <Text variant="bodySmall" style={styles.actionDescription}>
+                Crear pedido manual
+              </Text>
+            </Surface>
+          </TouchableOpacity>
         </View>
       </ScrollView>
-    </View>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   scrollContent: {
     padding: spacing.md,
   },
@@ -223,6 +238,16 @@ const styles = StyleSheet.create({
   actionCard: {
     flex: 1,
     minWidth: '45%',
+    padding: spacing.lg,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  nuevoPedidoButton: {
+    width: '100%',
+    marginTop: spacing.sm,
+  },
+  actionCardFull: {
+    width: '100%',
     padding: spacing.lg,
     borderRadius: 12,
     alignItems: 'center',

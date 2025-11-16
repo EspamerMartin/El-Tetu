@@ -4,9 +4,10 @@ import { Text, Surface, useTheme, Avatar } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { clientesAPI, productosAPI, pedidosAPI } from '@/services/api';
-import { LoadingOverlay } from '@/components';
+import { LoadingOverlay, ScreenContainer } from '@/components';
 import { useAppSelector } from '@/store';
 import { spacing } from '@/theme';
+import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 /**
@@ -58,7 +59,7 @@ const AdminHomeScreen = () => {
   const iniciales = user ? `${user.nombre.charAt(0)}${user.apellido.charAt(0)}` : 'AD';
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer>
       {loading && <LoadingOverlay visible message="Cargando estadísticas..." />}
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -98,20 +99,17 @@ const AdminHomeScreen = () => {
           <Surface style={[styles.kpiCard, { backgroundColor: '#E8F5E9' }]} elevation={2}>
             <Icon name="cash-multiple" size={40} color="#4CAF50" />
             <Text variant="headlineLarge" style={[styles.kpiValue, { color: '#4CAF50' }]}>
-              ${!isNaN(stats.ventasMes) ? stats.ventasMes.toFixed(2) : '0.00'}
+              {formatPrice(stats.ventasMes)}
             </Text>
             <Text variant="bodyMedium" style={styles.kpiLabel}>Ventas del Mes</Text>
           </Surface>
         </View>
       </ScrollView>
-    </View>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   scrollContent: {
     padding: spacing.md,
   },

@@ -6,7 +6,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ClienteStackParamList } from '@/navigation/ClienteStack';
 import { pedidosAPI } from '@/services/api';
 import { Pedido } from '@/types';
-import { PedidoCard, LoadingOverlay } from '@/components';
+import { PedidoCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
 import { theme, spacing } from '@/theme';
 
 type NavigationProp = NativeStackNavigationProp<ClienteStackParamList>;
@@ -69,16 +69,18 @@ const MisPedidosScreen = () => {
 
   if (error) {
     return (
-      <View style={styles.errorContainer}>
-        <Text variant="bodyLarge" style={styles.errorText}>
-          {error}
-        </Text>
-      </View>
+      <ScreenContainer>
+        <View style={styles.errorContainer}>
+          <Text variant="bodyLarge" style={styles.errorText}>
+            {error}
+          </Text>
+        </View>
+      </ScreenContainer>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer>
       <FlatList
         data={pedidos}
         renderItem={renderPedido}
@@ -88,20 +90,18 @@ const MisPedidosScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text variant="bodyLarge">No tienes pedidos aún</Text>
-          </View>
+          <EmptyState
+            icon="clipboard-off"
+            title="No tienes pedidos aún"
+            message="Cuando realices un pedido, aparecerá aquí"
+          />
         }
       />
-    </View>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
   list: {
     padding: spacing.md,
   },
@@ -114,10 +114,6 @@ const styles = StyleSheet.create({
   errorText: {
     color: theme.colors.error,
     textAlign: 'center',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    padding: spacing.xl,
   },
 });
 
