@@ -49,7 +49,7 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
 
   // Fetch productos con stock bajo (< 10)
   const { data: productosBajoStock, loading: loadingProductos, refetch: refetchProductos } = useFetch(
-    () => productosAPI.getAll({ stock__lt: 10 })
+    () => productosAPI.getAll({ stock__lt: 10, activo: true })
   );
 
   useFocusEffect(
@@ -62,10 +62,15 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
 
   const loading = loadingPedidos || loadingVentas || loadingProductos;
 
+  // Filtrar productos con stock < 10 (doble verificación)
+  const productosBajoStockFiltrados = productosBajoStock?.results?.filter(
+    (p: any) => p.stock < 10
+  ) || [];
+
   const stats: DashboardStats = {
     totalPedidos: pedidos?.results?.length || 0,
     ventasDelDia: ventasHoy?.results?.reduce((acc, p) => acc + parseFloat(p.total), 0) || 0,
-    productosConBajoStock: productosBajoStock?.results?.length || 0,
+    productosConBajoStock: productosBajoStockFiltrados.length,
   };
 
   const iniciales = user ? `${user.nombre.charAt(0)}${user.apellido.charAt(0)}` : 'VE';

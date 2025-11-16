@@ -33,12 +33,16 @@ const ProductosBajoStockScreen = ({ navigation }: Props) => {
   );
 
   const productos = productosData?.results || [];
+  
+  // Filtrar productos con stock < 10 (doble verificación)
+  const productosBajoStock = productos.filter((p: Producto) => p.stock < 10);
+  
   const productosFiltrados = searchQuery
-    ? productos.filter((p: Producto) => 
+    ? productosBajoStock.filter((p: Producto) => 
         p.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.codigo.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : productos;
+    : productosBajoStock;
 
   // Ordenar por stock (menor a mayor)
   const productosOrdenados = [...productosFiltrados].sort((a, b) => a.stock - b.stock);
