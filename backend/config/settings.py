@@ -164,11 +164,16 @@ SIMPLE_JWT = {
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
-    CORS_ALLOWED_ORIGINS = config(
+    cors_origins = config(
         'CORS_ALLOWED_ORIGINS',
         default='http://localhost:8081,http://localhost:19006,http://127.0.0.1:19006'
-    ).split(',')
-    CORS_ALLOW_ALL_ORIGINS = False
+    )
+    # If set to '*', allow all origins (useful for development/testing)
+    if cors_origins.strip() == '*':
+        CORS_ALLOW_ALL_ORIGINS = True
+    else:
+        CORS_ALLOWED_ORIGINS = cors_origins.split(',')
+        CORS_ALLOW_ALL_ORIGINS = False
 
 CORS_ALLOW_CREDENTIALS = True
 
