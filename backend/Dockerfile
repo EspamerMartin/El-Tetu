@@ -28,5 +28,18 @@ RUN mkdir -p /app/staticfiles
 # Expose port
 EXPOSE 8000
 
-# Run gunicorn
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
+# Create entrypoint script
+RUN echo '#!/bin/bash\n\
+set -e\n\
+echo "Running database migrations..."\n\
+python manage.py migrate --noinput\n\
+echo "Collecting static files..."\n\
+python manage.py collectstatic --noinput\n\
+echo "Creating initial users..."\n\
+python init_users.py || echo "Users may already exist, continuing..."\n\
+echo "Starting Gunicorn server..."\n\
+exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3\n\
+' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+
+# Run entrypoint script
+CMD ["/app/entrypoint.sh"]
