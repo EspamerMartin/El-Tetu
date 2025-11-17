@@ -188,7 +188,15 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Security settings for production
 if not DEBUG:
+    # Railway SSL termination - Tell Django to trust the X-Forwarded-Proto header
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
+
+    # CSRF trusted origins (required for Django 4.0+ with HTTPS)
+    CSRF_TRUSTED_ORIGINS = [
+        'https://*.railway.app',
+    ]
+
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
