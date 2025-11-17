@@ -31,7 +31,7 @@ const Stack = createNativeStackNavigator<ClienteStackParamList>();
  * ClienteTabs
  * 
  * Bottom Tab Navigator para cliente con:
- * - Catálogo: Pantalla principal con productos y promociones
+ * - Catálogo: Pantalla principal con productos
  * - Carrito: Carrito de compras
  * - Mis Pedidos: Historial de compras
  * - Perfil: Datos del usuario

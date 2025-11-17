@@ -12,7 +12,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type Props = NativeStackScreenProps<VendedorStackParamList, 'PedidosList'>;
 
-type EstadoFilter = 'TODOS' | 'PENDIENTE' | 'CONFIRMADO' | 'EN_CAMINO' | 'ENTREGADO' | 'CANCELADO';
+type EstadoFilter = 'TODOS' | 'PENDIENTE' | 'CONFIRMADO' | 'CANCELADO';
 
 /**
  * PedidosListScreen
@@ -42,8 +42,6 @@ const PedidosListScreen = ({ navigation }: Props) => {
     { value: 'TODOS', label: 'Todos', icon: 'view-list' },
     { value: 'PENDIENTE', label: 'Pendiente', icon: 'clock-outline' },
     { value: 'CONFIRMADO', label: 'Confirmado', icon: 'check-circle' },
-    { value: 'EN_CAMINO', label: 'En Camino', icon: 'truck-delivery' },
-    { value: 'ENTREGADO', label: 'Entregado', icon: 'package-variant-closed' },
     { value: 'CANCELADO', label: 'Cancelado', icon: 'close-circle' },
   ];
 

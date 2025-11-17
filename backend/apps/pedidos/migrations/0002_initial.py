@@ -12,7 +12,6 @@ class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ('pedidos', '0001_initial'),
-        ('promociones', '0001_initial'),
     ]
 
     operations = [
@@ -20,10 +19,5 @@ class Migration(migrations.Migration):
             model_name='pedido',
             name='cliente',
             field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='pedidos', to=settings.AUTH_USER_MODEL, verbose_name='Cliente'),
-        ),
-        migrations.AddField(
-            model_name='pedido',
-            name='promociones_aplicadas',
-            field=models.ManyToManyField(blank=True, related_name='pedidos', to='promociones.promocion', verbose_name='Promociones Aplicadas'),
         ),
     ]

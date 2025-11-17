@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password, check_password
+import logging
 
 from .models import CustomUser
 from .serializers import (
@@ -15,6 +16,9 @@ from .serializers import (
     ChangePasswordSerializer
 )
 from .permissions import IsAdmin
+from apps.core.mixins import SoftDeleteMixin
+
+logger = logging.getLogger('eltetu')
 
 
 class RegisterView(generics.CreateAPIView):
@@ -180,8 +184,13 @@ class UserListCreateView(generics.ListCreateAPIView):
     POST: Solo admin puede crear usuarios.
     """
     queryset = CustomUser.objects.all()
-    serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        """Usa UserCreateSerializer para POST, UserSerializer para GET."""
+        if self.request.method == 'POST':
+            return UserCreateSerializer
+        return UserSerializer
     
     def get_permissions(self):
         """Vendedores pueden listar, solo admin puede crear."""
@@ -193,19 +202,19 @@ class UserListCreateView(generics.ListCreateAPIView):
         return [IsAuthenticated(), IsAdmin()]
     
     def get_queryset(self):
-        """Admin ve todos, vendedores solo clientes."""
+        """Admin ve todos (incluyendo eliminados), vendedores solo clientes activos."""
         user = self.request.user
         
         if user.is_admin():
             return CustomUser.objects.all()
         
         if user.is_vendedor():
-            return CustomUser.objects.filter(rol='cliente')
+            return CustomUser.objects.filter(rol='cliente', is_active=True, fecha_eliminacion__isnull=True)
         
         return CustomUser.objects.none()
 
 
-class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
+class UserDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView):
     """
     Vista para obtener, actualizar y eliminar usuario.
     GET: Admin y vendedores pueden ver detalles.
@@ -222,3 +231,9 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
             if user.is_vendedor() or user.is_admin():
                 return [IsAuthenticated()]
         return [IsAuthenticated(), IsAdmin()]
+    
+    def get_reference_checks(self, instance):
+        """Define las relaciones a verificar para soft delete."""
+        return [
+            (instance.pedidos, 'pedidos'),
+        ]

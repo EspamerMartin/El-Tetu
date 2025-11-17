@@ -132,10 +132,6 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
         return theme.colors.secondary;
       case 'CONFIRMADO':
         return '#2196F3';
-      case 'EN_CAMINO':
-        return '#FF9800';
-      case 'ENTREGADO':
-        return theme.colors.tertiary;
       case 'CANCELADO':
         return theme.colors.error;
       default:
@@ -149,10 +145,6 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
         return 'Pendiente';
       case 'CONFIRMADO':
         return 'Confirmado';
-      case 'EN_CAMINO':
-        return 'En Camino';
-      case 'ENTREGADO':
-        return 'Entregado';
       case 'CANCELADO':
         return 'Cancelado';
       default:
@@ -253,22 +245,6 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
           </View>
         </View>
 
-        {/* Promociones aplicadas */}
-        {pedido.promociones_aplicadas_detalle && pedido.promociones_aplicadas_detalle.length > 0 && (
-          <>
-            <Divider style={styles.divider} />
-            <View style={styles.section}>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                Promociones Aplicadas
-              </Text>
-              {pedido.promociones_aplicadas_detalle.map((promo) => (
-                <Chip key={promo.id} style={styles.promoChip} icon="tag">
-                  {promo.nombre}
-                </Chip>
-              ))}
-            </View>
-          </>
-        )}
 
         <Divider style={styles.divider} />
 
@@ -407,7 +383,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: theme.colors.primary,
   },
-  promoChip: {
+  // Estilo promoChip eliminado (no se usa)
+  _removed_promoChip: {
     marginTop: spacing.sm,
     alignSelf: 'flex-start',
   },

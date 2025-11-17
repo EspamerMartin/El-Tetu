@@ -1,8 +1,9 @@
 from django.db import models
 from decimal import Decimal
+from apps.core.models import SoftDeleteMixin, TimestampMixin
 
 
-class ListaPrecio(models.Model):
+class ListaPrecio(SoftDeleteMixin, TimestampMixin):
     """Modelo para listas de precios con descuentos."""
     
     nombre = models.CharField(max_length=100, unique=True, verbose_name='Nombre')
@@ -15,7 +16,6 @@ class ListaPrecio(models.Model):
         help_text='Porcentaje de descuento aplicado sobre el precio base'
     )
     activo = models.BooleanField(default=True, verbose_name='Activo')
-    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de creación')
     
     class Meta:
         verbose_name = 'Lista de Precio'
@@ -35,13 +35,12 @@ class ListaPrecio(models.Model):
         return precio_base
 
 
-class Categoria(models.Model):
+class Categoria(SoftDeleteMixin, TimestampMixin):
     """Modelo para categorías de productos."""
     
     nombre = models.CharField(max_length=100, unique=True, verbose_name='Nombre')
     descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
     activo = models.BooleanField(default=True, verbose_name='Activo')
-    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de creación')
     
     class Meta:
         verbose_name = 'Categoría'
@@ -52,7 +51,7 @@ class Categoria(models.Model):
         return self.nombre
 
 
-class Subcategoria(models.Model):
+class Subcategoria(SoftDeleteMixin, TimestampMixin):
     """Modelo para subcategorías de productos."""
     
     categoria = models.ForeignKey(
@@ -64,7 +63,6 @@ class Subcategoria(models.Model):
     nombre = models.CharField(max_length=100, verbose_name='Nombre')
     descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
     activo = models.BooleanField(default=True, verbose_name='Activo')
-    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de creación')
     
     class Meta:
         verbose_name = 'Subcategoría'
@@ -76,7 +74,7 @@ class Subcategoria(models.Model):
         return f"{self.categoria.nombre} - {self.nombre}"
 
 
-class Producto(models.Model):
+class Producto(SoftDeleteMixin, TimestampMixin):
     """Modelo para productos del catálogo."""
     
     codigo = models.CharField(max_length=50, unique=True, verbose_name='Código')
@@ -118,8 +116,6 @@ class Producto(models.Model):
     )
     
     activo = models.BooleanField(default=True, verbose_name='Activo')
-    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de creación')
-    fecha_actualizacion = models.DateTimeField(auto_now=True, verbose_name='Fecha de actualización')
     
     class Meta:
         verbose_name = 'Producto'

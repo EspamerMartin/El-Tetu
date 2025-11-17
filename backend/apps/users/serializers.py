@@ -17,6 +17,28 @@ class UserSerializer(serializers.ModelSerializer):
             'is_active', 'date_joined'
         ]
         read_only_fields = ['id', 'date_joined']
+    
+    def update(self, instance, validated_data):
+        """
+        Actualiza el usuario. Si se está reactivando (is_active=True y estaba eliminado),
+        usa el método restore() para limpiar fecha_eliminacion.
+        """
+        # Detectar si se está reactivando un usuario eliminado
+        is_activating = validated_data.get('is_active', None) is True
+        was_deleted = instance.is_deleted if hasattr(instance, 'is_deleted') else False
+        
+        # Si se está reactivando un usuario que estaba eliminado, usar restore()
+        if is_activating and was_deleted:
+            instance.restore()
+            # Actualizar otros campos si existen
+            for attr, value in validated_data.items():
+                if attr != 'is_active':  # is_active ya se maneja en restore()
+                    setattr(instance, attr, value)
+            instance.save()
+            return instance
+        
+        # Comportamiento normal de actualización
+        return super().update(instance, validated_data)
 
 
 class UserCreateSerializer(serializers.ModelSerializer):

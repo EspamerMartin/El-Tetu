@@ -23,14 +23,18 @@ type Props = NativeStackScreenProps<ClienteTabParamList, 'Carrito'>;
  */
 const CarritoScreen = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
-  const { items, total } = useAppSelector((state) => state.cart);
+  const { items } = useAppSelector((state) => state.cart);
   const { user } = useAppSelector((state) => state.auth);
   
   const [loading, setLoading] = useState(false);
 
-  // Calcular subtotal y descuento localmente
-  const subtotal = total;
-  const descuento = 0; // Por ahora sin descuentos en el carrito
+  // Calcular subtotal y total
+  const subtotal = items.reduce((acc, item) => {
+    const precio = parseFloat(item.producto.precio);
+    return acc + (precio * item.cantidad);
+  }, 0);
+
+  const total = subtotal;
 
   const handleIncrement = (productoId: number, currentQty: number, stock: number) => {
     if (currentQty < stock) {
@@ -114,63 +118,68 @@ const CarritoScreen = ({ navigation }: Props) => {
   };
 
 
-  const renderItem = ({ item }: any) => (
-    <Card style={styles.card}>
-      <Card.Content>
-        <View style={styles.itemHeader}>
-          <View style={styles.itemInfo}>
-            <Text variant="titleMedium" style={styles.itemNombre}>
-              {item.producto.nombre}
-            </Text>
-            <Text variant="bodySmall" style={styles.itemCodigo}>
-              Código: {item.producto.codigo}
-            </Text>
-            <Text variant="titleMedium" style={styles.itemPrecio}>
-              {formatPrice(item.producto.precio)}
-            </Text>
-          </View>
-          <IconButton
-            icon="delete"
-            size={20}
-            iconColor={theme.colors.error}
-            onPress={() => handleRemove(item.producto.id, item.producto.nombre)}
-          />
-        </View>
+  const renderItem = ({ item }: any) => {
+    const precio = parseFloat(item.producto.precio);
+    const subtotalItem = precio * item.cantidad;
 
-        <View style={styles.quantityContainer}>
-          <Text variant="bodyMedium">Cantidad:</Text>
-          <View style={styles.quantityControls}>
+    return (
+      <Card style={styles.card}>
+        <Card.Content>
+          <View style={styles.itemHeader}>
+            <View style={styles.itemInfo}>
+              <Text variant="titleMedium" style={styles.itemNombre}>
+                {item.producto.nombre}
+              </Text>
+              <Text variant="bodySmall" style={styles.itemCodigo}>
+                Código: {item.producto.codigo}
+              </Text>
+              <Text variant="titleMedium" style={styles.itemPrecio}>
+                {formatPrice(precio)} c/u
+              </Text>
+            </View>
             <IconButton
-              icon="minus"
+              icon="delete"
               size={20}
-              onPress={() => handleDecrement(item.producto.id, item.cantidad)}
-              disabled={item.cantidad <= 1}
-            />
-            <Surface style={styles.quantityBox}>
-              <Text variant="titleMedium">{item.cantidad}</Text>
-            </Surface>
-            <IconButton
-              icon="plus"
-              size={20}
-              onPress={() =>
-                handleIncrement(item.producto.id, item.cantidad, item.producto.stock)
-              }
-              disabled={item.cantidad >= item.producto.stock}
+              iconColor={theme.colors.error}
+              onPress={() => handleRemove(item.producto.id, item.producto.nombre)}
             />
           </View>
-        </View>
 
-        <Divider style={styles.divider} />
+          <View style={styles.quantityContainer}>
+            <Text variant="bodyMedium">Cantidad:</Text>
+            <View style={styles.quantityControls}>
+              <IconButton
+                icon="minus"
+                size={20}
+                onPress={() => handleDecrement(item.producto.id, item.cantidad)}
+                disabled={item.cantidad <= 1}
+              />
+              <Surface style={styles.quantityBox}>
+                <Text variant="titleMedium">{item.cantidad}</Text>
+              </Surface>
+              <IconButton
+                icon="plus"
+                size={20}
+                onPress={() =>
+                  handleIncrement(item.producto.id, item.cantidad, item.producto.stock)
+                }
+                disabled={item.cantidad >= item.producto.stock}
+              />
+            </View>
+          </View>
 
-        <View style={styles.subtotalRow}>
-          <Text variant="bodyMedium">Subtotal:</Text>
-          <Text variant="titleMedium" style={styles.subtotalPrice}>
-            {formatPrice(parseFloat(item.producto.precio) * item.cantidad)}
-          </Text>
-        </View>
-      </Card.Content>
-    </Card>
-  );
+          <Divider style={styles.divider} />
+
+          <View style={styles.subtotalRow}>
+            <Text variant="bodyMedium">Subtotal:</Text>
+            <Text variant="titleMedium" style={styles.subtotalPrice}>
+              {formatPrice(subtotalItem)}
+            </Text>
+          </View>
+        </Card.Content>
+      </Card>
+    );
+  };
 
   if (loading) {
     return <LoadingOverlay visible message="Procesando pedido..." />;
@@ -205,17 +214,6 @@ const CarritoScreen = ({ navigation }: Props) => {
             <Text variant="bodyLarge">Subtotal:</Text>
             <Text variant="bodyLarge">{formatPrice(subtotal)}</Text>
           </View>
-
-          {descuento > 0 && (
-            <View style={styles.totalRow}>
-              <Text variant="bodyLarge" style={styles.discountText}>
-                Descuento:
-              </Text>
-              <Text variant="bodyLarge" style={styles.discountText}>
-                -{formatPrice(descuento)}
-              </Text>
-            </View>
-          )}
 
           <Divider style={styles.divider} />
 
@@ -261,9 +259,65 @@ const styles = StyleSheet.create({
   itemInfo: {
     flex: 1,
   },
+  itemTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
   itemNombre: {
     fontWeight: '600',
-    marginBottom: spacing.xs,
+    flex: 1,
+  },
+  promoBadgeInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.secondaryContainer,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs / 2,
+    borderRadius: 8,
+    gap: spacing.xs / 2,
+  },
+  promoBadgeTextInline: {
+    color: theme.colors.secondary,
+    fontWeight: '600',
+    fontSize: 10,
+  },
+  promoDescuentoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
+  promoDescuentoLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs / 2,
+  },
+  promoDescuentoLabel: {
+    color: theme.colors.onSurfaceVariant,
+  },
+  promoDescuentoValue: {
+    color: theme.colors.secondary,
+    fontWeight: '600',
+  },
+  totalItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
+  totalItemLabel: {
+    fontWeight: '600',
+  },
+  totalItemValue: {
+    color: theme.colors.primary,
+    fontWeight: '700',
+  },
+  descuentoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   itemCodigo: {
     color: theme.colors.onSurfaceVariant,

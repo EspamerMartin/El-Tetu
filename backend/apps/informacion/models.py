@@ -1,7 +1,8 @@
 from django.db import models
+from apps.core.models import SoftDeleteMixin, TimestampMixin
 
 
-class InformacionGeneral(models.Model):
+class InformacionGeneral(SoftDeleteMixin, TimestampMixin):
     """Modelo para información general de la aplicación."""
     
     TIPO_CHOICES = (
@@ -22,8 +23,6 @@ class InformacionGeneral(models.Model):
     titulo = models.CharField(max_length=200, verbose_name='Título')
     contenido = models.TextField(verbose_name='Contenido')
     activo = models.BooleanField(default=True, verbose_name='Activo')
-    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de Creación')
-    fecha_actualizacion = models.DateTimeField(auto_now=True, verbose_name='Fecha de Actualización')
     
     class Meta:
         verbose_name = 'Información General'

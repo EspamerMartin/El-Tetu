@@ -10,7 +10,6 @@ import {
   Subcategoria,
   Pedido,
   CreatePedidoData,
-  Promocion,
   ListaPrecio,
 } from '@/types';
 
@@ -159,40 +158,6 @@ export const pedidosAPI = {
     return response.data;
   },
 
-  downloadPDF: async (id: number): Promise<ArrayBuffer> => {
-    const response = await api.get(`/pedidos/${id}/pdf/`, {
-      responseType: 'arraybuffer',
-    });
-    return response.data;
-  },
-};
-
-// ========== Promociones API ==========
-
-export const promocionesAPI = {
-  getAll: async (): Promise<PaginatedResponse<Promocion>> => {
-    const response = await api.get('/promociones/');
-    return response.data;
-  },
-
-  getById: async (id: number): Promise<Promocion> => {
-    const response = await api.get(`/promociones/${id}/`);
-    return response.data;
-  },
-
-  create: async (data: Partial<Promocion>): Promise<Promocion> => {
-    const response = await api.post('/promociones/', data);
-    return response.data;
-  },
-
-  update: async (id: number, data: Partial<Promocion>): Promise<Promocion> => {
-    const response = await api.put(`/promociones/${id}/`, data);
-    return response.data;
-  },
-
-  delete: async (id: number): Promise<void> => {
-    await api.delete(`/promociones/${id}/`);
-  },
 };
 
 // ========== Clientes API (Admin/Vendedor) ==========
@@ -259,7 +224,6 @@ export default {
   auth: authAPI,
   productos: productosAPI,
   pedidos: pedidosAPI,
-  promociones: promocionesAPI,
   clientes: clientesAPI,
   listas: listasAPI,
 };

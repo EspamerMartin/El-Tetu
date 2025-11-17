@@ -1,7 +1,12 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text, Surface, useTheme, Avatar } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
+import { DrawerScreenProps } from '@react-navigation/drawer';
+import { CompositeScreenProps } from '@react-navigation/native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AdminDrawerParamList } from '@/navigation/AdminStack';
+import { AdminStackParamList } from '@/navigation/AdminStack';
 import { useFetch } from '@/hooks';
 import { clientesAPI, productosAPI, pedidosAPI } from '@/services/api';
 import { LoadingOverlay, ScreenContainer } from '@/components';
@@ -10,27 +15,36 @@ import { spacing } from '@/theme';
 import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
+type Props = CompositeScreenProps<
+  DrawerScreenProps<AdminDrawerParamList, 'AdminHome'>,
+  NativeStackScreenProps<AdminStackParamList>
+>;
+
 /**
  * AdminHomeScreen - Dashboard del administrador
- * KPIs globales: usuarios, productos, pedidos del mes
+ * KPIs globales: usuarios, productos, pedidos del mes, productos con bajo stock
  */
-const AdminHomeScreen = () => {
+const AdminHomeScreen = ({ navigation }: Props) => {
   const { colors } = useTheme();
   const { user } = useAppSelector((state) => state.auth);
 
   const { data: usuarios, loading: loadingUsuarios, refetch: refetchUsuarios } = useFetch(() => clientesAPI.getAll());
   const { data: productos, loading: loadingProductos, refetch: refetchProductos } = useFetch(() => productosAPI.getAll());
   const { data: pedidos, loading: loadingPedidos, refetch: refetchPedidos } = useFetch(() => pedidosAPI.getAll());
+  const { data: productosBajoStock, loading: loadingBajoStock, refetch: refetchBajoStock } = useFetch(
+    () => productosAPI.getAll({ stock__lt: 10, activo: true })
+  );
 
   useFocusEffect(
     React.useCallback(() => {
       refetchUsuarios();
       refetchProductos();
       refetchPedidos();
+      refetchBajoStock();
     }, [])
   );
 
-  const loading = loadingUsuarios || loadingProductos || loadingPedidos;
+  const loading = loadingUsuarios || loadingProductos || loadingPedidos || loadingBajoStock;
 
   const hoy = new Date();
   
@@ -41,10 +55,15 @@ const AdminHomeScreen = () => {
            fechaPedido.getFullYear() === hoy.getFullYear();
   }) || [];
 
-  // Pedidos aprobados del mes (solo CONFIRMADO, EN_CAMINO, ENTREGADO)
+  // Pedidos aprobados del mes (solo CONFIRMADO)
   const pedidosAprobadosMes = pedidosMes.filter((p: any) => 
-    ['CONFIRMADO', 'EN_CAMINO', 'ENTREGADO'].includes(p.estado)
+    p.estado === 'CONFIRMADO'
   );
+
+  // Filtrar productos con stock < 10 (doble verificación)
+  const productosBajoStockFiltrados = productosBajoStock?.results?.filter(
+    (p: any) => p.stock < 10
+  ) || [];
 
   const stats = {
     totalUsuarios: usuarios?.count || 0,
@@ -54,6 +73,7 @@ const AdminHomeScreen = () => {
       const total = parseFloat(p.total) || 0;
       return acc + total;
     }, 0),
+    productosConBajoStock: productosBajoStockFiltrados.length,
   };
 
   const iniciales = user ? `${user.nombre.charAt(0)}${user.apellido.charAt(0)}` : 'AD';
@@ -103,6 +123,69 @@ const AdminHomeScreen = () => {
             </Text>
             <Text variant="bodyMedium" style={styles.kpiLabel}>Ventas del Mes</Text>
           </Surface>
+
+          {/* Productos con Bajo Stock */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.getParent()?.navigate('ProductosBajoStock')}
+            style={styles.kpiCardTouchableFull}
+          >
+            <Surface 
+              style={[styles.kpiCard, { backgroundColor: colors.errorContainer }]} 
+              elevation={2}
+            >
+              <Icon name="alert-circle-outline" size={40} color={colors.error} />
+              <Text variant="headlineLarge" style={[styles.kpiValue, { color: colors.error }]}>
+                {stats.productosConBajoStock}
+              </Text>
+              <Text variant="bodyMedium" style={styles.kpiLabel}>Stock Bajo</Text>
+            </Surface>
+          </TouchableOpacity>
+        </View>
+
+        {/* Accesos Rápidos */}
+        <Text variant="titleLarge" style={styles.sectionTitle}>Accesos Rápidos</Text>
+        
+        <View style={styles.quickActionsContainer}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Usuarios')}
+          >
+            <Surface style={styles.actionCard} elevation={1}>
+              <Icon name="account-group" size={40} color={colors.primary} />
+              <Text variant="titleMedium" style={styles.actionTitle}>Clientes</Text>
+              <Text variant="bodySmall" style={styles.actionDescription}>
+                Ver listado de clientes
+              </Text>
+            </Surface>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Pedidos')}
+          >
+            <Surface style={styles.actionCard} elevation={1}>
+              <Icon name="clipboard-list" size={40} color={colors.primary} />
+              <Text variant="titleMedium" style={styles.actionTitle}>Pedidos</Text>
+              <Text variant="bodySmall" style={styles.actionDescription}>
+                Gestionar pedidos
+              </Text>
+            </Surface>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.getParent()?.navigate('NuevoPedido')}
+            style={styles.nuevoPedidoButton}
+          >
+            <Surface style={styles.actionCardFull} elevation={1}>
+              <Icon name="plus-circle" size={40} color={colors.secondary} />
+              <Text variant="titleMedium" style={styles.actionTitle}>Nuevo Pedido</Text>
+              <Text variant="bodySmall" style={styles.actionDescription}>
+                Crear pedido manual
+              </Text>
+            </Surface>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </ScreenContainer>
@@ -146,6 +229,45 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     textAlign: 'center',
     opacity: 0.8,
+  },
+  kpiCardTouchableFull: {
+    width: '100%',
+  },
+  sectionTitle: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+    fontWeight: '600',
+  },
+  quickActionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  actionCard: {
+    flex: 1,
+    minWidth: '45%',
+    padding: spacing.lg,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  nuevoPedidoButton: {
+    width: '100%',
+    marginTop: spacing.sm,
+  },
+  actionCardFull: {
+    width: '100%',
+    padding: spacing.lg,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  actionTitle: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    fontWeight: '600',
+  },
+  actionDescription: {
+    textAlign: 'center',
+    opacity: 0.7,
   },
 });
 

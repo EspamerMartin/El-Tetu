@@ -37,9 +37,9 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
   const { colors } = useTheme();
   const { user } = useAppSelector((state) => state.auth);
 
-  // Fetch pedidos activos (no cancelados ni entregados)
+  // Fetch pedidos activos (no cancelados)
   const { data: pedidos, loading: loadingPedidos, refetch: refetchPedidos } = useFetch(
-    () => pedidosAPI.getAll({ estado__in: 'PENDIENTE,CONFIRMADO,EN_CAMINO' })
+    () => pedidosAPI.getAll({ estado__in: 'PENDIENTE,CONFIRMADO' })
   );
 
   // Fetch ventas del día (pedidos confirmados de hoy)

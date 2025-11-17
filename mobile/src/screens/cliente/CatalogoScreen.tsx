@@ -4,10 +4,11 @@ import { Text, Searchbar, Chip, Card, Button, IconButton, Surface, Badge, Divide
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ClienteStackParamList } from '@/navigation/ClienteStack';
-import { productosAPI, promocionesAPI } from '@/services/api';
-import { Producto, Categoria, Subcategoria, Promocion } from '@/types';
+import { productosAPI } from '@/services/api';
+import { Producto, Categoria, Subcategoria } from '@/types';
 import { ProductCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
 import { useAppDispatch } from '@/store';
+import { addToCart } from '@/store/slices/cartSlice';
 import { theme, spacing } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -20,15 +21,13 @@ interface FilterState {
   categoria: number | null;
   subcategoria: number | null;
   disponible: boolean;
-  conPromocion: boolean;
 }
 
 /**
  * CatalogoScreen - Versión Mejorada UX/UI
  * 
  * Catálogo profesional con:
- * - Promociones destacadas con carrusel
- * - Filtros avanzados (categoría, subcategoría, disponibilidad, promociones)
+ * - Filtros avanzados (categoría, subcategoría, disponibilidad)
  * - Vista de grid responsive
  * - Búsqueda inteligente
  * - Animaciones suaves
@@ -42,7 +41,6 @@ const CatalogoScreen = () => {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([]);
-  const [promociones, setPromociones] = useState<Promocion[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
@@ -51,7 +49,6 @@ const CatalogoScreen = () => {
     categoria: null,
     subcategoria: null,
     disponible: false,
-    conPromocion: false,
   });
 
   const filterAnimation = useState(new Animated.Value(0))[0];
@@ -80,14 +77,12 @@ const CatalogoScreen = () => {
 
   const fetchInitialData = async () => {
     try {
-      const [categoriasData, subcategoriasData, promocionesData] = await Promise.all([
+      const [categoriasData, subcategoriasData] = await Promise.all([
         productosAPI.getCategorias(),
         productosAPI.getSubcategorias(),
-        promocionesAPI.getAll(),
       ]);
       setCategorias(categoriasData?.results || []);
       setSubcategorias(subcategoriasData?.results || []);
-      setPromociones(promocionesData?.results?.filter((p: Promocion) => p.activo && p.es_vigente) || []);
     } catch (err) {
       console.error('Error al cargar datos:', err);
     }
@@ -105,15 +100,6 @@ const CatalogoScreen = () => {
       
       const data = await productosAPI.getAll(params);
       let filteredProducts = data?.results || [];
-      
-      // Filtro de promociones (client-side)
-      if (filters.conPromocion) {
-        const productosConPromo = new Set<number>();
-        promociones.forEach(promo => {
-          promo.productos.forEach(pid => productosConPromo.add(pid));
-        });
-        filteredProducts = filteredProducts.filter(p => productosConPromo.has(p.id));
-      }
       
       setProductos(filteredProducts);
     } catch (err) {
@@ -145,7 +131,6 @@ const CatalogoScreen = () => {
       categoria: null,
       subcategoria: null,
       disponible: false,
-      conPromocion: false,
     });
   };
 
@@ -154,7 +139,6 @@ const CatalogoScreen = () => {
     if (filters.categoria) count++;
     if (filters.subcategoria) count++;
     if (filters.disponible) count++;
-    if (filters.conPromocion) count++;
     return count;
   };
 
@@ -163,66 +147,12 @@ const CatalogoScreen = () => {
     return subcategorias.filter(s => s.categoria === filters.categoria && s.activo);
   };
 
-  const getProductosConPromocion = () => {
-    const productosIds = new Set<number>();
-    promociones.forEach(promo => {
-      promo.productos.forEach(pid => productosIds.add(pid));
-    });
-    return productosIds;
-  };
-
-  const productosConPromo = getProductosConPromocion();
-
-  const renderPromocionCard = ({ item }: { item: Promocion }) => (
-    <Card style={styles.promocionCard} mode="elevated">
-      <Card.Content style={styles.promocionContent}>
-        <View style={styles.promocionHeader}>
-          <View style={styles.promocionBadge}>
-            <Icon name="sale" size={16} color={theme.colors.onPrimary} />
-            <Text variant="labelSmall" style={styles.badgeText}>
-              {item.tipo === 'descuento_porcentaje' && `${item.descuento_porcentaje}% OFF`}
-              {item.tipo === 'descuento_fijo' && `$${item.descuento_fijo} OFF`}
-              {item.tipo === 'caja_cerrada' && 'Caja Cerrada'}
-              {item.tipo === 'combinable' && 'Combo'}
-            </Text>
-          </View>
-        </View>
-        <Text variant="titleSmall" style={styles.promocionNombre} numberOfLines={1}>
-          {item.nombre}
-        </Text>
-        <Text variant="bodySmall" numberOfLines={2} style={styles.promocionDesc}>
-          {item.descripcion}
-        </Text>
-        <View style={styles.promocionFooter}>
-          {item.cantidad_minima > 1 && (
-            <View style={styles.promocionInfo}>
-              <Icon name="information-outline" size={12} color={theme.colors.secondary} />
-              <Text variant="labelSmall" style={styles.promocionCondicion}>
-                Mín: {item.cantidad_minima} un.
-              </Text>
-            </View>
-          )}
-          <View style={styles.promocionInfo}>
-            <Icon name="tag-multiple" size={12} color={theme.colors.primary} />
-            <Text variant="labelSmall" style={styles.productosLabel}>
-              {item.productos.length} prod.
-            </Text>
-          </View>
-        </View>
-      </Card.Content>
-    </Card>
-  );
-
   const renderProducto = ({ item }: { item: Producto }) => (
     <View style={styles.productWrapper}>
       <ProductCard producto={item} onPress={() => handleProductPress(item)} />
-      {productosConPromo.has(item.id) && (
-        <View style={styles.promoIndicator}>
-          <Icon name="sale" size={16} color={theme.colors.onPrimary} />
-        </View>
-      )}
     </View>
   );
+
 
   const activeFiltersCount = getActiveFiltersCount();
   const subcategoriasFiltradas = getSubcategoriasFiltradas();
@@ -345,14 +275,6 @@ const CatalogoScreen = () => {
                 >
                   Solo disponibles
                 </Chip>
-                <Chip
-                  icon={filters.conPromocion ? 'sale' : 'sale-outline'}
-                  selected={filters.conPromocion}
-                  onPress={() => updateFilter('conPromocion', !filters.conPromocion)}
-                  style={styles.quickFilterChip}
-                >
-                  Con promoción
-                </Chip>
               </View>
             </View>
 
@@ -378,38 +300,7 @@ const CatalogoScreen = () => {
             {productos.length} producto{productos.length !== 1 ? 's' : ''}
           </Text>
         </View>
-        {promociones.length > 0 && (
-          <>
-            <Divider style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Icon name="sale" size={18} color={theme.colors.secondary} />
-              <Text variant="bodySmall" style={styles.statText}>
-                {promociones.length} promocion{promociones.length !== 1 ? 'es' : ''}
-              </Text>
-            </View>
-          </>
-        )}
       </Surface>
-
-      {/* Promociones destacadas */}
-      {!filters.search && promociones.length > 0 && (
-        <View style={styles.promocionesSection}>
-          <View style={styles.sectionHeader}>
-            <Icon name="sale" size={24} color={theme.colors.primary} />
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              Promociones Activas
-            </Text>
-          </View>
-          <FlatList
-            horizontal
-            data={promociones}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderPromocionCard}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.promocionesContent}
-          />
-        </View>
-      )}
 
       {/* Lista de productos */}
       {loading ? (
@@ -525,87 +416,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     backgroundColor: '#e0e0e0',
   },
-  promocionesSection: {
-    backgroundColor: 'white',
-    paddingVertical: 16,
-    marginBottom: 8,
-    elevation: 1,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    gap: 8,
-  },
-  sectionTitle: {
-    fontWeight: '600',
-    color: theme.colors.primary,
-  },
-  promocionesContent: {
-    paddingHorizontal: 16,
-  },
-  promocionCard: {
-    width: screenWidth * 0.65,
-    marginRight: 12,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  promocionContent: {
-    padding: 12,
-  },
-  promocionHeader: {
-    marginBottom: 8,
-  },
-  promocionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    alignSelf: 'flex-start',
-  },
-  badgeText: {
-    color: theme.colors.onPrimary,
-    fontWeight: '600',
-    fontSize: 11,
-  },
-  promocionNombre: {
-    fontWeight: '600',
-    marginBottom: 4,
-    color: theme.colors.onSurface,
-  },
-  promocionDesc: {
-    color: theme.colors.onSurfaceVariant,
-    marginBottom: 8,
-    lineHeight: 18,
-  },
-  promocionFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 4,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  promocionInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  promocionCondicion: {
-    color: theme.colors.secondary,
-    fontSize: 11,
-  },
-  productosLabel: {
-    color: theme.colors.primary,
-    fontSize: 11,
-    fontWeight: '500',
-  },
   productsList: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -635,15 +445,6 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     backgroundColor: theme.colors.surface,
     elevation: 2,
-  },
-  promocionesContainer: {
-    paddingVertical: spacing.md,
-    backgroundColor: theme.colors.surfaceVariant,
-  },
-  promocionesTitle: {
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.sm,
-    fontWeight: '600',
   },
   categoriesContainer: {
     flexDirection: 'row',

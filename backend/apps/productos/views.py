@@ -1,8 +1,10 @@
 from rest_framework import generics, filters
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
+import logging
 
 from apps.users.permissions import IsAdmin
+from apps.core.mixins import SoftDeleteMixin
 from .models import Categoria, Subcategoria, Producto
 from .serializers import (
     CategoriaSerializer,
@@ -11,6 +13,8 @@ from .serializers import (
     ProductoDetailSerializer,
     ProductoCreateUpdateSerializer,
 )
+
+logger = logging.getLogger('eltetu')
 
 
 # ========== Categorías ==========
@@ -24,10 +28,11 @@ class CategoriaListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """Admin ve todas, otros solo activas."""
-        if self.request.user.is_admin():
-            return Categoria.objects.all()
-        return Categoria.objects.filter(activo=True)
+        """Admin ve todas (incluyendo eliminadas), otros solo activas y no eliminadas."""
+        queryset = Categoria.objects.all()
+        if not self.request.user.is_admin():
+            queryset = queryset.filter(activo=True, fecha_eliminacion__isnull=True)
+        return queryset
     
     def get_permissions(self):
         """Solo admin puede crear categorías."""
@@ -36,7 +41,7 @@ class CategoriaListCreateView(generics.ListCreateAPIView):
         return [IsAuthenticated()]
 
 
-class CategoriaDetailView(generics.RetrieveUpdateDestroyAPIView):
+class CategoriaDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView):
     """
     Vista para obtener, actualizar y eliminar categoría.
     GET/PUT/DELETE /api/productos/categorias/{id}/
@@ -44,6 +49,13 @@ class CategoriaDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get_reference_checks(self, instance):
+        """Define las relaciones a verificar para soft delete."""
+        return [
+            (instance.productos, 'productos'),
+            (instance.subcategorias, 'subcategorias'),
+        ]
 
 
 # ========== Subcategorías ==========
@@ -59,11 +71,11 @@ class SubcategoriaListCreateView(generics.ListCreateAPIView):
     filterset_fields = ['categoria']
     
     def get_queryset(self):
-        """Admin ve todas, otros solo activas."""
+        """Admin ve todas (incluyendo eliminadas), otros solo activas y no eliminadas."""
         queryset = Subcategoria.objects.select_related('categoria')
-        if self.request.user.is_admin():
-            return queryset
-        return queryset.filter(activo=True)
+        if not self.request.user.is_admin():
+            queryset = queryset.filter(activo=True, fecha_eliminacion__isnull=True)
+        return queryset
     
     def get_permissions(self):
         """Solo admin puede crear subcategorías."""
@@ -72,7 +84,7 @@ class SubcategoriaListCreateView(generics.ListCreateAPIView):
         return [IsAuthenticated()]
 
 
-class SubcategoriaDetailView(generics.RetrieveUpdateDestroyAPIView):
+class SubcategoriaDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView):
     """
     Vista para obtener, actualizar y eliminar subcategoría.
     GET/PUT/DELETE /api/productos/subcategorias/{id}/
@@ -80,6 +92,12 @@ class SubcategoriaDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Subcategoria.objects.all()
     serializer_class = SubcategoriaSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get_reference_checks(self, instance):
+        """Define las relaciones a verificar para soft delete."""
+        return [
+            (instance.productos, 'productos'),
+        ]
 
 
 # ========== Productos ==========
@@ -109,13 +127,19 @@ class ProductoListCreateView(generics.ListCreateAPIView):
             return ProductoCreateUpdateSerializer
         return ProductoListSerializer
     
+    def get_serializer_context(self):
+        """Pasa el request al serializer para calcular precios."""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
     def get_queryset(self):
         """Filtra productos según parámetros."""
         queryset = super().get_queryset()
         
-        # Filtrar solo activos (a menos que sea admin)
+        # Filtrar solo activos y no eliminados (a menos que sea admin)
         if not self.request.user.is_admin():
-            queryset = queryset.filter(activo=True)
+            queryset = queryset.filter(activo=True, fecha_eliminacion__isnull=True)
         
         # Filtro por stock mínimo
         stock_min = self.request.query_params.get('stock_min', None)
@@ -136,7 +160,7 @@ class ProductoListCreateView(generics.ListCreateAPIView):
         return [IsAuthenticated()]
 
 
-class ProductoDetailView(generics.RetrieveUpdateDestroyAPIView):
+class ProductoDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView):
     """
     Vista para obtener, actualizar y eliminar producto.
     GET/PUT/DELETE /api/productos/{id}/
@@ -150,8 +174,20 @@ class ProductoDetailView(generics.RetrieveUpdateDestroyAPIView):
             return ProductoCreateUpdateSerializer
         return ProductoDetailSerializer
     
+    def get_serializer_context(self):
+        """Pasa el request al serializer para calcular precios."""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
     def get_permissions(self):
         """Solo admin puede actualizar/eliminar productos."""
         if self.request.method in ['PUT', 'PATCH', 'DELETE']:
             return [IsAuthenticated(), IsAdmin()]
         return [IsAuthenticated()]
+    
+    def get_reference_checks(self, instance):
+        """Define las relaciones a verificar para soft delete."""
+        return [
+            (instance.pedido_items, 'pedido_items'),
+        ]

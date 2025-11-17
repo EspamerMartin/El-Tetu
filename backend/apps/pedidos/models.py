@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 from apps.productos.models import Producto
-from apps.promociones.models import Promocion
 
 
 class Pedido(models.Model):
@@ -30,12 +29,29 @@ class Pedido(models.Model):
     # Lista de precios utilizada en este pedido
     lista_precio = models.ForeignKey(
         'productos.ListaPrecio',
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='pedidos',
         verbose_name='Lista de Precio',
-        help_text='Lista de precios aplicada. Null = Lista Base'
+        help_text='Lista de precios aplicada. Null = Lista Base. Se establece en NULL si la lista se elimina.'
+    )
+    
+    # Snapshots para preservar información histórica
+    lista_precio_nombre_snapshot = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name='Nombre Lista (Snapshot)',
+        help_text='Nombre de la lista de precios al momento de crear el pedido'
+    )
+    lista_precio_descuento_snapshot = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        verbose_name='Descuento Lista (Snapshot)',
+        help_text='Descuento de la lista de precios al momento de crear el pedido'
     )
     
     subtotal = models.DecimalField(
@@ -57,13 +73,6 @@ class Pedido(models.Model):
         decimal_places=2,
         default=0,
         verbose_name='Total'
-    )
-    
-    promociones_aplicadas = models.ManyToManyField(
-        Promocion,
-        related_name='pedidos',
-        blank=True,
-        verbose_name='Promociones Aplicadas'
     )
     
     notas = models.TextField(
@@ -89,42 +98,11 @@ class Pedido(models.Model):
         """Calcula subtotal, descuentos y total del pedido."""
         items = self.items.all()
         
-        self.subtotal = sum(item.subtotal for item in items)
-        self.descuento_total = sum(item.descuento for item in items)
+        self.subtotal = sum(item.subtotal for item in items if item.subtotal)
+        self.descuento_total = sum(item.descuento for item in items if item.descuento)
         self.total = self.subtotal - self.descuento_total
         
         self.save()
-    
-    def aplicar_promociones(self):
-        """Aplica promociones vigentes a los items del pedido."""
-        from django.utils import timezone
-        
-        # Obtener promociones vigentes
-        promociones = Promocion.objects.filter(
-            activo=True,
-            fecha_inicio__lte=timezone.now(),
-            fecha_fin__gte=timezone.now()
-        )
-        
-        promociones_aplicadas = []
-        
-        for item in self.items.all():
-            # Buscar promociones aplicables al producto
-            promociones_producto = promociones.filter(productos=item.producto)
-            
-            for promocion in promociones_producto:
-                descuento = promocion.calcular_descuento(item.subtotal, item.cantidad)
-                if descuento > 0:
-                    item.descuento = descuento
-                    item.save()
-                    promociones_aplicadas.append(promocion)
-        
-        # Asociar promociones aplicadas
-        if promociones_aplicadas:
-            self.promociones_aplicadas.set(promociones_aplicadas)
-        
-        # Recalcular totales
-        self.calcular_totales()
     
     def confirmar(self):
         """Confirma el pedido y descuenta stock."""
@@ -135,12 +113,15 @@ class Pedido(models.Model):
         
         # Verificar stock antes de confirmar
         for item in self.items.all():
+            if not item.producto:
+                raise ValueError('No se puede confirmar un pedido con productos eliminados.')
             if item.producto.stock < item.cantidad:
                 raise ValueError(f'Stock insuficiente para {item.producto.nombre}')
         
         # Descontar stock
         for item in self.items.all():
-            item.producto.descontar_stock(item.cantidad)
+            if item.producto:
+                item.producto.descontar_stock(item.cantidad)
         
         self.estado = 'CONFIRMADO'
         self.fecha_confirmacion = timezone.now()
@@ -154,7 +135,8 @@ class Pedido(models.Model):
         # Si estaba confirmado, restaurar stock
         if self.estado == 'CONFIRMADO':
             for item in self.items.all():
-                item.producto.aumentar_stock(item.cantidad)
+                if item.producto:
+                    item.producto.aumentar_stock(item.cantidad)
         
         self.estado = 'CANCELADO'
         self.save()
@@ -172,9 +154,28 @@ class PedidoItem(models.Model):
     
     producto = models.ForeignKey(
         Producto,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='pedido_items',
-        verbose_name='Producto'
+        verbose_name='Producto',
+        help_text='Producto del pedido. Se establece en NULL si el producto se elimina.'
+    )
+    
+    # Snapshots para preservar información histórica del producto
+    producto_nombre_snapshot = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        verbose_name='Nombre Producto (Snapshot)',
+        help_text='Nombre del producto al momento de crear el item'
+    )
+    producto_codigo_snapshot = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name='Código Producto (Snapshot)',
+        help_text='Código del producto al momento de crear el item'
     )
     
     cantidad = models.IntegerField(verbose_name='Cantidad')
@@ -206,9 +207,18 @@ class PedidoItem(models.Model):
         ordering = ['id']
     
     def __str__(self):
-        return f"{self.producto.nombre} x{self.cantidad}"
+        producto_nombre = self.producto_nombre_snapshot or (self.producto.nombre if self.producto else "Producto eliminado")
+        return f"{producto_nombre} x{self.cantidad}"
     
     def save(self, *args, **kwargs):
-        """Calcula subtotal antes de guardar."""
-        self.subtotal = self.precio_unitario * self.cantidad
+        """Calcula subtotal y guarda snapshots antes de guardar."""
+        # Calcular subtotal
+        if self.precio_unitario and self.cantidad:
+            self.subtotal = self.precio_unitario * self.cantidad
+        
+        # Guardar snapshots del producto si existe y no están guardados
+        if self.producto and not self.producto_nombre_snapshot:
+            self.producto_nombre_snapshot = self.producto.nombre
+            self.producto_codigo_snapshot = self.producto.codigo
+        
         super().save(*args, **kwargs)

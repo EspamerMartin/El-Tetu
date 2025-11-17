@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Surface, DataTable, Divider, Chip, Button, Menu } from 'react-native-paper';
+import React from 'react';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, Surface, DataTable, Divider, Chip } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { useFetch } from '@/hooks';
@@ -12,23 +12,39 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type Props = NativeStackScreenProps<VendedorStackParamList, 'PedidoDetalle'>;
 
-type EstadoPedido = 'PENDIENTE' | 'CONFIRMADO' | 'EN_CAMINO' | 'ENTREGADO' | 'CANCELADO';
+type EstadoPedido = 'PENDIENTE' | 'CONFIRMADO' | 'CANCELADO';
 
 /**
  * PedidoDetalleScreen
  * 
- * Muestra el detalle completo de un pedido y permite cambiar su estado.
+ * Muestra el detalle completo de un pedido.
  */
 const PedidoDetalleScreen = ({ route, navigation }: Props) => {
   const { pedidoId } = route.params;
-  const [updating, setUpdating] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
-  const menuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { data: pedido, loading, error, refetch } = useFetch(
+  const { data: pedido, loading, error } = useFetch(
     () => pedidosAPI.getById(pedidoId)
   );
 
+  const getEstadoColor = (estado: EstadoPedido): string => {
+    switch (estado) {
+      case 'PENDIENTE': return theme.colors.secondary;
+      case 'CONFIRMADO': return '#2196F3';
+      case 'CANCELADO': return theme.colors.error;
+      default: return theme.colors.outline;
+    }
+  };
+
+  const getEstadoLabel = (estado: EstadoPedido): string => {
+    const labels: Record<EstadoPedido, string> = {
+      PENDIENTE: 'Pendiente',
+      CONFIRMADO: 'Confirmado',
+      CANCELADO: 'Cancelado',
+    };
+    return labels[estado] || estado;
+  };
+
+  // Early returns después de todos los hooks
   if (error) {
     return (
       <View style={styles.errorContainer}>
@@ -45,75 +61,8 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
     return <LoadingOverlay visible message="Cargando pedido..." />;
   }
 
-  const getEstadoColor = (estado: EstadoPedido): string => {
-    switch (estado) {
-      case 'PENDIENTE': return theme.colors.secondary;
-      case 'CONFIRMADO': return '#2196F3';
-      case 'EN_CAMINO': return '#FF9800';
-      case 'ENTREGADO': return theme.colors.tertiary;
-      case 'CANCELADO': return theme.colors.error;
-      default: return theme.colors.outline;
-    }
-  };
-
-  const getEstadoLabel = (estado: EstadoPedido): string => {
-    const labels: Record<EstadoPedido, string> = {
-      PENDIENTE: 'En preparación',
-      CONFIRMADO: 'Confirmado',
-      EN_CAMINO: 'Enviado',
-      ENTREGADO: 'Entregado',
-      CANCELADO: 'Cancelado',
-    };
-    return labels[estado] || estado;
-  };
-
-  // Limpiar timeout al desmontar
-  useEffect(() => {
-    return () => {
-      if (menuTimeoutRef.current) {
-        clearTimeout(menuTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const handleOpenMenu = useCallback(() => {
-    if (menuTimeoutRef.current) {
-      clearTimeout(menuTimeoutRef.current);
-      menuTimeoutRef.current = null;
-    }
-    menuTimeoutRef.current = setTimeout(() => {
-      setMenuVisible(true);
-      menuTimeoutRef.current = null;
-    }, 50);
-  }, []);
-
-  const handleCloseMenu = useCallback(() => {
-    if (menuTimeoutRef.current) {
-      clearTimeout(menuTimeoutRef.current);
-      menuTimeoutRef.current = null;
-    }
-    setMenuVisible(false);
-  }, []);
-
-  const handleUpdateEstado = async (nuevoEstado: EstadoPedido) => {
-    try {
-      setUpdating(true);
-      setMenuVisible(false);
-      await pedidosAPI.updateEstado(pedido.id, nuevoEstado);
-      Alert.alert('Éxito', `Estado actualizado a "${getEstadoLabel(nuevoEstado)}"`);
-      refetch();
-    } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.error || 'No se pudo actualizar el estado');
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const estadosDisponibles: EstadoPedido[] = ['PENDIENTE', 'CONFIRMADO', 'EN_CAMINO', 'ENTREGADO', 'CANCELADO'];
-
   return (
     <ScrollView style={styles.container}>
-      {updating && <LoadingOverlay visible message="Actualizando estado..." />}
 
       {/* Header */}
       <Surface style={styles.header} elevation={2}>
@@ -128,7 +77,7 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
           </Chip>
         </View>
         <Text variant="bodyMedium" style={styles.fecha}>
-          {formatDate(pedido.fecha_pedido)}
+          {formatDate(pedido.fecha_creacion)}
         </Text>
       </Surface>
 
@@ -136,11 +85,7 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
       <Surface style={styles.section} elevation={1}>
         <Text variant="titleMedium" style={styles.sectionTitle}>Cliente</Text>
         <Divider style={styles.divider} />
-        <Text variant="bodyLarge">{pedido.cliente.nombre_completo}</Text>
-        <Text variant="bodyMedium" style={styles.secondaryText}>{pedido.cliente.email}</Text>
-        {pedido.cliente.telefono && (
-          <Text variant="bodyMedium" style={styles.secondaryText}>{pedido.cliente.telefono}</Text>
-        )}
+        <Text variant="bodyLarge">{pedido.cliente_nombre}</Text>
       </Surface>
 
       {/* Items */}
@@ -156,31 +101,20 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
             <DataTable.Title numeric>Subtotal</DataTable.Title>
           </DataTable.Header>
 
-          {pedido.items.map((item: any) => (
-            <DataTable.Row key={item.id}>
-              <DataTable.Cell>{item.producto.nombre}</DataTable.Cell>
-              <DataTable.Cell numeric>{item.cantidad}</DataTable.Cell>
-              <DataTable.Cell numeric>{formatPrice(item.precio_unitario)}</DataTable.Cell>
-              <DataTable.Cell numeric>{formatPrice(item.subtotal)}</DataTable.Cell>
-            </DataTable.Row>
-          ))}
+          {pedido.items.map((item: any) => {
+            const productoNombre = item.producto_nombre || item.producto_detalle?.nombre || 'Producto eliminado';
+            return (
+              <DataTable.Row key={item.id}>
+                <DataTable.Cell>{productoNombre}</DataTable.Cell>
+                <DataTable.Cell numeric>{item.cantidad}</DataTable.Cell>
+                <DataTable.Cell numeric>{formatPrice(item.precio_unitario)}</DataTable.Cell>
+                <DataTable.Cell numeric>{formatPrice(item.subtotal)}</DataTable.Cell>
+              </DataTable.Row>
+            );
+          })}
         </DataTable>
       </Surface>
 
-      {/* Promociones */}
-      {pedido.promociones_aplicadas && pedido.promociones_aplicadas.length > 0 && (
-        <Surface style={styles.section} elevation={1}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>Promociones Aplicadas</Text>
-          <Divider style={styles.divider} />
-          <View style={styles.promocionesContainer}>
-            {pedido.promociones_aplicadas.map((promo: any) => (
-              <Chip key={promo.id} icon="gift" style={styles.promoChip}>
-                {promo.nombre}
-              </Chip>
-            ))}
-          </View>
-        </Surface>
-      )}
 
       {/* Totales */}
       <Surface style={styles.section} elevation={1}>
@@ -191,11 +125,11 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
           <Text variant="bodyLarge">Subtotal:</Text>
           <Text variant="bodyLarge">{formatPrice(pedido.subtotal)}</Text>
         </View>
-        {parseFloat(pedido.descuento) > 0 && (
+        {parseFloat(pedido.descuento_total || '0') > 0 && (
           <View style={styles.totalRow}>
             <Text variant="bodyLarge">Descuento:</Text>
             <Text variant="bodyLarge" style={{ color: theme.colors.error }}>
-              -{formatPrice(pedido.descuento)}
+              -{formatPrice(pedido.descuento_total)}
             </Text>
           </View>
         )}
@@ -214,38 +148,6 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
           <Text variant="bodyMedium">{pedido.notas}</Text>
         </Surface>
       )}
-
-      {/* Cambiar Estado */}
-      <Surface style={styles.section} elevation={1}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>Cambiar Estado</Text>
-        <Divider style={styles.divider} />
-        
-        <Menu
-          visible={menuVisible}
-          onDismiss={handleCloseMenu}
-          anchor={
-            <Button
-              mode="contained"
-              icon="swap-horizontal"
-              onPress={handleOpenMenu}
-              disabled={pedido.estado === 'ENTREGADO' || pedido.estado === 'CANCELADO'}
-            >
-              Cambiar a...
-            </Button>
-          }
-        >
-          {estadosDisponibles
-            .filter(e => e !== pedido.estado)
-            .map((estado) => (
-              <Menu.Item
-                key={estado}
-                onPress={() => handleUpdateEstado(estado)}
-                title={getEstadoLabel(estado)}
-                leadingIcon="circle"
-              />
-            ))}
-        </Menu>
-      </Surface>
     </ScrollView>
   );
 };
@@ -284,12 +186,14 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     marginTop: spacing.xs,
   },
-  promocionesContainer: {
+  // Estilos de promociones eliminados
+  _removed_promocionesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  promoChip: {
+  // Estilo promoChip eliminado (no se usa)
+  _removed_promoChip: {
     backgroundColor: theme.colors.tertiaryContainer,
   },
   totalRow: {

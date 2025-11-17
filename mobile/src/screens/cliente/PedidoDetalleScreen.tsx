@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Linking } from 'react-native';
-import { Text, Button, Surface, Chip, Divider, DataTable } from 'react-native-paper';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, Surface, Chip, Divider, DataTable } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ClienteStackParamList } from '@/navigation/ClienteStack';
 import { pedidosAPI } from '@/services/api';
@@ -18,14 +18,12 @@ type Props = NativeStackScreenProps<ClienteStackParamList, 'PedidoDetalle'>;
  * - Todos los ítems del pedido
  * - Subtotal, descuentos y total
  * - Estado del pedido
- * - Botón descargar PDF
  */
 const PedidoDetalleScreen = ({ route }: Props) => {
   const { pedidoId } = route.params;
   
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [loading, setLoading] = useState(true);
-  const [downloadingPDF, setDownloadingPDF] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,28 +40,6 @@ const PedidoDetalleScreen = ({ route }: Props) => {
       console.error(err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDownloadPDF = async () => {
-    if (!pedido) return;
-    
-    try {
-      setDownloadingPDF(true);
-      const pdfUrl = await pedidosAPI.downloadPDF(pedido.id);
-      
-      // Abrir el PDF en el navegador
-      const supported = await Linking.canOpenURL(pdfUrl);
-      if (supported) {
-        await Linking.openURL(pdfUrl);
-      } else {
-        Alert.alert('Error', 'No se puede abrir el PDF');
-      }
-    } catch (err: any) {
-      Alert.alert('Error', 'No se pudo descargar el PDF');
-      console.error(err);
-    } finally {
-      setDownloadingPDF(false);
     }
   };
 
@@ -89,10 +65,6 @@ const PedidoDetalleScreen = ({ route }: Props) => {
         return theme.colors.secondary;
       case 'CONFIRMADO':
         return '#2196F3';
-      case 'EN_CAMINO':
-        return '#FF9800';
-      case 'ENTREGADO':
-        return theme.colors.tertiary;
       case 'CANCELADO':
         return theme.colors.error;
       default:
@@ -103,13 +75,9 @@ const PedidoDetalleScreen = ({ route }: Props) => {
   const getEstadoLabel = (estado: string) => {
     switch (estado) {
       case 'PENDIENTE':
-        return 'En preparación';
+        return 'Pendiente';
       case 'CONFIRMADO':
         return 'Confirmado';
-      case 'EN_CAMINO':
-        return 'Enviado';
-      case 'ENTREGADO':
-        return 'Entregado';
       case 'CANCELADO':
         return 'Cancelado';
       default:
@@ -170,7 +138,9 @@ const PedidoDetalleScreen = ({ route }: Props) => {
 
             {pedido.items.map((item) => (
               <DataTable.Row key={item.id}>
-                <DataTable.Cell>{item.producto_detalle.nombre}</DataTable.Cell>
+                <DataTable.Cell>
+                  {item.producto_detalle?.nombre || item.producto_nombre || 'Producto eliminado'}
+                </DataTable.Cell>
                 <DataTable.Cell numeric>{item.cantidad}</DataTable.Cell>
                 <DataTable.Cell numeric>
                   {formatPrice(item.precio_unitario)}
@@ -183,23 +153,6 @@ const PedidoDetalleScreen = ({ route }: Props) => {
           </DataTable>
         </View>
 
-        {/* Promociones Aplicadas */}
-        {pedido.promociones_aplicadas_detalle.length > 0 && (
-          <View style={styles.section}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              Promociones Aplicadas
-            </Text>
-            {pedido.promociones_aplicadas_detalle.map((promo) => (
-              <Chip
-                key={promo.id}
-                icon="gift"
-                style={styles.promoChip}
-              >
-                {promo.nombre}
-              </Chip>
-            ))}
-          </View>
-        )}
 
         <Divider style={styles.divider} />
 
@@ -269,18 +222,6 @@ const PedidoDetalleScreen = ({ route }: Props) => {
             </View>
           )}
         </View>
-
-        {/* Botón PDF */}
-        <Button
-          mode="outlined"
-          icon="download"
-          onPress={handleDownloadPDF}
-          loading={downloadingPDF}
-          disabled={downloadingPDF}
-          style={styles.pdfButton}
-        >
-          Descargar PDF
-        </Button>
       </Surface>
       </ScrollView>
     </ScreenContainer>
@@ -331,7 +272,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: spacing.sm,
   },
-  promoChip: {
+  // Estilo promoChip eliminado (no se usa)
+  _removed_promoChip: {
     marginRight: spacing.sm,
     marginBottom: spacing.xs,
     backgroundColor: theme.colors.tertiary + '20',
@@ -364,9 +306,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: spacing.xs,
-  },
-  pdfButton: {
-    marginTop: spacing.md,
   },
   errorContainer: {
     flex: 1,

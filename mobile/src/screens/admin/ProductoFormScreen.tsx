@@ -135,20 +135,28 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
       return;
     }
 
+    if (!codigo || !codigo.trim()) {
+      Alert.alert('Error', 'El código es obligatorio');
+      return;
+    }
+
     try {
       setSaving(true);
       const data: any = {
-        nombre,
-        descripcion,
-        codigo,
+        nombre: nombre.trim(),
+        descripcion: descripcion.trim() || null,
+        codigo: codigo.trim(),
         stock: parseInt(stock) || 0,
-        precio_base: precioBase,
+        stock_minimo: 0,
+        precio_base: parseFloat(precioBase) || 0,
         categoria,
         activo,
       };
 
       if (subcategoria) {
         data.subcategoria = subcategoria;
+      } else {
+        data.subcategoria = null;
       }
 
       if (isEdit) {
@@ -160,7 +168,14 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
       Alert.alert('Éxito', `Producto ${isEdit ? 'actualizado' : 'creado'} correctamente`);
       navigation.goBack();
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.error || 'No se pudo guardar');
+      const errorMsg = err.response?.data?.error || 
+                       err.response?.data?.codigo?.[0] || 
+                       err.response?.data?.precio_base?.[0] ||
+                       err.response?.data?.categoria?.[0] ||
+                       err.response?.data?.subcategoria?.[0] ||
+                       err.message || 
+                       'No se pudo guardar';
+      Alert.alert('Error', errorMsg);
     } finally {
       setSaving(false);
     }

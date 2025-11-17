@@ -21,7 +21,6 @@ class PedidoAdmin(admin.ModelAdmin):
     search_fields = ['cliente__email', 'cliente__nombre', 'cliente__apellido']
     ordering = ['-fecha_creacion']
     inlines = [PedidoItemInline]
-    filter_horizontal = ['promociones_aplicadas']
     
     fieldsets = (
         ('Cliente', {
@@ -32,9 +31,6 @@ class PedidoAdmin(admin.ModelAdmin):
         }),
         ('Totales', {
             'fields': ('subtotal', 'descuento_total', 'total')
-        }),
-        ('Promociones', {
-            'fields': ('promociones_aplicadas',)
         }),
         ('Fechas', {
             'fields': (

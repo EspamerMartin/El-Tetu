@@ -67,18 +67,62 @@ mobile/.expo-shared/
 mobile/dist/
 mobile/web-build/
 mobile/android/app/debug.keystore
+mobile/android/app/build/
+mobile/android/build/
+mobile/android/.gradle/
+mobile/ios/build/
+mobile/ios/Pods/
+mobile/ios/*.xcworkspace
+mobile/ios/*.xcuserdata
 
 # Metro
 .metro-health-check*
+.metro/
 
 # TypeScript
 *.tsbuildinfo
 
 # Testing
 .coverage
+.coverage.*
 .pytest_cache/
 htmlcov/
+.tox/
+.nox/
 
-# Migrations (descomenta si no quieres versionar)
-# */migrations/*.py
-# !*/migrations/__init__.py
+# Android/iOS builds
+*.apk
+*.aab
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Django
+*.log
+*.pot
+local_settings.py
+/media
+/staticfiles
+/static
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDE - Additional
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# NOTA: Las migraciones de Django NO deben ignorarse
+# Son parte del esquema de la base de datos y deben versionarse

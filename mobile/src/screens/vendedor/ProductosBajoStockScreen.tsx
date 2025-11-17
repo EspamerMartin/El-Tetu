@@ -4,6 +4,7 @@ import { Text, Searchbar, Card, Chip, IconButton } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { VendedorStackParamList } from '@/navigation/VendedorStack';
+import { AdminStackParamList } from '@/navigation/AdminStack';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
 import { Producto } from '@/types';
@@ -12,7 +13,7 @@ import { theme, spacing } from '@/theme';
 import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-type Props = NativeStackScreenProps<VendedorStackParamList, 'ProductosBajoStock'>;
+type Props = NativeStackScreenProps<VendedorStackParamList | AdminStackParamList, 'ProductosBajoStock'>;
 
 /**
  * ProductosBajoStockScreen
