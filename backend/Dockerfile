@@ -28,25 +28,9 @@ RUN mkdir -p /app/staticfiles
 # Expose port
 EXPOSE 8000
 
-# Create entrypoint script
-RUN echo '#!/bin/bash\n\
-set -e\n\
-echo "Running database migrations..."\n\
-python manage.py migrate --noinput\n\
-echo "Collecting static files..."\n\
-python manage.py collectstatic --noinput\n\
-echo "Creating initial users..."\n\
-python init_users.py || echo "Users may already exist, continuing..."\n\
-# Ensure PORT is set (Railway provides this, fallback to 8000)\n\
-export PORT=${PORT:-8000}\n\
-echo "Starting Gunicorn server on 0.0.0.0:$PORT..."\n\
-exec gunicorn config.wsgi:application \\\n\
-  --bind 0.0.0.0:$PORT \\\n\
-  --workers 3 \\\n\
-  --log-level info \\\n\
-  --access-logfile - \\\n\
-  --error-logfile -\n\
-' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+# Copy and set permissions for entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Run entrypoint script
 CMD ["/app/entrypoint.sh"]
