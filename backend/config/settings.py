@@ -195,45 +195,47 @@ LOGGING = {
             'style': '{',
         },
     },
-    'filters': {
-        'require_debug_true': {
-            '()': 'django.utils.log.RequireDebugTrue',
-        },
-    },
     'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
-        },
         'console': {
             'level': 'INFO',
-            'filters': ['require_debug_true'],
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
     },
     'root': {
-        'handlers': ['file', 'console'],
+        'handlers': ['console'],
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': ['file', 'console'],
+            'handlers': ['console'],
             'level': 'WARNING',
             'propagate': False,
         },
         'django.db.backends': {
-            'handlers': ['file'],
+            'handlers': ['console'],
             'level': 'WARNING',
             'propagate': False,
         },
         'eltetu': {
-            'handlers': ['file', 'console'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
     },
 }
+
+# Add file logging in development (when DEBUG=True)
+if DEBUG:
+    LOGGING['handlers']['file'] = {
+        'level': 'INFO',
+        'class': 'logging.FileHandler',
+        'filename': BASE_DIR / 'logs' / 'django.log',
+        'formatter': 'verbose',
+        'encoding': 'utf-8',
+    }
+    # Add file handler to all loggers for local debugging
+    LOGGING['root']['handlers'].append('file')
+    LOGGING['loggers']['django']['handlers'].append('file')
+    LOGGING['loggers']['django.db.backends']['handlers'].append('file')
+    LOGGING['loggers']['eltetu']['handlers'].append('file')
