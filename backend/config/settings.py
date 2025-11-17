@@ -12,9 +12,18 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-produc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,exp://10.10.20.143:8081').split(',')
+# Get ALLOWED_HOSTS from environment
+ALLOWED_HOSTS_ENV = config('ALLOWED_HOSTS', default='')
+
 # En desarrollo permite cualquier host para facilitar pruebas desde LAN/Expo Go
 if DEBUG:
+    ALLOWED_HOSTS = ['*']
+elif ALLOWED_HOSTS_ENV:
+    # Use configured hosts from environment variable
+    ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS_ENV.split(',')]
+else:
+    # Fallback: Allow all hosts when ALLOWED_HOSTS env var is not set (Railway deployment)
+    # For production, set ALLOWED_HOSTS in Railway environment variables
     ALLOWED_HOSTS = ['*']
 
 # Application definition
