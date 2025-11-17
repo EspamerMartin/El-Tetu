@@ -169,6 +169,8 @@ export const clientesAPI = {
   getAll: async (params?: {
     search?: string;
     page?: number;
+    rol?: 'admin' | 'vendedor' | 'cliente';
+    is_active?: boolean;
   }): Promise<PaginatedResponse<User>> => {
     const response = await api.get('/auth/users/', { params });
     return response.data;

@@ -202,18 +202,47 @@ class UserListCreateView(generics.ListCreateAPIView):
         return [IsAuthenticated(), IsAdmin()]
     
     def get_queryset(self):
-        """Admin ve todos (incluyendo eliminados), vendedores solo clientes activos."""
+        """
+        Filtra usuarios según rol del usuario autenticado y parámetros de query.
+        
+        Parámetros de query:
+        - rol: Filtrar por rol ('admin', 'vendedor', 'cliente')
+        - is_active: Filtrar por estado activo (true/false)
+        
+        Permisos:
+        - Admin: Puede ver todos los usuarios y usar cualquier filtro
+        - Vendedor: Solo puede ver clientes activos (filtro de rol aplicado automáticamente)
+        """
         user = self.request.user
+        queryset = CustomUser.objects.all()
         
-        if user.is_admin():
-            # Ordenar: primero activos y no eliminados, luego por nombre
-            return CustomUser.objects.all().order_by('-is_active', 'fecha_eliminacion', 'nombre', 'apellido')
-        
+        # Si es vendedor, solo puede ver clientes activos
         if user.is_vendedor():
-            # Vendedores solo ven clientes activos, ya están filtrados
-            return CustomUser.objects.filter(rol='cliente', is_active=True, fecha_eliminacion__isnull=True).order_by('nombre', 'apellido')
+            queryset = queryset.filter(rol='cliente', is_active=True, fecha_eliminacion__isnull=True)
+        # Si es admin, puede ver todos pero respetar filtros de query
+        elif user.is_admin():
+            # Aplicar filtros de query si existen
+            rol = self.request.query_params.get('rol', None)
+            is_active = self.request.query_params.get('is_active', None)
+            
+            if rol:
+                # Validar que el rol sea válido
+                valid_roles = ['admin', 'vendedor', 'cliente']
+                if rol in valid_roles:
+                    queryset = queryset.filter(rol=rol)
+            
+            if is_active is not None:
+                # Convertir string a boolean
+                is_active_bool = is_active.lower() in ('true', '1', 'yes')
+                queryset = queryset.filter(is_active=is_active_bool)
+            
+            # Ordenar: primero activos y no eliminados, luego por nombre
+            queryset = queryset.order_by('-is_active', 'fecha_eliminacion', 'nombre', 'apellido')
+        else:
+            # Otros usuarios no pueden ver nada
+            return CustomUser.objects.none()
         
-        return CustomUser.objects.none()
+        return queryset
 
 
 class UserDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView):

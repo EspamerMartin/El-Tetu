@@ -49,21 +49,30 @@ class PedidoItemCreateSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         """Valida stock disponible y disponibilidad del producto."""
-        producto_id = data.get('producto')
+        producto_value = data.get('producto')
         cantidad = data.get('cantidad')
         
-        if not producto_id:
+        if not producto_value:
             raise serializers.ValidationError({
                 'producto': 'Debe especificar un producto válido.'
             })
         
-        # Obtener el objeto Producto desde la base de datos
-        try:
-            producto = Producto.objects.get(pk=producto_id)
-        except Producto.DoesNotExist:
-            raise serializers.ValidationError({
-                'producto': 'El producto especificado no existe.'
-            })
+        # Extraer ID si es un objeto Producto, o usar directamente si es un ID
+        if isinstance(producto_value, Producto):
+            producto_id = producto_value.id
+            producto = producto_value
+        else:
+            producto_id = producto_value
+            # Obtener el objeto Producto desde la base de datos
+            try:
+                producto = Producto.objects.get(pk=producto_id)
+            except Producto.DoesNotExist:
+                raise serializers.ValidationError({
+                    'producto': 'El producto especificado no existe.'
+                })
+        
+        # Actualizar data con el ID para asegurar que se guarde correctamente
+        data['producto'] = producto_id
         
         # Verificar si el producto está activo
         if not producto.activo:
@@ -165,13 +174,24 @@ class PedidoCreateSerializer(serializers.ModelSerializer):
         
         # Validar stock de todos los items ANTES de crear el pedido (evita race conditions)
         for item_data in items_data:
-            producto = item_data.get('producto')
+            producto_value = item_data.get('producto')
             cantidad = item_data.get('cantidad')
             
-            if not producto:
+            if not producto_value:
                 raise serializers.ValidationError({
                     'items': 'Todos los items deben tener un producto válido.'
                 })
+            
+            # Obtener objeto Producto si es ID, o usar directamente si es objeto
+            if isinstance(producto_value, Producto):
+                producto = producto_value
+            else:
+                try:
+                    producto = Producto.objects.get(pk=producto_value)
+                except Producto.DoesNotExist:
+                    raise serializers.ValidationError({
+                        'items': f'El producto con ID {producto_value} no existe.'
+                    })
             
             # Verificar disponibilidad del producto
             if not producto.activo:
@@ -191,6 +211,9 @@ class PedidoCreateSerializer(serializers.ModelSerializer):
                         f'Disponible: {producto.stock}, Solicitado: {cantidad}'
                     )
                 })
+            
+            # Asegurar que item_data tenga el objeto Producto para uso posterior
+            item_data['producto'] = producto
         
         # Crear pedido
         pedido = Pedido.objects.create(**validated_data)
@@ -201,8 +224,18 @@ class PedidoCreateSerializer(serializers.ModelSerializer):
         
         # Crear items con snapshots
         for item_data in items_data:
+            # producto ya es un objeto Producto (asegurado en la validación anterior)
             producto = item_data.get('producto')
             cantidad = item_data.get('cantidad')
+            
+            # Asegurar que producto es un objeto Producto
+            if not isinstance(producto, Producto):
+                # Si por alguna razón no es un objeto, obtenerlo
+                try:
+                    producto = Producto.objects.get(pk=producto)
+                except Producto.DoesNotExist:
+                    logger.error(f'Producto con ID {producto} no existe al crear item')
+                    continue
             
             # Calcular precio según la lista del pedido
             precio_unitario = producto.get_precio_lista(pedido.lista_precio)

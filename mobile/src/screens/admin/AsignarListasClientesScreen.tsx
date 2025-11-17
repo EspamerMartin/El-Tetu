@@ -24,11 +24,11 @@ const AsignarListasClientesScreen = ({ navigation }: Props) => {
   const menuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: clientesData, loading: loadingClientes, refetch: refetchClientes } = useFetch(() => 
-    clientesAPI.getAll()
+    clientesAPI.getAll({ rol: 'cliente' })
   );
   const { data: listasData, loading: loadingListas } = useFetch(() => listasAPI.getAll());
 
-  const clientes: User[] = (clientesData?.results || []).filter(u => u.rol === 'cliente');
+  const clientes: User[] = clientesData?.results || [];
   const listas: ListaPrecio[] = listasData?.results || [];
 
   // Recargar cuando la pantalla gana foco

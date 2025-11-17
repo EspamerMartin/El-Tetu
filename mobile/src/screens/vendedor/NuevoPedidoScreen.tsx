@@ -41,7 +41,9 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   const [creating, setCreating] = useState(false);
   const menuOpenTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { data: clientesData, loading: loadingClientes } = useFetch(() => clientesAPI.getAll());
+  const { data: clientesData, loading: loadingClientes } = useFetch(() => 
+    clientesAPI.getAll({ rol: 'cliente' })
+  );
   const { data: productosData, loading: loadingProductos } = useFetch(() => productosAPI.getAll({ activo: true }));
   const { data: listasData, loading: loadingListas } = useFetch(() => listasAPI.getAll());
   const clientes = clientesData?.results || [];

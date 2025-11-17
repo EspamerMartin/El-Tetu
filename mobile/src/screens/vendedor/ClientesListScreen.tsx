@@ -49,7 +49,8 @@ const ClientesListScreen = ({ navigation }: Props) => {
   const fetchClientes = async () => {
     try {
       setLoading(true);
-      const data = await clientesAPI.getAll();
+      // Filtrar solo clientes desde el backend
+      const data = await clientesAPI.getAll({ rol: 'cliente' });
       setClientes(data.results);
       setFilteredClientes(data.results);
     } catch (err) {
