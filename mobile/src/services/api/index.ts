@@ -85,8 +85,11 @@ export const productosAPI = {
     await api.delete(`/productos/${id}/`);
   },
 
-  getCategorias: async (): Promise<PaginatedResponse<Categoria>> => {
-    const response = await api.get('/productos/categorias/');
+  getCategorias: async (params?: {
+    activo?: string;
+    page?: number;
+  }): Promise<PaginatedResponse<Categoria>> => {
+    const response = await api.get('/productos/categorias/', { params });
     return response.data;
   },
 
@@ -194,8 +197,11 @@ export const clientesAPI = {
 // ========== Listas de Precios API (Admin) ==========
 
 export const listasAPI = {
-  getAll: async (): Promise<PaginatedResponse<ListaPrecio>> => {
-    const response = await api.get('/productos/listas-precios/');
+  getAll: async (params?: {
+    activo?: boolean | string;
+    page?: number;
+  }): Promise<PaginatedResponse<ListaPrecio>> => {
+    const response = await api.get('/productos/listas-precios/', { params });
     return response.data;
   },
 

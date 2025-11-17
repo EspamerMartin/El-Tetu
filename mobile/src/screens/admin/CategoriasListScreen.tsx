@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, Button, Card, IconButton, FAB, Dialog, Portal, Chip, Avatar, Menu } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
@@ -7,6 +7,8 @@ import { productosAPI } from '@/services/api';
 import { InputField, LoadingOverlay } from '@/components';
 import { theme, spacing } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+
+type EstadoFilter = 'TODOS' | 'ACTIVO' | 'INACTIVO';
 
 const CategoriasListScreen = () => {
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -19,8 +21,11 @@ const CategoriasListScreen = () => {
   const [activo, setActivo] = useState(true);
   const [saving, setSaving] = useState(false);
   const [expandedCategoria, setExpandedCategoria] = useState<number | null>(null);
+  const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>('TODOS');
 
-  const { data: categoriasData, loading, refetch, error } = useFetch(() => productosAPI.getCategorias());
+  const { data: categoriasData, loading, refetch, error } = useFetch(
+    () => productosAPI.getCategorias(estadoFilter === 'TODOS' ? {} : { activo: estadoFilter === 'ACTIVO' ? 'true' : 'false' })
+  );
   const { data: subcategoriasData, refetch: refetchSubcategorias } = useFetch(() => productosAPI.getSubcategorias());
 
   useFocusEffect(
@@ -29,6 +34,11 @@ const CategoriasListScreen = () => {
       refetchSubcategorias();
     }, [])
   );
+
+  // Refetch cuando cambie el filtro de estado
+  useEffect(() => {
+    refetch();
+  }, [estadoFilter, refetch]);
 
   const categorias = categoriasData?.results || [];
   const subcategorias = subcategoriasData?.results || [];
@@ -209,6 +219,31 @@ const CategoriasListScreen = () => {
     <View style={styles.container}>
       {loading && <LoadingOverlay visible message="Cargando categorías..." />}
       
+      {/* Filtros por Estado */}
+      <View style={styles.filtersContainer}>
+        <FlatList
+          horizontal
+          data={[
+            { value: 'TODOS' as EstadoFilter, label: 'Todos', icon: 'view-list' },
+            { value: 'ACTIVO' as EstadoFilter, label: 'Activas', icon: 'check-circle' },
+            { value: 'INACTIVO' as EstadoFilter, label: 'Inactivas', icon: 'close-circle' },
+          ]}
+          keyExtractor={(item) => item.value}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersList}
+          renderItem={({ item }) => (
+            <Chip
+              icon={item.icon}
+              selected={estadoFilter === item.value}
+              onPress={() => setEstadoFilter(item.value)}
+              style={styles.filterChip}
+            >
+              {item.label}
+            </Chip>
+          )}
+        />
+      </View>
+      
       <FlatList
         data={categorias}
         keyExtractor={(item) => item.id.toString()}
@@ -347,6 +382,16 @@ const CategoriasListScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
+  filtersContainer: {
+    backgroundColor: theme.colors.surface,
+    elevation: 2,
+    paddingVertical: spacing.md,
+  },
+  filtersList: {
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+  },
+  filterChip: { marginRight: spacing.xs },
   list: { padding: spacing.md },
   card: { marginBottom: spacing.md },
   actions: { flexDirection: 'row' },

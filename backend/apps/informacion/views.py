@@ -18,7 +18,7 @@ class InformacionGeneralListView(generics.ListAPIView):
     
     Pública - no requiere autenticación.
     """
-    queryset = InformacionGeneral.objects.filter(activo=True, fecha_eliminacion__isnull=True)
+    queryset = InformacionGeneral.objects.filter(activo=True, fecha_eliminacion__isnull=True).order_by('tipo')
     serializer_class = InformacionGeneralSerializer
     permission_classes = [AllowAny]
 
@@ -30,7 +30,7 @@ class InformacionGeneralDetailView(generics.RetrieveAPIView):
     
     Pública - no requiere autenticación.
     """
-    queryset = InformacionGeneral.objects.filter(activo=True, fecha_eliminacion__isnull=True)
+    queryset = InformacionGeneral.objects.filter(activo=True, fecha_eliminacion__isnull=True).order_by('tipo')
     serializer_class = InformacionGeneralSerializer
     permission_classes = [AllowAny]
     lookup_field = 'tipo'
@@ -41,7 +41,7 @@ class InformacionGeneralCreateUpdateView(generics.ListCreateAPIView):
     Vista para crear/actualizar información general (solo admin).
     GET/POST /api/info/admin/
     """
-    queryset = InformacionGeneral.objects.all()
+    queryset = InformacionGeneral.objects.all().order_by('-activo', 'fecha_eliminacion', 'tipo')
     serializer_class = InformacionGeneralSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
 

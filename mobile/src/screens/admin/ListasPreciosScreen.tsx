@@ -21,11 +21,16 @@ type Props = NativeStackScreenProps<AdminStackParamList, 'ListasPrecios'>;
  * - Editar lista existente
  * - Eliminar lista (excepto Lista Base)
  */
+type EstadoFilter = 'TODOS' | 'ACTIVO' | 'INACTIVO';
+
 const ListasPreciosScreen = ({ navigation }: Props) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>('TODOS');
   const [deleting, setDeleting] = useState(false);
 
-  const { data, loading, refetch } = useFetch(() => listasAPI.getAll());
+  const { data, loading, refetch } = useFetch(
+    () => listasAPI.getAll(estadoFilter === 'TODOS' ? {} : { activo: estadoFilter === 'ACTIVO' })
+  );
   const listas: ListaPrecio[] = data?.results || [];
 
   // Recargar cuando la pantalla gana foco
@@ -34,6 +39,11 @@ const ListasPreciosScreen = ({ navigation }: Props) => {
       refetch();
     }, [refetch])
   );
+
+  // Refetch cuando cambie el filtro de estado
+  useEffect(() => {
+    refetch();
+  }, [estadoFilter]);
 
   const listasFiltradas = searchQuery
     ? listas.filter(lista => 
@@ -153,6 +163,31 @@ const ListasPreciosScreen = ({ navigation }: Props) => {
     <View style={styles.container}>
       {(loading || deleting) && <LoadingOverlay visible message={deleting ? 'Eliminando...' : 'Cargando...'} />}
 
+      {/* Filtros por Estado */}
+      <View style={styles.filtersContainer}>
+        <FlatList
+          horizontal
+          data={[
+            { value: 'TODOS' as EstadoFilter, label: 'Todos', icon: 'view-list' },
+            { value: 'ACTIVO' as EstadoFilter, label: 'Activas', icon: 'check-circle' },
+            { value: 'INACTIVO' as EstadoFilter, label: 'Inactivas', icon: 'close-circle' },
+          ]}
+          keyExtractor={(item) => item.value}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersList}
+          renderItem={({ item }) => (
+            <Chip
+              icon={item.icon}
+              selected={estadoFilter === item.value}
+              onPress={() => setEstadoFilter(item.value)}
+              style={styles.filterChip}
+            >
+              {item.label}
+            </Chip>
+          )}
+        />
+      </View>
+
       <View style={styles.header}>
         <Searchbar
           placeholder="Buscar por nombre o código..."
@@ -199,6 +234,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+  filtersContainer: {
+    backgroundColor: theme.colors.surface,
+    elevation: 2,
+    paddingVertical: spacing.md,
+  },
+  filtersList: {
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+  },
+  filterChip: { marginRight: spacing.xs },
   header: {
     padding: spacing.md,
     backgroundColor: theme.colors.surface,

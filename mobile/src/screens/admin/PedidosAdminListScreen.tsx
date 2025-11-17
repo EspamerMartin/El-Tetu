@@ -30,40 +30,35 @@ const PedidosAdminListScreen = ({ navigation }: any) => {
 
   const pedidos = pedidosData?.results || [];
 
-  // Solo mostrar filtros para CONFIRMADO y CANCELADO
-  const estados = ['CONFIRMADO', 'CANCELADO'];
-
-  const getEstadoLabel = (estado: string) => {
-    switch (estado) {
-      case 'CONFIRMADO':
-        return 'Aprobados';
-      case 'CANCELADO':
-        return 'Rechazados';
-      default:
-        return estado;
-    }
-  };
+  // Filtros para todos los estados
+  const estados: { value: string | null; label: string; icon: string }[] = [
+    { value: null, label: 'Todos', icon: 'view-list' },
+    { value: 'PENDIENTE', label: 'Pendientes', icon: 'clock-outline' },
+    { value: 'CONFIRMADO', label: 'Aprobados', icon: 'check-circle' },
+    { value: 'CANCELADO', label: 'Cancelados', icon: 'close-circle' },
+  ];
 
   return (
     <View style={styles.container}>
+      {/* Filtros por Estado */}
       <View style={styles.filtersContainer}>
-        <Chip
-          selected={!estadoFilter}
-          onPress={() => setEstadoFilter(null)}
-          style={styles.filterChip}
-        >
-          Todos
-        </Chip>
-        {estados.map((estado) => (
-          <Chip
-            key={estado}
-            selected={estadoFilter === estado}
-            onPress={() => setEstadoFilter(estado)}
-            style={styles.filterChip}
-          >
-            {getEstadoLabel(estado)}
-          </Chip>
-        ))}
+        <FlatList
+          horizontal
+          data={estados}
+          keyExtractor={(item) => item.value || 'todos'}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersList}
+          renderItem={({ item }) => (
+            <Chip
+              icon={item.icon}
+              selected={estadoFilter === item.value}
+              onPress={() => setEstadoFilter(item.value)}
+              style={styles.filterChip}
+            >
+              {item.label}
+            </Chip>
+          )}
+        />
       </View>
 
       {loading ? (
@@ -87,12 +82,13 @@ const PedidosAdminListScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   filtersContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: spacing.md,
-    gap: spacing.sm,
     backgroundColor: theme.colors.surface,
     elevation: 2,
+    paddingVertical: spacing.md,
+  },
+  filtersList: {
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
   },
   filterChip: { marginRight: spacing.xs },
   list: { padding: spacing.md },

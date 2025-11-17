@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
 import { Text, Chip, FAB } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -31,6 +31,11 @@ const PedidosListScreen = ({ navigation }: Props) => {
       refetch();
     }, [])
   );
+
+  // Refetch cuando cambie el filtro de estado
+  useEffect(() => {
+    refetch();
+  }, [estadoFilter, refetch]);
 
   const pedidos = pedidosData?.results || [];
 

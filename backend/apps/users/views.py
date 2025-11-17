@@ -206,10 +206,12 @@ class UserListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         
         if user.is_admin():
-            return CustomUser.objects.all()
+            # Ordenar: primero activos y no eliminados, luego por nombre
+            return CustomUser.objects.all().order_by('-is_active', 'fecha_eliminacion', 'nombre', 'apellido')
         
         if user.is_vendedor():
-            return CustomUser.objects.filter(rol='cliente', is_active=True, fecha_eliminacion__isnull=True)
+            # Vendedores solo ven clientes activos, ya están filtrados
+            return CustomUser.objects.filter(rol='cliente', is_active=True, fecha_eliminacion__isnull=True).order_by('nombre', 'apellido')
         
         return CustomUser.objects.none()
 

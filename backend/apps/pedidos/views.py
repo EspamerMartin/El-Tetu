@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from django.db.models import Case, When, IntegerField
 import logging
 
 from apps.users.permissions import IsAdminOrVendedor
@@ -58,7 +59,15 @@ class PedidoListCreateView(generics.ListCreateAPIView):
             if cliente_id:
                 queryset = queryset.filter(cliente_id=cliente_id)
         
-        return queryset.order_by('-fecha_creacion')
+        # Ordenar: primero pedidos activos (no cancelados), luego por fecha de creación (más recientes primero)
+        # Usar Case/When para que CANCELADO vaya al final
+        return queryset.annotate(
+            estado_orden=Case(
+                When(estado='CANCELADO', then=1),
+                default=0,
+                output_field=IntegerField()
+            )
+        ).order_by('estado_orden', '-fecha_creacion')
     
     def get_serializer_class(self):
         """Usa serializer de creación para POST."""

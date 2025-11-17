@@ -26,13 +26,16 @@ class CategoriaListCreateView(generics.ListCreateAPIView):
     """
     serializer_class = CategoriaSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['activo']
     
     def get_queryset(self):
         """Admin ve todas (incluyendo eliminadas), otros solo activas y no eliminadas."""
         queryset = Categoria.objects.all()
         if not self.request.user.is_admin():
             queryset = queryset.filter(activo=True, fecha_eliminacion__isnull=True)
-        return queryset
+        # Ordenar: primero activas y no eliminadas, luego por nombre
+        return queryset.order_by('-activo', 'fecha_eliminacion', 'nombre')
     
     def get_permissions(self):
         """Solo admin puede crear categorías."""
@@ -75,7 +78,8 @@ class SubcategoriaListCreateView(generics.ListCreateAPIView):
         queryset = Subcategoria.objects.select_related('categoria')
         if not self.request.user.is_admin():
             queryset = queryset.filter(activo=True, fecha_eliminacion__isnull=True)
-        return queryset
+        # Ordenar: primero activas y no eliminadas, luego por nombre
+        return queryset.order_by('-activo', 'fecha_eliminacion', 'nombre')
     
     def get_permissions(self):
         """Solo admin puede crear subcategorías."""
@@ -119,7 +123,7 @@ class ProductoListCreateView(generics.ListCreateAPIView):
     filterset_fields = ['categoria', 'subcategoria', 'activo']
     search_fields = ['nombre', 'codigo', 'descripcion'] 
     ordering_fields = ['nombre', 'codigo', 'stock'] 
-    ordering = ['nombre']
+    ordering = ['-activo', 'fecha_eliminacion', 'nombre']
     
     def get_serializer_class(self):
         """Usa serializer ligero para listado, completo para creación."""
@@ -150,6 +154,19 @@ class ProductoListCreateView(generics.ListCreateAPIView):
         disponible = self.request.query_params.get('disponible', None)
         if disponible and disponible.lower() == 'true':
             queryset = queryset.filter(stock__gt=0)
+        
+        # El ordenamiento por defecto ya está configurado en 'ordering' para priorizar activos
+        # Si hay un ordenamiento personalizado, se aplicará pero siempre respetando primero activo
+        ordering_param = self.request.query_params.get('ordering', None)
+        if ordering_param:
+            # Si hay ordenamiento personalizado, agregar primero el ordenamiento por activo
+            ordering_list = ordering_param.split(',') if ',' in ordering_param else [ordering_param]
+            # Asegurar que activo y fecha_eliminacion vengan primero
+            if '-activo' not in ordering_list and 'activo' not in ordering_list:
+                ordering_list.insert(0, '-activo')
+            if 'fecha_eliminacion' not in ordering_list and '-fecha_eliminacion' not in ordering_list:
+                ordering_list.insert(1, 'fecha_eliminacion')
+            queryset = queryset.order_by(*ordering_list)
         
         return queryset
     

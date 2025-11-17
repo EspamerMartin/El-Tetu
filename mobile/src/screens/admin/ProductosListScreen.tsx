@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, FAB, Card, Chip, IconButton, Searchbar } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
@@ -9,15 +9,26 @@ import { theme, spacing } from '@/theme';
 import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
+type EstadoFilter = 'TODOS' | 'ACTIVO' | 'INACTIVO';
+
 const ProductosListScreen = ({ navigation }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { data: productosData, loading, refetch } = useFetch(() => productosAPI.getAll());
+  const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>('TODOS');
+  
+  const { data: productosData, loading, refetch } = useFetch(
+    () => productosAPI.getAll(estadoFilter === 'TODOS' ? {} : { activo: estadoFilter === 'ACTIVO' })
+  );
 
   useFocusEffect(
     React.useCallback(() => {
       refetch();
     }, [])
   );
+
+  // Refetch cuando cambie el filtro de estado
+  useEffect(() => {
+    refetch();
+  }, [estadoFilter]);
 
   const productos = productosData?.results || [];
   const productosFiltrados = searchQuery
@@ -41,8 +52,35 @@ const ProductosListScreen = ({ navigation }: any) => {
     ]);
   };
 
+  const estados: { value: EstadoFilter; label: string; icon: string }[] = [
+    { value: 'TODOS', label: 'Todos', icon: 'view-list' },
+    { value: 'ACTIVO', label: 'Activos', icon: 'check-circle' },
+    { value: 'INACTIVO', label: 'Inactivos', icon: 'close-circle' },
+  ];
+
   return (
     <ScreenContainer>
+      {/* Filtros por Estado */}
+      <View style={styles.filtersContainer}>
+        <FlatList
+          horizontal
+          data={estados}
+          keyExtractor={(item) => item.value}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersList}
+          renderItem={({ item }) => (
+            <Chip
+              icon={item.icon}
+              selected={estadoFilter === item.value}
+              onPress={() => setEstadoFilter(item.value)}
+              style={styles.filterChip}
+            >
+              {item.label}
+            </Chip>
+          )}
+        />
+      </View>
+
       <Searchbar placeholder="Buscar productos..." onChangeText={setSearchQuery} value={searchQuery} style={styles.searchbar} />
 
       {loading ? (
@@ -88,6 +126,16 @@ const ProductosListScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
+  filtersContainer: {
+    backgroundColor: theme.colors.surface,
+    elevation: 2,
+    paddingVertical: spacing.md,
+  },
+  filtersList: {
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+  },
+  filterChip: { marginRight: spacing.xs },
   searchbar: { margin: spacing.md },
   list: { padding: spacing.md },
   card: { marginBottom: spacing.md },
