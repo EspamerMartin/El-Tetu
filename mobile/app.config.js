@@ -29,6 +29,9 @@ module.exports = {
       favicon: "./assets/favicon.png"
     },
     extra: {
+      eas: {
+        projectId: "301fbcd6-7b42-412e-b33e-e7401ab0bb6f"
+      },
       apiUrl: process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000/api"
     }
   }

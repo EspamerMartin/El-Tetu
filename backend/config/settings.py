@@ -12,10 +12,13 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-produc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,exp://10.10.20.143:8081').split(',')
 # En desarrollo permite cualquier host para facilitar pruebas desde LAN/Expo Go
 if DEBUG:
     ALLOWED_HOSTS = ['*']
+else:
+    # Fallback: Allow all hosts when ALLOWED_HOSTS env var is not set (Railway deployment)
+    # For production, set ALLOWED_HOSTS in Railway environment variables
+    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -164,17 +167,30 @@ SIMPLE_JWT = {
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
-    CORS_ALLOWED_ORIGINS = config(
+    cors_origins = config(
         'CORS_ALLOWED_ORIGINS',
         default='http://localhost:8081,http://localhost:19006,http://127.0.0.1:19006'
-    ).split(',')
-    CORS_ALLOW_ALL_ORIGINS = False
+    )
+    # If set to '*', allow all origins (useful for development/testing)
+    if cors_origins.strip() == '*':
+        CORS_ALLOW_ALL_ORIGINS = True
+    else:
+        CORS_ALLOWED_ORIGINS = cors_origins.split(',')
+        CORS_ALLOW_ALL_ORIGINS = False
 
 CORS_ALLOW_CREDENTIALS = True
 
 # Security settings for production
 if not DEBUG:
+    # Railway SSL termination - Tell Django to trust the X-Forwarded-Proto header
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
+
+    # CSRF trusted origins (required for Django 4.0+ with HTTPS)
+    CSRF_TRUSTED_ORIGINS = [
+        'https://*.railway.app',
+    ]
+
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
@@ -195,45 +211,47 @@ LOGGING = {
             'style': '{',
         },
     },
-    'filters': {
-        'require_debug_true': {
-            '()': 'django.utils.log.RequireDebugTrue',
-        },
-    },
     'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
-        },
         'console': {
             'level': 'INFO',
-            'filters': ['require_debug_true'],
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
     },
     'root': {
-        'handlers': ['file', 'console'],
+        'handlers': ['console'],
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': ['file', 'console'],
+            'handlers': ['console'],
             'level': 'WARNING',
             'propagate': False,
         },
         'django.db.backends': {
-            'handlers': ['file'],
+            'handlers': ['console'],
             'level': 'WARNING',
             'propagate': False,
         },
         'eltetu': {
-            'handlers': ['file', 'console'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
     },
 }
+
+# Add file logging in development (when DEBUG=True)
+if DEBUG:
+    LOGGING['handlers']['file'] = {
+        'level': 'INFO',
+        'class': 'logging.FileHandler',
+        'filename': BASE_DIR / 'logs' / 'django.log',
+        'formatter': 'verbose',
+        'encoding': 'utf-8',
+    }
+    # Add file handler to all loggers for local debugging
+    LOGGING['root']['handlers'].append('file')
+    LOGGING['loggers']['django']['handlers'].append('file')
+    LOGGING['loggers']['django.db.backends']['handlers'].append('file')
+    LOGGING['loggers']['eltetu']['handlers'].append('file')

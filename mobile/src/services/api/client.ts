@@ -1,54 +1,11 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-// Obtener el host (IP) del servidor Metro/CLI desde Expo (solo en desarrollo/Expo Go)
-const getExpoHostIp = (): string | null => {
-  try {
-    const anyConst: any = Constants as any;
-    
-    // SDK 54+ puede tener debuggerHost directamente
-    let hostUri: string | undefined = 
-      anyConst?.expoConfig?.debuggerHost ||
-      anyConst?.expoConfig?.hostUri ||
-      anyConst?.manifest2?.extra?.expoGo?.debuggerHost ||
-      anyConst?.manifest?.debuggerHost ||
-      anyConst?.manifest?.hostUri;
-
-    // Loguear para debug
-    console.log('🔍 Constants.expoConfig:', anyConst?.expoConfig);
-    console.log('🔍 debuggerHost detectado:', hostUri);
-
-    if (hostUri) {
-      // Ejemplos: "192.168.100.157:8081" o "localhost:8081" o solo "192.168.100.157"
-      const host = hostUri.split(':')[0];
-      console.log('🔍 Host extraído:', host);
-      // Detectar IPv4 simple
-      if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) {
-        console.log('✅ IP válida detectada:', host);
-        return host;
-      }
-    }
-  } catch (e) {
-    console.log('❌ Error al detectar IP de Expo:', e);
-  }
-  console.log('⚠️ No se pudo detectar IP de Expo, usando fallback');
-  return null;
-};
-
-// Determinar la URL base según la plataforma
-
-// Generaliza: si la URL contiene "localhost" y estamos en Expo Go en dispositivo físico,
-// la reemplaza por la IP del host detectada por Expo
-let API_URL = 'http://localhost:8000/api';
-const expoHostIp = getExpoHostIp();
-if (API_URL.includes('localhost') && expoHostIp) {
-  API_URL = API_URL.replace('localhost', expoHostIp);
-}
+// Obtener API URL de las variables de entorno (configuradas en app.config.js)
+const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:8000/api';
 
 console.log('🔧 API_URL configurada:', API_URL);
-console.log('🔧 Platform:', Platform.OS);
 
 // Crear instancia de axios
 const api = axios.create({
