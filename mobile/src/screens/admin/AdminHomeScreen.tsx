@@ -131,14 +131,23 @@ const AdminHomeScreen = ({ navigation }: Props) => {
             style={styles.kpiCardTouchableFull}
           >
             <Surface 
-              style={[styles.kpiCard, { backgroundColor: colors.errorContainer }]} 
+              style={[styles.kpiCardFull, { backgroundColor: colors.errorContainer }]} 
               elevation={2}
             >
-              <Icon name="alert-circle-outline" size={40} color={colors.error} />
-              <Text variant="headlineLarge" style={[styles.kpiValue, { color: colors.error }]}>
-                {stats.productosConBajoStock}
-              </Text>
+              <View style={styles.kpiHeader}>
+                <Icon name="alert-circle-outline" size={32} color={colors.error} />
+                <Text variant="headlineSmall" style={[styles.kpiValue, { color: colors.error }]}>
+                  {stats.productosConBajoStock}
+                </Text>
+              </View>
               <Text variant="bodyMedium" style={styles.kpiLabel}>Stock Bajo</Text>
+              <Text variant="bodySmall" style={styles.kpiDescription}>
+                {stats.productosConBajoStock === 0 
+                  ? 'Todos los productos tienen stock suficiente'
+                  : stats.productosConBajoStock === 1
+                  ? '1 producto con menos de 10 unidades'
+                  : `${stats.productosConBajoStock} productos con menos de 10 unidades`}
+              </Text>
             </Surface>
           </TouchableOpacity>
         </View>
@@ -221,14 +230,26 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
   },
+  kpiCardFull: {
+    width: '100%',
+    padding: spacing.lg,
+    borderRadius: 12,
+  },
+  kpiHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
   kpiValue: {
     fontWeight: 'bold',
-    marginTop: spacing.sm,
   },
   kpiLabel: {
-    marginTop: spacing.xs,
-    textAlign: 'center',
-    opacity: 0.8,
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+  },
+  kpiDescription: {
+    opacity: 0.7,
   },
   kpiCardTouchableFull: {
     width: '100%',
