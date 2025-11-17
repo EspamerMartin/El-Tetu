@@ -64,8 +64,22 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
               Alert.alert('Éxito', 'Pedido aprobado correctamente');
               await fetchPedido();
             } catch (err: any) {
-              Alert.alert('Error', err.response?.data?.error || 'No se pudo aprobar el pedido');
-              console.error(err);
+              // Extraer mensaje de error del backend
+              const errorMessage = 
+                err.response?.data?.error || 
+                err.response?.data?.message ||
+                err.response?.data?.detail ||
+                err.message ||
+                'No se pudo aprobar el pedido';
+              
+              console.error('Error al aprobar pedido:', err);
+              console.error('Error response:', err.response?.data);
+              
+              Alert.alert(
+                'Error al aprobar pedido',
+                errorMessage,
+                [{ text: 'OK' }]
+              );
             } finally {
               setProcessing(false);
             }
@@ -96,8 +110,22 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
               Alert.alert('Pedido Rechazado', 'El pedido ha sido rechazado y marcado como cancelado');
               await fetchPedido();
             } catch (err: any) {
-              Alert.alert('Error', err.response?.data?.error || 'No se pudo rechazar el pedido');
-              console.error(err);
+              // Extraer mensaje de error del backend
+              const errorMessage = 
+                err.response?.data?.error || 
+                err.response?.data?.message ||
+                err.response?.data?.detail ||
+                err.message ||
+                'No se pudo rechazar el pedido';
+              
+              console.error('Error al rechazar pedido:', err);
+              console.error('Error response:', err.response?.data);
+              
+              Alert.alert(
+                'Error al rechazar pedido',
+                errorMessage,
+                [{ text: 'OK' }]
+              );
             } finally {
               setProcessing(false);
             }
