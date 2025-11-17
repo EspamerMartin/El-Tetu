@@ -120,8 +120,6 @@ class ProductoCreateUpdateSerializer(serializers.ModelSerializer):
     
     def validate_precio_base(self, value):
         """Valida que el precio base sea positivo."""
-        if value is None:
-            raise serializers.ValidationError("El precio base es obligatorio.")
         if value < 0:
             raise serializers.ValidationError("El precio base no puede ser negativo.")
         return value

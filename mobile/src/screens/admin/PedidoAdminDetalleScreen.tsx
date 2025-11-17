@@ -132,10 +132,6 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
         return theme.colors.secondary;
       case 'CONFIRMADO':
         return '#2196F3';
-      case 'EN_CAMINO':
-        return '#FF9800';
-      case 'ENTREGADO':
-        return theme.colors.tertiary;
       case 'CANCELADO':
         return theme.colors.error;
       default:
@@ -149,10 +145,6 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
         return 'Pendiente';
       case 'CONFIRMADO':
         return 'Confirmado';
-      case 'EN_CAMINO':
-        return 'En Camino';
-      case 'ENTREGADO':
-        return 'Entregado';
       case 'CANCELADO':
         return 'Cancelado';
       default:

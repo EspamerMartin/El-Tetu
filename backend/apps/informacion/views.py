@@ -1,8 +1,14 @@
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+import logging
+
 from apps.users.permissions import IsAdmin
+from apps.core.mixins import SoftDeleteMixin
 from .models import InformacionGeneral
 from .serializers import InformacionGeneralSerializer
+
+logger = logging.getLogger('eltetu')
 
 
 class InformacionGeneralListView(generics.ListAPIView):
@@ -44,6 +50,8 @@ class InformacionGeneralAdminDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Vista para gestionar información general (solo admin).
     GET/PUT/DELETE /api/info/admin/{id}/
+    
+    Siempre realiza soft delete para mantener historial.
     """
     queryset = InformacionGeneral.objects.all()
     serializer_class = InformacionGeneralSerializer
@@ -54,14 +62,14 @@ class InformacionGeneralAdminDetailView(generics.RetrieveUpdateDestroyAPIView):
         Siempre soft delete para información general (para mantener historial).
         """
         instance.soft_delete(usuario=self.request.user)
+        logger.info(
+            f'Información general #{instance.id} desactivada por usuario {self.request.user.email}'
+        )
     
     def destroy(self, request, *args, **kwargs):
         """
         Sobrescribe destroy para retornar mensaje apropiado.
         """
-        from rest_framework.response import Response
-        from rest_framework import status
-        
         instance = self.get_object()
         
         # Ejecutar soft delete

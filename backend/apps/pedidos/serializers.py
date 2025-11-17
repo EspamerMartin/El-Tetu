@@ -1,7 +1,11 @@
 from rest_framework import serializers
+import logging
+
 from apps.productos.serializers import ProductoListSerializer
-from apps.productos.models import ListaPrecio
+from apps.productos.models import Producto
 from .models import Pedido, PedidoItem
+
+logger = logging.getLogger('eltetu')
 
 
 class PedidoItemSerializer(serializers.ModelSerializer):
@@ -38,29 +42,57 @@ class PedidoItemCreateSerializer(serializers.ModelSerializer):
         fields = ['producto', 'cantidad']
     
     def validate_cantidad(self, value):
-        """Valida que la cantidad sea positiva."""
-        if value <= 0:
-            raise serializers.ValidationError('La cantidad debe ser mayor a 0.')
+        """Valida que la cantidad sea positiva y tenga un mínimo."""
+        if value < 1:
+            raise serializers.ValidationError('La cantidad mínima es 1.')
         return value
     
     def validate(self, data):
-        """Valida stock disponible."""
-        producto = data.get('producto')
+        """Valida stock disponible y disponibilidad del producto."""
+        producto_id = data.get('producto')
         cantidad = data.get('cantidad')
         
-        if not producto:
+        if not producto_id:
             raise serializers.ValidationError({
-                'producto': 'Debe especificar un producto.'
+                'producto': 'Debe especificar un producto válido.'
             })
         
+        # Obtener el objeto Producto desde la base de datos
+        try:
+            producto = Producto.objects.get(pk=producto_id)
+        except Producto.DoesNotExist:
+            raise serializers.ValidationError({
+                'producto': 'El producto especificado no existe.'
+            })
+        
+        # Verificar si el producto está activo
         if not producto.activo:
+            logger.warning(
+                f'Intento de agregar producto inactivo al pedido: {producto.nombre} (ID: {producto.id})'
+            )
             raise serializers.ValidationError({
-                'producto': 'El producto no está disponible.'
+                'producto': f'El producto "{producto.nombre}" no está disponible actualmente.'
             })
         
-        if producto.stock < cantidad:
+        # Verificar si el producto fue eliminado (soft delete)
+        if hasattr(producto, 'is_deleted') and producto.is_deleted:
+            logger.warning(
+                f'Intento de agregar producto eliminado al pedido: {producto.nombre} (ID: {producto.id})'
+            )
             raise serializers.ValidationError({
-                'cantidad': f'Stock insuficiente. Disponible: {producto.stock}'
+                'producto': f'El producto "{producto.nombre}" ya no está disponible.'
+            })
+        
+        # Validar stock disponible
+        if producto.stock < cantidad:
+            logger.warning(
+                f'Stock insuficiente: {producto.nombre} - Solicitado: {cantidad}, Disponible: {producto.stock}'
+            )
+            raise serializers.ValidationError({
+                'cantidad': (
+                    f'Stock insuficiente para "{producto.nombre}". '
+                    f'Disponible: {producto.stock}, Solicitado: {cantidad}'
+                )
             })
         
         return data
@@ -117,7 +149,7 @@ class PedidoCreateSerializer(serializers.ModelSerializer):
         return value
     
     def create(self, validated_data):
-        """Crea pedido con items."""
+        """Crea pedido con items, validando stock antes de crear."""
         items_data = validated_data.pop('items')
         cliente = validated_data.get('cliente')
         
@@ -131,10 +163,7 @@ class PedidoCreateSerializer(serializers.ModelSerializer):
             validated_data['lista_precio_nombre_snapshot'] = lista_precio.nombre
             validated_data['lista_precio_descuento_snapshot'] = lista_precio.descuento_porcentaje
         
-        # Crear pedido
-        pedido = Pedido.objects.create(**validated_data)
-        
-        # Crear items con snapshots
+        # Validar stock de todos los items ANTES de crear el pedido (evita race conditions)
         for item_data in items_data:
             producto = item_data.get('producto')
             cantidad = item_data.get('cantidad')
@@ -143,6 +172,37 @@ class PedidoCreateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     'items': 'Todos los items deben tener un producto válido.'
                 })
+            
+            # Verificar disponibilidad del producto
+            if not producto.activo:
+                raise serializers.ValidationError({
+                    'items': f'El producto "{producto.nombre}" no está disponible.'
+                })
+            
+            # Verificar stock disponible (validación adicional para evitar race conditions)
+            if producto.stock < cantidad:
+                logger.error(
+                    f'Error al crear pedido: Stock insuficiente para {producto.nombre} '
+                    f'(Solicitado: {cantidad}, Disponible: {producto.stock})'
+                )
+                raise serializers.ValidationError({
+                    'items': (
+                        f'Stock insuficiente para "{producto.nombre}". '
+                        f'Disponible: {producto.stock}, Solicitado: {cantidad}'
+                    )
+                })
+        
+        # Crear pedido
+        pedido = Pedido.objects.create(**validated_data)
+        logger.info(
+            f'Pedido #{pedido.id} creado por cliente {cliente.email} '
+            f'con {len(items_data)} items'
+        )
+        
+        # Crear items con snapshots
+        for item_data in items_data:
+            producto = item_data.get('producto')
+            cantidad = item_data.get('cantidad')
             
             # Calcular precio según la lista del pedido
             precio_unitario = producto.get_precio_lista(pedido.lista_precio)

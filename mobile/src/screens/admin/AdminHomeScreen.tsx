@@ -55,9 +55,9 @@ const AdminHomeScreen = ({ navigation }: Props) => {
            fechaPedido.getFullYear() === hoy.getFullYear();
   }) || [];
 
-  // Pedidos aprobados del mes (solo CONFIRMADO, EN_CAMINO, ENTREGADO)
+  // Pedidos aprobados del mes (solo CONFIRMADO)
   const pedidosAprobadosMes = pedidosMes.filter((p: any) => 
-    ['CONFIRMADO', 'EN_CAMINO', 'ENTREGADO'].includes(p.estado)
+    p.estado === 'CONFIRMADO'
   );
 
   // Filtrar productos con stock < 10 (doble verificación)

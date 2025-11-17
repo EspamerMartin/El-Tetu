@@ -2,8 +2,8 @@ from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+import logging
 
 from apps.users.permissions import IsAdminOrVendedor
 from .models import Pedido
@@ -12,6 +12,8 @@ from .serializers import (
     PedidoCreateSerializer,
     PedidoUpdateEstadoSerializer,
 )
+
+logger = logging.getLogger('eltetu')
 
 
 class PedidoListCreateView(generics.ListCreateAPIView):
@@ -38,9 +40,7 @@ class PedidoListCreateView(generics.ListCreateAPIView):
         if user.is_cliente():
             # Cliente solo ve sus pedidos
             queryset = queryset.filter(cliente=user)
-        elif user.is_vendedor():
-            # Vendedor ve todos los pedidos
-            pass
+        # Vendedor y admin ven todos los pedidos (sin filtro adicional)
         
         # Filtro por "mine"
         mine = self.request.query_params.get('mine', None)
@@ -85,6 +85,10 @@ class PedidoListCreateView(generics.ListCreateAPIView):
         
         # Retornar con PedidoSerializer completo
         pedido = serializer.instance
+        logger.info(
+            f'Pedido #{pedido.id} creado por usuario {request.user.email} '
+            f'con {pedido.items.count()} items'
+        )
         output_serializer = PedidoSerializer(pedido)
         headers = self.get_success_headers(output_serializer.data)
         return Response(output_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
@@ -131,8 +135,15 @@ def update_estado_view(request, pk):
     
     try:
         serializer.save()
+        logger.info(
+            f'Estado del pedido #{pedido.id} actualizado a {pedido.estado} '
+            f'por usuario {request.user.email}'
+        )
         return Response(PedidoSerializer(pedido).data)
     except ValueError as e:
+        logger.warning(
+            f'Error al actualizar estado del pedido #{pedido.id}: {str(e)}'
+        )
         return Response(
             {'error': str(e)},
             status=status.HTTP_400_BAD_REQUEST
@@ -160,82 +171,20 @@ def rechazar_pedido_view(request, pk):
     try:
         # Usar el método cancelar() del modelo para restaurar stock si es necesario
         pedido.cancelar()
+        logger.info(
+            f'Pedido #{pedido.id} cancelado por usuario {request.user.email}'
+        )
         return Response(
             PedidoSerializer(pedido).data,
             status=status.HTTP_200_OK
         )
     except ValueError as e:
+        logger.warning(
+            f'Error al cancelar pedido #{pedido.id}: {str(e)}'
+        )
         return Response(
             {'error': str(e)},
             status=status.HTTP_400_BAD_REQUEST
         )
 
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def export_pdf_view(request, pk):
-    """
-    Vista para exportar comprobante de pedido en PDF.
-    GET /api/pedidos/{id}/pdf/
-    """
-    user = request.user
-    
-    # Obtener pedido
-    pedido = get_object_or_404(Pedido, pk=pk)
-    
-    # Verificar permisos
-    if user.is_cliente() and pedido.cliente != user:
-        return Response(
-            {'error': 'No tiene permisos para ver este pedido.'},
-            status=status.HTTP_403_FORBIDDEN
-        )
-    
-    # Generar PDF
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.pagesizes import letter
-    from io import BytesIO
-    
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    
-    # Contenido del PDF
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(100, 750, "El-Tetu - Comprobante de Pedido")
-    
-    p.setFont("Helvetica", 12)
-    y = 700
-    p.drawString(100, y, f"Pedido #{pedido.id}")
-    y -= 20
-    p.drawString(100, y, f"Cliente: {pedido.cliente.full_name}")
-    y -= 20
-    p.drawString(100, y, f"Estado: {pedido.get_estado_display()}")
-    y -= 20
-    p.drawString(100, y, f"Fecha: {pedido.fecha_creacion.strftime('%d/%m/%Y %H:%M')}")
-    y -= 40
-    
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(100, y, "Items:")
-    y -= 20
-    
-    p.setFont("Helvetica", 10)
-    for item in pedido.items.all():
-        p.drawString(120, y, f"{item.producto.nombre} x{item.cantidad} - ${item.subtotal}")
-        y -= 15
-    
-    y -= 20
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(100, y, f"Subtotal: ${pedido.subtotal}")
-    y -= 20
-    p.drawString(100, y, f"Descuento: ${pedido.descuento_total}")
-    y -= 20
-    p.drawString(100, y, f"TOTAL: ${pedido.total}")
-    
-    p.showPage()
-    p.save()
-    
-    buffer.seek(0)
-    
-    response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="pedido_{pedido.id}.pdf"'
-    
-    return response

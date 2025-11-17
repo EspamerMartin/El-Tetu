@@ -1,8 +1,10 @@
 from rest_framework import generics, filters
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
+import logging
 
 from apps.users.permissions import IsAdmin
+from apps.core.mixins import SoftDeleteMixin
 from .models import Categoria, Subcategoria, Producto
 from .serializers import (
     CategoriaSerializer,
@@ -11,6 +13,8 @@ from .serializers import (
     ProductoDetailSerializer,
     ProductoCreateUpdateSerializer,
 )
+
+logger = logging.getLogger('eltetu')
 
 
 # ========== Categorías ==========
@@ -37,7 +41,7 @@ class CategoriaListCreateView(generics.ListCreateAPIView):
         return [IsAuthenticated()]
 
 
-class CategoriaDetailView(generics.RetrieveUpdateDestroyAPIView):
+class CategoriaDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView):
     """
     Vista para obtener, actualizar y eliminar categoría.
     GET/PUT/DELETE /api/productos/categorias/{id}/
@@ -46,44 +50,12 @@ class CategoriaDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CategoriaSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
     
-    def perform_destroy(self, instance):
-        """
-        Eliminación híbrida: soft delete si tiene referencias, hard delete si no.
-        Sobrescribe perform_destroy para interceptar antes de que Django intente hard delete.
-        """
-        # Verificar si tiene referencias en productos o subcategorías
-        tiene_referencias = instance.productos.exists() or instance.subcategorias.exists()
-        
-        if tiene_referencias:
-            # Soft delete: desactivar en lugar de eliminar
-            instance.soft_delete(usuario=self.request.user)
-        else:
-            # Hard delete: eliminar físicamente
-            instance.delete()
-    
-    def destroy(self, request, *args, **kwargs):
-        """
-        Sobrescribe destroy para retornar mensaje apropiado según el tipo de eliminación.
-        """
-        from rest_framework.response import Response
-        from rest_framework import status
-        
-        instance = self.get_object()
-        
-        # Verificar si tiene referencias antes de eliminar
-        tiene_referencias = instance.productos.exists() or instance.subcategorias.exists()
-        
-        # Ejecutar la eliminación (soft o hard)
-        self.perform_destroy(instance)
-        
-        # Retornar respuesta apropiada
-        if tiene_referencias:
-            return Response(
-                {'message': 'Categoría desactivada (soft delete) porque tiene referencias en productos o subcategorías.'},
-                status=status.HTTP_200_OK
-            )
-        else:
-            return Response(status=status.HTTP_204_NO_CONTENT)
+    def get_reference_checks(self, instance):
+        """Define las relaciones a verificar para soft delete."""
+        return [
+            (instance.productos, 'productos'),
+            (instance.subcategorias, 'subcategorias'),
+        ]
 
 
 # ========== Subcategorías ==========
@@ -112,7 +84,7 @@ class SubcategoriaListCreateView(generics.ListCreateAPIView):
         return [IsAuthenticated()]
 
 
-class SubcategoriaDetailView(generics.RetrieveUpdateDestroyAPIView):
+class SubcategoriaDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView):
     """
     Vista para obtener, actualizar y eliminar subcategoría.
     GET/PUT/DELETE /api/productos/subcategorias/{id}/
@@ -121,43 +93,11 @@ class SubcategoriaDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = SubcategoriaSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
     
-    def perform_destroy(self, instance):
-        """
-        Eliminación híbrida: soft delete si tiene referencias, hard delete si no.
-        """
-        # Verificar si tiene referencias en productos
-        tiene_referencias = instance.productos.exists()
-        
-        if tiene_referencias:
-            # Soft delete: desactivar en lugar de eliminar
-            instance.soft_delete(usuario=self.request.user)
-        else:
-            # Hard delete: eliminar físicamente
-            instance.delete()
-    
-    def destroy(self, request, *args, **kwargs):
-        """
-        Sobrescribe destroy para retornar mensaje apropiado según el tipo de eliminación.
-        """
-        from rest_framework.response import Response
-        from rest_framework import status
-        
-        instance = self.get_object()
-        
-        # Verificar si tiene referencias antes de eliminar
-        tiene_referencias = instance.productos.exists()
-        
-        # Ejecutar la eliminación (soft o hard)
-        self.perform_destroy(instance)
-        
-        # Retornar respuesta apropiada
-        if tiene_referencias:
-            return Response(
-                {'message': 'Subcategoría desactivada (soft delete) porque tiene referencias en productos.'},
-                status=status.HTTP_200_OK
-            )
-        else:
-            return Response(status=status.HTTP_204_NO_CONTENT)
+    def get_reference_checks(self, instance):
+        """Define las relaciones a verificar para soft delete."""
+        return [
+            (instance.productos, 'productos'),
+        ]
 
 
 # ========== Productos ==========
@@ -220,7 +160,7 @@ class ProductoListCreateView(generics.ListCreateAPIView):
         return [IsAuthenticated()]
 
 
-class ProductoDetailView(generics.RetrieveUpdateDestroyAPIView):
+class ProductoDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView):
     """
     Vista para obtener, actualizar y eliminar producto.
     GET/PUT/DELETE /api/productos/{id}/
@@ -246,40 +186,8 @@ class ProductoDetailView(generics.RetrieveUpdateDestroyAPIView):
             return [IsAuthenticated(), IsAdmin()]
         return [IsAuthenticated()]
     
-    def perform_destroy(self, instance):
-        """
-        Eliminación híbrida: soft delete si tiene referencias, hard delete si no.
-        """
-        # Verificar si tiene referencias en pedidos
-        tiene_referencias = instance.pedido_items.exists()
-        
-        if tiene_referencias:
-            # Soft delete: desactivar en lugar de eliminar
-            instance.soft_delete(usuario=self.request.user)
-        else:
-            # Hard delete: eliminar físicamente
-            instance.delete()
-    
-    def destroy(self, request, *args, **kwargs):
-        """
-        Sobrescribe destroy para retornar mensaje apropiado según el tipo de eliminación.
-        """
-        from rest_framework.response import Response
-        from rest_framework import status
-        
-        instance = self.get_object()
-        
-        # Verificar si tiene referencias antes de eliminar
-        tiene_referencias = instance.pedido_items.exists()
-        
-        # Ejecutar la eliminación (soft o hard)
-        self.perform_destroy(instance)
-        
-        # Retornar respuesta apropiada
-        if tiene_referencias:
-            return Response(
-                {'message': 'Producto desactivado (soft delete) porque tiene referencias en pedidos.'},
-                status=status.HTTP_200_OK
-            )
-        else:
-            return Response(status=status.HTTP_204_NO_CONTENT)
+    def get_reference_checks(self, instance):
+        """Define las relaciones a verificar para soft delete."""
+        return [
+            (instance.pedido_items, 'pedido_items'),
+        ]

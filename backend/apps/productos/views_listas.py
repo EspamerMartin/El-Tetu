@@ -1,9 +1,13 @@
 from rest_framework import generics, filters
 from rest_framework.permissions import IsAuthenticated
+import logging
 
 from apps.users.permissions import IsAdmin
+from apps.core.mixins import SoftDeleteMixin
 from .models import ListaPrecio
 from .serializers import ListaPrecioSerializer
+
+logger = logging.getLogger('eltetu')
 
 
 class ListaPrecioListCreateView(generics.ListCreateAPIView):
@@ -33,7 +37,7 @@ class ListaPrecioListCreateView(generics.ListCreateAPIView):
         return [IsAuthenticated()]
 
 
-class ListaPrecioDetailView(generics.RetrieveUpdateDestroyAPIView):
+class ListaPrecioDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView):
     """
     Vista para obtener, actualizar y eliminar lista de precios.
     GET/PUT/DELETE /api/productos/listas-precios/{id}/
@@ -42,40 +46,9 @@ class ListaPrecioDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ListaPrecioSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
     
-    def perform_destroy(self, instance):
-        """
-        Eliminación híbrida: soft delete si tiene referencias, hard delete si no.
-        """
-        # Verificar si tiene referencias en pedidos o usuarios
-        tiene_referencias = instance.pedidos.exists() or instance.clientes.exists()
-        
-        if tiene_referencias:
-            # Soft delete: desactivar en lugar de eliminar
-            instance.soft_delete(usuario=self.request.user)
-        else:
-            # Hard delete: eliminar físicamente
-            instance.delete()
-    
-    def destroy(self, request, *args, **kwargs):
-        """
-        Sobrescribe destroy para retornar mensaje apropiado según el tipo de eliminación.
-        """
-        from rest_framework.response import Response
-        from rest_framework import status
-        
-        instance = self.get_object()
-        
-        # Verificar si tiene referencias antes de eliminar
-        tiene_referencias = instance.pedidos.exists() or instance.clientes.exists()
-        
-        # Ejecutar la eliminación (soft o hard)
-        self.perform_destroy(instance)
-        
-        # Retornar respuesta apropiada
-        if tiene_referencias:
-            return Response(
-                {'message': 'Lista de precios desactivada (soft delete) porque tiene referencias en pedidos o usuarios.'},
-                status=status.HTTP_200_OK
-            )
-        else:
-            return Response(status=status.HTTP_204_NO_CONTENT)
+    def get_reference_checks(self, instance):
+        """Define las relaciones a verificar para soft delete."""
+        return [
+            (instance.pedidos, 'pedidos'),
+            (instance.clientes, 'clientes'),
+        ]

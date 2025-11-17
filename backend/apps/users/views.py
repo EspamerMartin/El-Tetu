@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password, check_password
+import logging
 
 from .models import CustomUser
 from .serializers import (
@@ -15,6 +16,9 @@ from .serializers import (
     ChangePasswordSerializer
 )
 from .permissions import IsAdmin
+from apps.core.mixins import SoftDeleteMixin
+
+logger = logging.getLogger('eltetu')
 
 
 class RegisterView(generics.CreateAPIView):
@@ -210,7 +214,7 @@ class UserListCreateView(generics.ListCreateAPIView):
         return CustomUser.objects.none()
 
 
-class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
+class UserDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView):
     """
     Vista para obtener, actualizar y eliminar usuario.
     GET: Admin y vendedores pueden ver detalles.
@@ -228,40 +232,8 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
                 return [IsAuthenticated()]
         return [IsAuthenticated(), IsAdmin()]
     
-    def perform_destroy(self, instance):
-        """
-        Eliminación híbrida: soft delete si tiene referencias, hard delete si no.
-        """
-        # Verificar si tiene referencias en pedidos
-        tiene_referencias = instance.pedidos.exists()
-        
-        if tiene_referencias:
-            # Soft delete: desactivar en lugar de eliminar
-            instance.soft_delete(usuario=self.request.user)
-        else:
-            # Hard delete: eliminar físicamente
-            instance.delete()
-    
-    def destroy(self, request, *args, **kwargs):
-        """
-        Sobrescribe destroy para retornar mensaje apropiado según el tipo de eliminación.
-        """
-        from rest_framework.response import Response
-        from rest_framework import status
-        
-        instance = self.get_object()
-        
-        # Verificar si tiene referencias antes de eliminar
-        tiene_referencias = instance.pedidos.exists()
-        
-        # Ejecutar la eliminación (soft o hard)
-        self.perform_destroy(instance)
-        
-        # Retornar respuesta apropiada
-        if tiene_referencias:
-            return Response(
-                {'message': 'Usuario desactivado (soft delete) porque tiene referencias en pedidos.'},
-                status=status.HTTP_200_OK
-            )
-        else:
-            return Response(status=status.HTTP_204_NO_CONTENT)
+    def get_reference_checks(self, instance):
+        """Define las relaciones a verificar para soft delete."""
+        return [
+            (instance.pedidos, 'pedidos'),
+        ]

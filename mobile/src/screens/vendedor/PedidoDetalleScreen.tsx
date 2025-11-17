@@ -12,7 +12,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type Props = NativeStackScreenProps<VendedorStackParamList, 'PedidoDetalle'>;
 
-type EstadoPedido = 'PENDIENTE' | 'CONFIRMADO' | 'EN_CAMINO' | 'ENTREGADO' | 'CANCELADO';
+type EstadoPedido = 'PENDIENTE' | 'CONFIRMADO' | 'CANCELADO';
 
 /**
  * PedidoDetalleScreen
@@ -30,8 +30,6 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
     switch (estado) {
       case 'PENDIENTE': return theme.colors.secondary;
       case 'CONFIRMADO': return '#2196F3';
-      case 'EN_CAMINO': return '#FF9800';
-      case 'ENTREGADO': return theme.colors.tertiary;
       case 'CANCELADO': return theme.colors.error;
       default: return theme.colors.outline;
     }
@@ -39,10 +37,8 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
 
   const getEstadoLabel = (estado: EstadoPedido): string => {
     const labels: Record<EstadoPedido, string> = {
-      PENDIENTE: 'En preparación',
+      PENDIENTE: 'Pendiente',
       CONFIRMADO: 'Confirmado',
-      EN_CAMINO: 'Enviado',
-      ENTREGADO: 'Entregado',
       CANCELADO: 'Cancelado',
     };
     return labels[estado] || estado;

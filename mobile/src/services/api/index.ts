@@ -158,12 +158,6 @@ export const pedidosAPI = {
     return response.data;
   },
 
-  downloadPDF: async (id: number): Promise<ArrayBuffer> => {
-    const response = await api.get(`/pedidos/${id}/pdf/`, {
-      responseType: 'arraybuffer',
-    });
-    return response.data;
-  },
 };
 
 // ========== Clientes API (Admin/Vendedor) ==========
