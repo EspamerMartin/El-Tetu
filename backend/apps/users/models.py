@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.contrib.auth.hashers import make_password
+from apps.core.models import SoftDeleteMixin
 
 
 class CustomUserManager(BaseUserManager):
@@ -31,7 +32,7 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 
-class CustomUser(AbstractBaseUser, PermissionsMixin):
+class CustomUser(AbstractBaseUser, PermissionsMixin, SoftDeleteMixin):
     """Modelo de usuario personalizado con email como identificador único."""
     
     ROLES = (

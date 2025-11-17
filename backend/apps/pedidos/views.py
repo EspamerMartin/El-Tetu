@@ -32,7 +32,6 @@ class PedidoListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         queryset = Pedido.objects.select_related('cliente').prefetch_related(
             'items__producto',
-            'promociones_aplicadas'
         )
         
         # Filtrar según rol
@@ -104,7 +103,6 @@ class PedidoDetailView(generics.RetrieveAPIView):
         user = self.request.user
         queryset = Pedido.objects.select_related('cliente').prefetch_related(
             'items__producto',
-            'promociones_aplicadas'
         )
         
         # Cliente solo ve sus pedidos

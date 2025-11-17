@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, Alert, FlatList, Dimensions } from 'react
 import { Text, Button, Searchbar, List, Divider, Card, Chip, Surface, Menu, IconButton, Badge } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { VendedorStackParamList } from '@/navigation/VendedorStack';
+import { AdminStackParamList } from '@/navigation/AdminStack';
 import { useFetch } from '@/hooks';
 import { clientesAPI, productosAPI, pedidosAPI, listasAPI } from '@/services/api';
 import { Cliente, Producto, CreatePedidoData, ListaPrecio } from '@/types';
@@ -13,7 +14,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const screenWidth = Dimensions.get('window').width;
 
-type Props = NativeStackScreenProps<VendedorStackParamList, 'NuevoPedido'>;
+type Props = NativeStackScreenProps<VendedorStackParamList | AdminStackParamList, 'NuevoPedido'>;
 
 interface ItemPedido {
   producto: Producto;
@@ -43,7 +44,6 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   const { data: clientesData, loading: loadingClientes } = useFetch(() => clientesAPI.getAll());
   const { data: productosData, loading: loadingProductos } = useFetch(() => productosAPI.getAll({ activo: true }));
   const { data: listasData, loading: loadingListas } = useFetch(() => listasAPI.getAll());
-
   const clientes = clientesData?.results || [];
   const productos = productosData?.results || [];
   const listas = listasData?.results || [];
@@ -111,15 +111,6 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   const productosConStock = productosFiltrados.filter(p => p.stock > 0);
   const productosSinStock = productosFiltrados.filter(p => p.stock === 0);
 
-  // Agrupar productos con stock por categoría
-  const productosAgrupados = productosConStock.reduce((acc, producto) => {
-    const categoria = producto.categoria_nombre || 'Sin categoría';
-    if (!acc[categoria]) {
-      acc[categoria] = [];
-    }
-    acc[categoria].push(producto);
-    return acc;
-  }, {} as Record<string, Producto[]>);
 
   const handleSelectCliente = (cliente: Cliente) => {
     setClienteSeleccionado(cliente);
@@ -184,6 +175,8 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
     return precio - descuento;
   };
 
+
+  // Calcular total
   const calcularTotal = () => {
     return items.reduce((acc, item) => {
       const precioBase = parseFloat(item.producto.precio);
@@ -294,95 +287,100 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
           </Surface>
 
           {/* Lista de productos en grid */}
-          <FlatList
-            data={productosConStock}
-            renderItem={({ item: producto }) => {
-              const itemEnCarrito = items.find(i => i.producto.id === producto.id);
-              const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
-              const puedeAgregar = producto.stock > cantidadEnCarrito;
-              
-              return (
-                <View style={styles.productWrapper}>
-                  <View style={styles.productCardContainer}>
-                    <ProductCard 
-                      producto={producto} 
-                      onPress={() => {}}
-                      showAddButton={false}
-                    />
-                    {cantidadEnCarrito > 0 && (
-                      <View style={styles.cantidadOverlay}>
-                        <View style={styles.cantidadControlsOverlay}>
-                          <IconButton
-                            icon="minus"
-                            size={18}
-                            iconColor={theme.colors.error}
-                            onPress={() => handleUpdateCantidad(producto.id, cantidadEnCarrito - 1)}
-                            style={styles.cantidadButtonOverlay}
-                          />
-                          <Surface style={styles.cantidadDisplayOverlay}>
-                            <Text variant="titleSmall" style={styles.cantidadTextOverlay}>
-                              {cantidadEnCarrito}
-                            </Text>
-                          </Surface>
-                          <IconButton
-                            icon="plus"
-                            size={18}
-                            iconColor={theme.colors.primary}
-                            onPress={() => handleAddProducto(producto)}
-                            disabled={!puedeAgregar}
-                            style={styles.cantidadButtonOverlay}
-                          />
-                        </View>
-                      </View>
-                    )}
-                    {cantidadEnCarrito === 0 && producto.stock > 0 && (
-                      <View style={styles.addButtonOverlay}>
-                        <Button
-                          mode="contained"
-                          icon="plus"
-                          compact
-                          onPress={() => handleAddProducto(producto)}
-                          style={styles.addButtonOverlayStyle}
-                        >
-                          Agregar
-                        </Button>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              );
-            }}
-            keyExtractor={(item) => item.id.toString()}
-            numColumns={2}
+          <ScrollView 
+            style={styles.productosScrollView}
             contentContainerStyle={styles.productsList}
-            ListFooterComponent={
-              productosSinStock.length > 0 ? (
-                <View>
-                  <Text variant="titleMedium" style={styles.sinStockSectionTitle}>
-                    Productos Sin Stock
-                  </Text>
-                  <View style={styles.sinStockGrid}>
-                    {productosSinStock.map((producto) => (
-                      <View key={producto.id} style={styles.productWrapper}>
-                        <View style={[styles.productCardContainer, styles.productoSinStockContainer]}>
-                          <ProductCard 
-                            producto={producto} 
-                            onPress={() => {}}
-                            showAddButton={false}
-                          />
-                          <View style={styles.disabledOverlay}>
-                            <Text variant="bodySmall" style={styles.disabledText} numberOfLines={1}>
-                              Sin stock
-                            </Text>
+          >
+            {/* Productos */}
+            {productosConStock.length > 0 && (
+              <View style={styles.productsGrid}>
+                {productosConStock.map((producto) => {
+                  const itemEnCarrito = items.find(i => i.producto.id === producto.id);
+                  const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
+                  const puedeAgregar = producto.stock > cantidadEnCarrito;
+                  
+                  return (
+                    <View key={producto.id} style={styles.productWrapper}>
+                      <View style={styles.productCardContainer}>
+                        <ProductCard 
+                          producto={producto} 
+                          onPress={() => {}}
+                          showAddButton={false}
+                        />
+                        {cantidadEnCarrito > 0 && (
+                          <View style={styles.cantidadOverlay}>
+                            <View style={styles.cantidadControlsOverlay}>
+                              <IconButton
+                                icon="minus"
+                                size={18}
+                                iconColor={theme.colors.error}
+                                onPress={() => handleUpdateCantidad(producto.id, cantidadEnCarrito - 1)}
+                                style={styles.cantidadButtonOverlay}
+                              />
+                              <Surface style={styles.cantidadDisplayOverlay}>
+                                <Text variant="titleSmall" style={styles.cantidadTextOverlay}>
+                                  {cantidadEnCarrito}
+                                </Text>
+                              </Surface>
+                              <IconButton
+                                icon="plus"
+                                size={18}
+                                iconColor={theme.colors.primary}
+                                onPress={() => handleAddProducto(producto)}
+                                disabled={!puedeAgregar}
+                                style={styles.cantidadButtonOverlay}
+                              />
+                            </View>
                           </View>
+                        )}
+                        {cantidadEnCarrito === 0 && producto.stock > 0 && (
+                          <View style={styles.addButtonOverlay}>
+                            <Button
+                              mode="contained"
+                              icon="plus"
+                              compact
+                              onPress={() => handleAddProducto(producto)}
+                              style={styles.addButtonOverlayStyle}
+                            >
+                              Agregar
+                            </Button>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+
+            {/* Productos sin Stock */}
+            {productosSinStock.length > 0 && (
+              <>
+                <Text variant="titleMedium" style={styles.sinStockSectionTitle}>
+                  Productos Sin Stock
+                </Text>
+                <View style={styles.productsGrid}>
+                  {productosSinStock.map((producto) => (
+                    <View key={producto.id} style={styles.productWrapper}>
+                      <View style={[styles.productCardContainer, styles.productoSinStockContainer]}>
+                        <ProductCard 
+                          producto={producto} 
+                          onPress={() => {}}
+                          showAddButton={false}
+                        />
+                        <View style={styles.disabledOverlay}>
+                          <Text variant="bodySmall" style={styles.disabledText} numberOfLines={1}>
+                            Sin stock
+                          </Text>
                         </View>
                       </View>
-                    ))}
-                  </View>
+                    </View>
+                  ))}
                 </View>
-              ) : null
-            }
-          />
+              </>
+            )}
+          </ScrollView>
 
           <Surface style={styles.carrito} elevation={8}>
             <View style={styles.carritoInfo}>
@@ -515,8 +513,14 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
             })}
           </Surface>
 
+          {/* Resumen de Totales */}
           <Surface style={styles.totalSection} elevation={1}>
-            <Text variant="headlineSmall">Total: {formatPrice(calcularTotal())}</Text>
+            <View style={styles.totalRow}>
+              <Text variant="headlineSmall" style={styles.totalLabel}>Total:</Text>
+              <Text variant="headlineSmall" style={styles.totalValue}>
+                {formatPrice(calcularTotal())}
+              </Text>
+            </View>
           </Surface>
 
           <View style={styles.actions}>
@@ -615,6 +619,12 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     paddingBottom: spacing.xl,
   },
+  productsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    paddingHorizontal: spacing.xs,
+  },
   productWrapper: {
     flex: 1,
     margin: spacing.xs,
@@ -624,6 +634,30 @@ const styles = StyleSheet.create({
   },
   productCardContainer: {
     position: 'relative',
+  },
+  promoBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.secondary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs / 2,
+    borderRadius: 12,
+    zIndex: 10,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    gap: spacing.xs / 2,
+  },
+  promoBadgeText: {
+    color: 'white',
+    fontWeight: '700',
+    fontSize: 10,
+    letterSpacing: 0.5,
   },
   cantidadOverlay: {
     position: 'absolute',
@@ -888,11 +922,48 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: spacing.xs,
   },
-  itemDetails: {
+  itemHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  itemDetails: {
+    flexDirection: 'column',
+    gap: spacing.xs / 2,
     marginTop: spacing.xs,
+  },
+  promoBadgeInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.secondaryContainer,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs / 2,
+    borderRadius: 8,
+    gap: spacing.xs / 2,
+  },
+  promoBadgeTextInline: {
+    color: theme.colors.secondary,
+    fontWeight: '600',
+    fontSize: 10,
+  },
+  promoDescuentoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs / 2,
+  },
+  promoDescuentoLabel: {
+    color: theme.colors.onSurfaceVariant,
+  },
+  promoDescuentoValue: {
+    color: theme.colors.secondary,
+    fontWeight: '600',
+  },
+  itemTotalConDescuento: {
+    color: theme.colors.primary,
+    fontWeight: '600',
+    marginTop: spacing.xs / 2,
   },
   itemPrecioUnitario: {
     color: theme.colors.onSurfaceVariant,
@@ -962,8 +1033,36 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.md,
     borderRadius: 8,
-    alignItems: 'center',
     backgroundColor: theme.colors.primaryContainer,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  descuentoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  descuentoLabel: {
+    color: theme.colors.secondary,
+  },
+  descuentoValue: {
+    color: theme.colors.secondary,
+    fontWeight: '700',
+  },
+  totalDivider: {
+    marginVertical: spacing.sm,
+  },
+  totalLabel: {
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  totalValue: {
+    fontWeight: '700',
+    color: theme.colors.primary,
   },
   actions: {
     flexDirection: 'row',

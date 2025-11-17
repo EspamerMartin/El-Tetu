@@ -12,7 +12,7 @@ class InformacionGeneralListView(generics.ListAPIView):
     
     Pública - no requiere autenticación.
     """
-    queryset = InformacionGeneral.objects.filter(activo=True)
+    queryset = InformacionGeneral.objects.filter(activo=True, fecha_eliminacion__isnull=True)
     serializer_class = InformacionGeneralSerializer
     permission_classes = [AllowAny]
 
@@ -24,7 +24,7 @@ class InformacionGeneralDetailView(generics.RetrieveAPIView):
     
     Pública - no requiere autenticación.
     """
-    queryset = InformacionGeneral.objects.filter(activo=True)
+    queryset = InformacionGeneral.objects.filter(activo=True, fecha_eliminacion__isnull=True)
     serializer_class = InformacionGeneralSerializer
     permission_classes = [AllowAny]
     lookup_field = 'tipo'
@@ -48,3 +48,26 @@ class InformacionGeneralAdminDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = InformacionGeneral.objects.all()
     serializer_class = InformacionGeneralSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def perform_destroy(self, instance):
+        """
+        Siempre soft delete para información general (para mantener historial).
+        """
+        instance.soft_delete(usuario=self.request.user)
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Sobrescribe destroy para retornar mensaje apropiado.
+        """
+        from rest_framework.response import Response
+        from rest_framework import status
+        
+        instance = self.get_object()
+        
+        # Ejecutar soft delete
+        self.perform_destroy(instance)
+        
+        return Response(
+            {'message': 'Información general desactivada (soft delete).'},
+            status=status.HTTP_200_OK
+        )

@@ -56,7 +56,6 @@ backend/
 │   ├── users/          # Autenticación y usuarios
 │   ├── productos/      # Catálogo de productos
 │   ├── pedidos/        # Gestión de pedidos
-│   ├── promociones/    # Sistema de promociones
 │   └── informacion/    # Información general
 ├── manage.py
 ├── requirements.txt
@@ -85,8 +84,6 @@ backend/
 - `PUT /api/pedidos/{id}/` - Actualizar estado de pedido
 - `GET /api/pedidos/{id}/pdf/` - Exportar comprobante PDF
 
-### Promociones
-- `GET /api/promociones/` - Listar promociones activas
 
 ### Información
 - `GET /api/info/general/` - Obtener información general

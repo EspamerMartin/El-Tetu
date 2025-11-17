@@ -24,10 +24,11 @@ class CategoriaListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """Admin ve todas, otros solo activas."""
-        if self.request.user.is_admin():
-            return Categoria.objects.all()
-        return Categoria.objects.filter(activo=True)
+        """Admin ve todas (incluyendo eliminadas), otros solo activas y no eliminadas."""
+        queryset = Categoria.objects.all()
+        if not self.request.user.is_admin():
+            queryset = queryset.filter(activo=True, fecha_eliminacion__isnull=True)
+        return queryset
     
     def get_permissions(self):
         """Solo admin puede crear categorías."""
@@ -44,6 +45,45 @@ class CategoriaDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def perform_destroy(self, instance):
+        """
+        Eliminación híbrida: soft delete si tiene referencias, hard delete si no.
+        Sobrescribe perform_destroy para interceptar antes de que Django intente hard delete.
+        """
+        # Verificar si tiene referencias en productos o subcategorías
+        tiene_referencias = instance.productos.exists() or instance.subcategorias.exists()
+        
+        if tiene_referencias:
+            # Soft delete: desactivar en lugar de eliminar
+            instance.soft_delete(usuario=self.request.user)
+        else:
+            # Hard delete: eliminar físicamente
+            instance.delete()
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Sobrescribe destroy para retornar mensaje apropiado según el tipo de eliminación.
+        """
+        from rest_framework.response import Response
+        from rest_framework import status
+        
+        instance = self.get_object()
+        
+        # Verificar si tiene referencias antes de eliminar
+        tiene_referencias = instance.productos.exists() or instance.subcategorias.exists()
+        
+        # Ejecutar la eliminación (soft o hard)
+        self.perform_destroy(instance)
+        
+        # Retornar respuesta apropiada
+        if tiene_referencias:
+            return Response(
+                {'message': 'Categoría desactivada (soft delete) porque tiene referencias en productos o subcategorías.'},
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # ========== Subcategorías ==========
@@ -59,11 +99,11 @@ class SubcategoriaListCreateView(generics.ListCreateAPIView):
     filterset_fields = ['categoria']
     
     def get_queryset(self):
-        """Admin ve todas, otros solo activas."""
+        """Admin ve todas (incluyendo eliminadas), otros solo activas y no eliminadas."""
         queryset = Subcategoria.objects.select_related('categoria')
-        if self.request.user.is_admin():
-            return queryset
-        return queryset.filter(activo=True)
+        if not self.request.user.is_admin():
+            queryset = queryset.filter(activo=True, fecha_eliminacion__isnull=True)
+        return queryset
     
     def get_permissions(self):
         """Solo admin puede crear subcategorías."""
@@ -80,6 +120,44 @@ class SubcategoriaDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Subcategoria.objects.all()
     serializer_class = SubcategoriaSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def perform_destroy(self, instance):
+        """
+        Eliminación híbrida: soft delete si tiene referencias, hard delete si no.
+        """
+        # Verificar si tiene referencias en productos
+        tiene_referencias = instance.productos.exists()
+        
+        if tiene_referencias:
+            # Soft delete: desactivar en lugar de eliminar
+            instance.soft_delete(usuario=self.request.user)
+        else:
+            # Hard delete: eliminar físicamente
+            instance.delete()
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Sobrescribe destroy para retornar mensaje apropiado según el tipo de eliminación.
+        """
+        from rest_framework.response import Response
+        from rest_framework import status
+        
+        instance = self.get_object()
+        
+        # Verificar si tiene referencias antes de eliminar
+        tiene_referencias = instance.productos.exists()
+        
+        # Ejecutar la eliminación (soft o hard)
+        self.perform_destroy(instance)
+        
+        # Retornar respuesta apropiada
+        if tiene_referencias:
+            return Response(
+                {'message': 'Subcategoría desactivada (soft delete) porque tiene referencias en productos.'},
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # ========== Productos ==========
@@ -109,13 +187,19 @@ class ProductoListCreateView(generics.ListCreateAPIView):
             return ProductoCreateUpdateSerializer
         return ProductoListSerializer
     
+    def get_serializer_context(self):
+        """Pasa el request al serializer para calcular precios."""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
     def get_queryset(self):
         """Filtra productos según parámetros."""
         queryset = super().get_queryset()
         
-        # Filtrar solo activos (a menos que sea admin)
+        # Filtrar solo activos y no eliminados (a menos que sea admin)
         if not self.request.user.is_admin():
-            queryset = queryset.filter(activo=True)
+            queryset = queryset.filter(activo=True, fecha_eliminacion__isnull=True)
         
         # Filtro por stock mínimo
         stock_min = self.request.query_params.get('stock_min', None)
@@ -150,8 +234,52 @@ class ProductoDetailView(generics.RetrieveUpdateDestroyAPIView):
             return ProductoCreateUpdateSerializer
         return ProductoDetailSerializer
     
+    def get_serializer_context(self):
+        """Pasa el request al serializer para calcular precios."""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
     def get_permissions(self):
         """Solo admin puede actualizar/eliminar productos."""
         if self.request.method in ['PUT', 'PATCH', 'DELETE']:
             return [IsAuthenticated(), IsAdmin()]
         return [IsAuthenticated()]
+    
+    def perform_destroy(self, instance):
+        """
+        Eliminación híbrida: soft delete si tiene referencias, hard delete si no.
+        """
+        # Verificar si tiene referencias en pedidos
+        tiene_referencias = instance.pedido_items.exists()
+        
+        if tiene_referencias:
+            # Soft delete: desactivar en lugar de eliminar
+            instance.soft_delete(usuario=self.request.user)
+        else:
+            # Hard delete: eliminar físicamente
+            instance.delete()
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Sobrescribe destroy para retornar mensaje apropiado según el tipo de eliminación.
+        """
+        from rest_framework.response import Response
+        from rest_framework import status
+        
+        instance = self.get_object()
+        
+        # Verificar si tiene referencias antes de eliminar
+        tiene_referencias = instance.pedido_items.exists()
+        
+        # Ejecutar la eliminación (soft o hard)
+        self.perform_destroy(instance)
+        
+        # Retornar respuesta apropiada
+        if tiene_referencias:
+            return Response(
+                {'message': 'Producto desactivado (soft delete) porque tiene referencias en pedidos.'},
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(status=status.HTTP_204_NO_CONTENT)

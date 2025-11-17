@@ -105,30 +105,14 @@ export interface ListaPrecio {
 
 export interface PedidoItem {
   id: number;
-  producto: number;
-  producto_detalle: Producto;
+  producto?: number;
+  producto_detalle?: Producto;
+  producto_nombre?: string;
+  producto_codigo?: string;
   cantidad: number;
   precio_unitario: string;
   subtotal: string;
   descuento: string;
-  fecha_creacion: string;
-}
-
-export interface Promocion {
-  id: number;
-  nombre: string;
-  descripcion: string;
-  tipo: 'caja_cerrada' | 'combinable' | 'descuento_porcentaje' | 'descuento_fijo';
-  productos: number[];
-  productos_nombres: string[];
-  cantidad_minima: number;
-  cantidad_exacta?: number;
-  descuento_porcentaje?: string;
-  descuento_fijo?: string;
-  fecha_inicio: string;
-  fecha_fin: string;
-  activo: boolean;
-  es_vigente: boolean;
   fecha_creacion: string;
 }
 
@@ -137,13 +121,13 @@ export interface Pedido {
   cliente: number;
   cliente_nombre: string;
   estado: PedidoEstado;
-  lista_precio: number;
-  lista_precio_nombre: string;
+  lista_precio?: number;
+  lista_precio_nombre?: string;
+  lista_precio_descuento?: string;
   subtotal: string;
   descuento_total: string;
   total: string;
   items: PedidoItem[];
-  promociones_aplicadas_detalle: Promocion[];
   notas?: string;
   fecha_creacion: string;
   fecha_actualizacion: string;

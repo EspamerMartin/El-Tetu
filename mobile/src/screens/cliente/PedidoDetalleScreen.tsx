@@ -183,23 +183,6 @@ const PedidoDetalleScreen = ({ route }: Props) => {
           </DataTable>
         </View>
 
-        {/* Promociones Aplicadas */}
-        {pedido.promociones_aplicadas_detalle.length > 0 && (
-          <View style={styles.section}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              Promociones Aplicadas
-            </Text>
-            {pedido.promociones_aplicadas_detalle.map((promo) => (
-              <Chip
-                key={promo.id}
-                icon="gift"
-                style={styles.promoChip}
-              >
-                {promo.nombre}
-              </Chip>
-            ))}
-          </View>
-        )}
 
         <Divider style={styles.divider} />
 
@@ -331,7 +314,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: spacing.sm,
   },
-  promoChip: {
+  // Estilo promoChip eliminado (no se usa)
+  _removed_promoChip: {
     marginRight: spacing.sm,
     marginBottom: spacing.xs,
     backgroundColor: theme.colors.tertiary + '20',

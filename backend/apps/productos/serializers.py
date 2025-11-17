@@ -111,9 +111,19 @@ class ProductoCreateUpdateSerializer(serializers.ModelSerializer):
     
     def validate_codigo(self, value):
         """Valida que el código sea único (excepto para actualizaciones)."""
+        if not value or not value.strip():
+            raise serializers.ValidationError("El código es obligatorio.")
         instance = self.instance
         if Producto.objects.filter(codigo=value).exclude(pk=instance.pk if instance else None).exists():
             raise serializers.ValidationError("Ya existe un producto con este código.")
+        return value.strip()
+    
+    def validate_precio_base(self, value):
+        """Valida que el precio base sea positivo."""
+        if value is None:
+            raise serializers.ValidationError("El precio base es obligatorio.")
+        if value < 0:
+            raise serializers.ValidationError("El precio base no puede ser negativo.")
         return value
     
     def validate(self, data):
@@ -122,13 +132,14 @@ class ProductoCreateUpdateSerializer(serializers.ModelSerializer):
         categoria = data.get('categoria', self.instance.categoria if self.instance else None)
         subcategoria = data.get('subcategoria', None)
         
+        # Validar que haya categoría
+        if not categoria:
+            raise serializers.ValidationError({
+                'categoria': 'La categoría es obligatoria.'
+            })
+        
         # Si se proporciona subcategoría, validar que pertenezca a la categoría
         if subcategoria:
-            if not categoria:
-                raise serializers.ValidationError({
-                    'categoria': 'Debe especificar una categoría cuando se selecciona una subcategoría.'
-                })
-            
             if subcategoria.categoria != categoria:
                 raise serializers.ValidationError({
                     'subcategoria': 'La subcategoría debe pertenecer a la categoría seleccionada.'

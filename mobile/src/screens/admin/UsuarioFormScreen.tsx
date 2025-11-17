@@ -72,7 +72,17 @@ const UsuarioFormScreen = ({ route, navigation }: any) => {
           rol 
         });
       } else {
-        await authAPI.register({ nombre, apellido, email, password, password_confirm: password, rol, telefono, direccion });
+        // Usar clientesAPI.create para permitir crear usuarios con cualquier rol (admin/vendedor/cliente)
+        await clientesAPI.create({ 
+          nombre: nombre.trim(), 
+          apellido: apellido.trim(), 
+          email: email.trim(), 
+          password, 
+          rol, 
+          telefono: telefono.trim(), 
+          direccion: direccion.trim(),
+          is_active: isActive
+        });
       }
       Alert.alert('Éxito', `Usuario ${isEdit ? 'actualizado' : 'creado'} correctamente`);
       navigation.goBack();

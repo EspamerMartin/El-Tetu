@@ -12,12 +12,12 @@ import ProductoFormScreen from '@/screens/admin/ProductoFormScreen';
 import CategoriasListScreen from '@/screens/admin/CategoriasListScreen';
 import PedidosAdminListScreen from '@/screens/admin/PedidosAdminListScreen';
 import PedidoAdminDetalleScreen from '@/screens/admin/PedidoAdminDetalleScreen';
-import PromocionesListScreen from '@/screens/admin/PromocionesListScreen';
-import PromocionFormScreen from '@/screens/admin/PromocionFormScreen';
 import ListasPreciosScreen from '@/screens/admin/ListasPreciosScreen';
 import ListaPrecioFormScreen from '@/screens/admin/ListaPrecioFormScreen';
 import AsignarListasClientesScreen from '@/screens/admin/AsignarListasClientesScreen';
 import PerfilAdminScreen from '@/screens/admin/PerfilAdminScreen';
+import NuevoPedidoScreen from '@/screens/vendedor/NuevoPedidoScreen';
+import ProductosBajoStockScreen from '@/screens/vendedor/ProductosBajoStockScreen';
 
 export type AdminDrawerParamList = {
   AdminHome: undefined;
@@ -26,7 +26,6 @@ export type AdminDrawerParamList = {
   Categorias: undefined;
   ListasPrecios: undefined;
   Pedidos: undefined;
-  Promociones: undefined;
   Perfil: undefined;
 };
 
@@ -37,7 +36,8 @@ export type AdminStackParamList = {
   ListaPrecioForm: { listaId?: number };
   AsignarListasClientes: undefined;
   PedidoAdminDetalle: { pedidoId: number };
-  PromocionForm: { promocionId?: number };
+  NuevoPedido: { clienteId?: number };
+  ProductosBajoStock: undefined;
 };
 
 const Drawer = createDrawerNavigator<AdminDrawerParamList>();
@@ -52,7 +52,6 @@ const Stack = createNativeStackNavigator<AdminStackParamList>();
  * - Productos: CRUD de productos
  * - Categorías: CRUD de categorías
  * - Pedidos: Gestión de pedidos
- * - Promociones: CRUD de promociones
  */
 const AdminDrawer = () => {
   return (
@@ -124,16 +123,6 @@ const AdminDrawer = () => {
         }}
       />
       <Drawer.Screen
-        name="Promociones"
-        component={PromocionesListScreen}
-        options={{
-          title: 'Promociones',
-          drawerIcon: ({ color, size }) => (
-            <Icon name="sale" color={color} size={size} />
-          ),
-        }}
-      />
-      <Drawer.Screen
         name="Perfil"
         component={PerfilAdminScreen}
         options={{
@@ -195,11 +184,14 @@ const AdminStack = () => {
         options={{ title: 'Detalle Pedido' }}
       />
       <Stack.Screen
-        name="PromocionForm"
-        component={PromocionFormScreen}
-        options={({ route }) => ({
-          title: route.params?.promocionId ? 'Editar Promoción' : 'Nueva Promoción',
-        })}
+        name="NuevoPedido"
+        component={NuevoPedidoScreen}
+        options={{ title: 'Nuevo Pedido' }}
+      />
+      <Stack.Screen
+        name="ProductosBajoStock"
+        component={ProductosBajoStockScreen}
+        options={{ title: 'Productos con Bajo Stock' }}
       />
     </Stack.Navigator>
   );

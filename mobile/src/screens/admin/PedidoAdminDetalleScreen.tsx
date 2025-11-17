@@ -253,22 +253,6 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
           </View>
         </View>
 
-        {/* Promociones aplicadas */}
-        {pedido.promociones_aplicadas_detalle && pedido.promociones_aplicadas_detalle.length > 0 && (
-          <>
-            <Divider style={styles.divider} />
-            <View style={styles.section}>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                Promociones Aplicadas
-              </Text>
-              {pedido.promociones_aplicadas_detalle.map((promo) => (
-                <Chip key={promo.id} style={styles.promoChip} icon="tag">
-                  {promo.nombre}
-                </Chip>
-              ))}
-            </View>
-          </>
-        )}
 
         <Divider style={styles.divider} />
 
@@ -407,7 +391,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: theme.colors.primary,
   },
-  promoChip: {
+  // Estilo promoChip eliminado (no se usa)
+  _removed_promoChip: {
     marginTop: spacing.sm,
     alignSelf: 'flex-start',
   },

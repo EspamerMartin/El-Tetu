@@ -180,8 +180,13 @@ class UserListCreateView(generics.ListCreateAPIView):
     POST: Solo admin puede crear usuarios.
     """
     queryset = CustomUser.objects.all()
-    serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        """Usa UserCreateSerializer para POST, UserSerializer para GET."""
+        if self.request.method == 'POST':
+            return UserCreateSerializer
+        return UserSerializer
     
     def get_permissions(self):
         """Vendedores pueden listar, solo admin puede crear."""
@@ -193,14 +198,14 @@ class UserListCreateView(generics.ListCreateAPIView):
         return [IsAuthenticated(), IsAdmin()]
     
     def get_queryset(self):
-        """Admin ve todos, vendedores solo clientes."""
+        """Admin ve todos (incluyendo eliminados), vendedores solo clientes activos."""
         user = self.request.user
         
         if user.is_admin():
             return CustomUser.objects.all()
         
         if user.is_vendedor():
-            return CustomUser.objects.filter(rol='cliente')
+            return CustomUser.objects.filter(rol='cliente', is_active=True, fecha_eliminacion__isnull=True)
         
         return CustomUser.objects.none()
 
@@ -222,3 +227,41 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
             if user.is_vendedor() or user.is_admin():
                 return [IsAuthenticated()]
         return [IsAuthenticated(), IsAdmin()]
+    
+    def perform_destroy(self, instance):
+        """
+        Eliminación híbrida: soft delete si tiene referencias, hard delete si no.
+        """
+        # Verificar si tiene referencias en pedidos
+        tiene_referencias = instance.pedidos.exists()
+        
+        if tiene_referencias:
+            # Soft delete: desactivar en lugar de eliminar
+            instance.soft_delete(usuario=self.request.user)
+        else:
+            # Hard delete: eliminar físicamente
+            instance.delete()
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Sobrescribe destroy para retornar mensaje apropiado según el tipo de eliminación.
+        """
+        from rest_framework.response import Response
+        from rest_framework import status
+        
+        instance = self.get_object()
+        
+        # Verificar si tiene referencias antes de eliminar
+        tiene_referencias = instance.pedidos.exists()
+        
+        # Ejecutar la eliminación (soft o hard)
+        self.perform_destroy(instance)
+        
+        # Retornar respuesta apropiada
+        if tiene_referencias:
+            return Response(
+                {'message': 'Usuario desactivado (soft delete) porque tiene referencias en pedidos.'},
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(status=status.HTTP_204_NO_CONTENT)
