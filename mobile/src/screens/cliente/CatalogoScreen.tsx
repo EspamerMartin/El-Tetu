@@ -7,8 +7,8 @@ import { ClienteStackParamList } from '@/navigation/ClienteStack';
 import { productosAPI } from '@/services/api';
 import { Producto, Categoria, Subcategoria } from '@/types';
 import { ProductCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
-import { useAppDispatch } from '@/store';
-import { addToCart } from '@/store/slices/cartSlice';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { addToCart, updateQuantity } from '@/store/slices/cartSlice';
 import { theme, spacing } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -37,6 +37,7 @@ interface FilterState {
 const CatalogoScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useAppDispatch();
+  const cartItems = useAppSelector(state => state.cart.items);
   
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -114,6 +115,29 @@ const CatalogoScreen = () => {
     navigation.navigate('ProductoDetalle', { productoId: producto.id });
   };
 
+  const handleAddProducto = (producto: Producto) => {
+    const itemEnCarrito = cartItems.find(i => i.producto.id === producto.id);
+    const cantidadActual = itemEnCarrito?.cantidad || 0;
+    
+    if (cantidadActual >= producto.stock) {
+      return;
+    }
+
+    if (itemEnCarrito) {
+      dispatch(updateQuantity({ productoId: producto.id, cantidad: cantidadActual + 1 }));
+    } else {
+      dispatch(addToCart({ producto, cantidad: 1 }));
+    }
+  };
+
+  const handleUpdateCantidad = (productoId: number, nuevaCantidad: number) => {
+    if (nuevaCantidad <= 0) {
+      dispatch(updateQuantity({ productoId, cantidad: 0 }));
+    } else {
+      dispatch(updateQuantity({ productoId, cantidad: nuevaCantidad }));
+    }
+  };
+
   const updateFilter = (key: keyof FilterState, value: any) => {
     setFilters(prev => {
       const newFilters = { ...prev, [key]: value };
@@ -147,11 +171,64 @@ const CatalogoScreen = () => {
     return subcategorias.filter(s => s.categoria === filters.categoria && s.activo);
   };
 
-  const renderProducto = ({ item }: { item: Producto }) => (
-    <View style={styles.productWrapper}>
-      <ProductCard producto={item} onPress={() => handleProductPress(item)} />
-    </View>
-  );
+  const renderProducto = ({ item }: { item: Producto }) => {
+    const itemEnCarrito = cartItems.find(i => i.producto.id === item.id);
+    const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
+    const puedeAgregar = item.stock > cantidadEnCarrito;
+    
+    return (
+      <View style={styles.productWrapper}>
+        <View style={styles.productCardContainer}>
+          <ProductCard 
+            producto={item} 
+            onPress={() => handleProductPress(item)}
+            showAddButton={false}
+          />
+          {cantidadEnCarrito > 0 && (
+            <View style={styles.cantidadOverlay}>
+              <View style={styles.cantidadControlsOverlay}>
+                <IconButton
+                  icon="minus"
+                  size={18}
+                  iconColor={theme.colors.error}
+                  onPress={() => handleUpdateCantidad(item.id, cantidadEnCarrito - 1)}
+                  style={styles.cantidadButtonOverlay}
+                />
+                <Surface style={styles.cantidadDisplayOverlay}>
+                  <Text variant="titleSmall" style={styles.cantidadTextOverlay}>
+                    {cantidadEnCarrito}
+                  </Text>
+                </Surface>
+                <IconButton
+                  icon="plus"
+                  size={18}
+                  iconColor={theme.colors.primary}
+                  onPress={() => handleAddProducto(item)}
+                  disabled={!puedeAgregar}
+                  style={styles.cantidadButtonOverlay}
+                />
+              </View>
+            </View>
+          )}
+          {cantidadEnCarrito === 0 && item.tiene_stock && (
+            <View style={styles.addButtonOverlay}>
+              <Button
+                mode="contained"
+                icon="cart-plus"
+                compact
+                onPress={() => handleAddProducto(item)}
+                style={styles.addButtonOverlayStyle}
+                contentStyle={styles.addButtonContent}
+                labelStyle={styles.addButtonLabel}
+              >
+                Agregar
+              </Button>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
 
 
   const activeFiltersCount = getActiveFiltersCount();
@@ -458,6 +535,73 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: spacing.md,
+  },
+  productCardContainer: {
+    position: 'relative',
+    width: '100%',
+  },
+  cantidadOverlay: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    right: 8,
+    zIndex: 10,
+  },
+  cantidadControlsOverlay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  cantidadButtonOverlay: {
+    margin: 0,
+    width: 32,
+    height: 32,
+  },
+  cantidadDisplayOverlay: {
+    minWidth: 40,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginHorizontal: 8,
+    borderRadius: 16,
+    backgroundColor: theme.colors.primaryContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cantidadTextOverlay: {
+    color: theme.colors.onPrimaryContainer,
+    fontWeight: '700',
+  },
+  addButtonOverlay: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    right: 8,
+    zIndex: 10,
+  },
+  addButtonOverlayStyle: {
+    borderRadius: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  addButtonContent: {
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+  },
+  addButtonLabel: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 
