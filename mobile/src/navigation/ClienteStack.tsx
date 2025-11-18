@@ -19,7 +19,7 @@ export type ClienteTabParamList = {
 };
 
 export type ClienteStackParamList = {
-  ClienteTabs: undefined;
+  ClienteTabs: { screen?: keyof ClienteTabParamList };
   ProductoDetalle: { productoId: number };
   PedidoDetalle: { pedidoId: number };
 };

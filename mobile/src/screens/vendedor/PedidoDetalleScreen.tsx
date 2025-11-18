@@ -5,6 +5,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { useFetch } from '@/hooks';
 import { pedidosAPI } from '@/services/api';
+import { PedidoItem } from '@/types';
 import { LoadingOverlay } from '@/components';
 import { theme, spacing } from '@/theme';
 import { formatPrice, formatDate } from '@/utils';
@@ -101,7 +102,7 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
             <DataTable.Title numeric>Subtotal</DataTable.Title>
           </DataTable.Header>
 
-          {pedido.items.map((item: any) => {
+          {pedido.items.map((item: PedidoItem) => {
             const productoNombre = item.producto_nombre || item.producto_detalle?.nombre || 'Producto eliminado';
             return (
               <DataTable.Row key={item.id}>

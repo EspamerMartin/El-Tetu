@@ -170,10 +170,17 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   // Calcular precio con descuento de la lista seleccionada
   const calcularPrecioConDescuento = (precioBase: number | string): number => {
     const precio = typeof precioBase === 'string' ? parseFloat(precioBase) : precioBase;
-    if (!listaSeleccionada || listaSeleccionada.descuento_porcentaje === 0) {
+    if (isNaN(precio)) {
+      return 0;
+    }
+    if (!listaSeleccionada) {
       return precio;
     }
-    const descuento = precio * (listaSeleccionada.descuento_porcentaje / 100);
+    const descuentoPorcentaje = parseFloat(listaSeleccionada.descuento_porcentaje);
+    if (isNaN(descuentoPorcentaje) || descuentoPorcentaje === 0) {
+      return precio;
+    }
+    const descuento = precio * (descuentoPorcentaje / 100);
     return precio - descuento;
   };
 
@@ -384,7 +391,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
             )}
           </ScrollView>
 
-          <Surface style={styles.carrito} elevation={8}>
+          <Surface style={styles.carrito} elevation={5}>
             <View style={styles.carritoInfo}>
               <View style={styles.carritoInfoRow}>
                 <Icon name="cart" size={24} color={theme.colors.primary} />
@@ -415,7 +422,6 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
       {/* PASO 3: Confirmar */}
       {paso === 3 && (
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text variant="titleLarge" style={styles.title}>Resumen del Pedido</Text>
 
           <Surface style={styles.resumenSection} elevation={1}>
             <Text variant="titleMedium">Cliente</Text>
@@ -1073,6 +1079,12 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.xl * 2, // Mucho espacio para evitar tocar botones del sistema
     paddingHorizontal: spacing.md,
+  },
+  scrollContent: {
+    padding: spacing.md,
+  },
+  productosScrollView: {
+    flex: 1,
   },
 });
 

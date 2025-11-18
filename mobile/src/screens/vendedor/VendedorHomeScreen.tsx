@@ -69,7 +69,10 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
 
   const stats: DashboardStats = {
     totalPedidos: pedidos?.results?.length || 0,
-    ventasDelDia: ventasHoy?.results?.reduce((acc, p) => acc + parseFloat(p.total), 0) || 0,
+    ventasDelDia: ventasHoy?.results?.reduce((acc, p) => {
+      const total = parseFloat(p.total);
+      return acc + (isNaN(total) ? 0 : total);
+    }, 0),
     productosConBajoStock: productosBajoStockFiltrados.length,
   };
 

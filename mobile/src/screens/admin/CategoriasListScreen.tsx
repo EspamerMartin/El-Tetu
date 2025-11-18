@@ -6,6 +6,7 @@ import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
 import { InputField, LoadingOverlay } from '@/components';
 import { theme, spacing } from '@/theme';
+import { Subcategoria, Categoria } from '@/types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type EstadoFilter = 'TODOS' | 'ACTIVO' | 'INACTIVO';
@@ -51,7 +52,11 @@ const CategoriasListScreen = () => {
 
     try {
       setSaving(true);
-      const data = { nombre: nombre.trim(), descripcion: descripcion.trim(), activo };
+      const data: Partial<Categoria> = { 
+        nombre: nombre.trim(), 
+        descripcion: descripcion.trim() || undefined, 
+        activo 
+      };
       
       if (editingId) {
         await productosAPI.updateCategoria(editingId, data);
@@ -86,9 +91,9 @@ const CategoriasListScreen = () => {
 
     try {
       setSaving(true);
-      const data: any = { 
+      const data: Partial<Subcategoria> = { 
         nombre: nombre.trim(), 
-        descripcion: descripcion.trim(), 
+        descripcion: descripcion.trim() || undefined, 
         activo
       };
       
@@ -117,7 +122,7 @@ const CategoriasListScreen = () => {
     }
   };
 
-  const handleEdit = (categoria: any) => {
+  const handleEdit = (categoria: Categoria) => {
     setEditingId(categoria.id);
     setNombre(categoria.nombre);
     setDescripcion(categoria.descripcion || '');
@@ -125,7 +130,7 @@ const CategoriasListScreen = () => {
     setDialogVisible(true);
   };
 
-  const handleEditSubcategoria = (subcategoria: any) => {
+  const handleEditSubcategoria = (subcategoria: Subcategoria) => {
     setEditingSubId(subcategoria.id);
     setSelectedCategoriaId(subcategoria.categoria);
     setNombre(subcategoria.nombre);
@@ -212,7 +217,7 @@ const CategoriasListScreen = () => {
   };
 
   const getSubcategoriasByCategoria = (categoriaId: number) => {
-    return subcategorias.filter((sub: any) => sub.categoria === categoriaId);
+    return subcategorias.filter((sub: Subcategoria) => sub.categoria === categoriaId);
   };
 
   return (
@@ -296,7 +301,7 @@ const CategoriasListScreen = () => {
 
                 {isExpanded && subs.length > 0 && (
                   <View style={styles.subcategoriesContainer}>
-                    {subs.map((sub: any) => (
+                    {subs.map((sub: Subcategoria) => (
                       <Card key={sub.id} style={styles.subCard}>
                         <Card.Title
                           title={sub.nombre}

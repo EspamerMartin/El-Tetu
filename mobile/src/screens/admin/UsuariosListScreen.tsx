@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, FAB, Card, Avatar, Chip, IconButton, Searchbar } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
+import { AdminDrawerParamList } from '@/navigation/AdminStack';
 import { useFetch } from '@/hooks';
 import { clientesAPI } from '@/services/api';
 import { LoadingOverlay } from '@/components';
 import { theme, spacing } from '@/theme';
+import { User } from '@/types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const getRolLabel = (rol: string) => {
@@ -17,7 +20,7 @@ const getRolLabel = (rol: string) => {
   return roles[rol] || rol;
 };
 
-const getRolColor = (rol: string, colors: any) => {
+const getRolColor = (rol: string, colors: typeof theme.colors) => {
   const roleColors: Record<string, string> = {
     admin: colors.error,
     vendedor: colors.tertiary,
@@ -26,7 +29,9 @@ const getRolColor = (rol: string, colors: any) => {
   return roleColors[rol] || colors.primary;
 };
 
-const UsuariosListScreen = ({ navigation }: any) => {
+type NavigationProp = DrawerNavigationProp<AdminDrawerParamList, 'Usuarios'>;
+
+const UsuariosListScreen = ({ navigation }: { navigation: NavigationProp }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { data: usuariosData, loading, refetch } = useFetch(() => clientesAPI.getAll());
 
@@ -76,9 +81,9 @@ const UsuariosListScreen = ({ navigation }: any) => {
       ) : (
         <FlatList
           data={usuariosFiltrados}
-          keyExtractor={(item: any) => item.id.toString()}
+          keyExtractor={(item: User) => item.id.toString()}
           contentContainerStyle={styles.list}
-          renderItem={({ item }: any) => (
+          renderItem={({ item }: { item: User }) => (
             <Card style={styles.card}>
               <Card.Title
                 title={`${item.nombre} ${item.apellido}`}

@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Button, Switch, Menu } from 'react-native-paper';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AdminStackParamList } from '@/navigation/AdminStack';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
 import { InputField, LoadingOverlay } from '@/components';
 import { theme, spacing } from '@/theme';
-import { Categoria, Subcategoria } from '@/types';
+import { Categoria, Subcategoria, Producto } from '@/types';
 
-const ProductoFormScreen = ({ route, navigation }: any) => {
+type Props = NativeStackScreenProps<AdminStackParamList, 'ProductoForm'>;
+
+const ProductoFormScreen = ({ route, navigation }: Props) => {
   const { productoId } = route.params || {};
   const isEdit = !!productoId;
 
@@ -140,15 +144,28 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
       return;
     }
 
+    // Validar y convertir valores numéricos
+    const stockNum = parseInt(stock);
+    if (isNaN(stockNum) || stockNum < 0) {
+      Alert.alert('Error', 'El stock debe ser un número válido mayor o igual a 0');
+      return;
+    }
+
+    const precioBaseNum = parseFloat(precioBase);
+    if (isNaN(precioBaseNum) || precioBaseNum < 0) {
+      Alert.alert('Error', 'El precio base debe ser un número válido mayor o igual a 0');
+      return;
+    }
+
     try {
       setSaving(true);
-      const data: any = {
+      const data: Partial<Producto> = {
         nombre: nombre.trim(),
-        descripcion: descripcion.trim() || null,
+        descripcion: descripcion.trim() || undefined,
         codigo: codigo.trim(),
-        stock: parseInt(stock) || 0,
+        stock: stockNum,
         stock_minimo: 0,
-        precio_base: parseFloat(precioBase) || 0,
+        precio_base: precioBaseNum.toString(),
         categoria,
         activo,
       };

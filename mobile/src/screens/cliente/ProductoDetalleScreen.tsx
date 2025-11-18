@@ -254,7 +254,7 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
           label: 'Ver',
           onPress: () => {
             setSnackbarVisible(false);
-            navigation.navigate('ClienteTabs', { screen: 'Carrito' } as any);
+            navigation.navigate('ClienteTabs', { screen: 'Carrito' });
           },
           labelStyle: { color: '#FFFFFF', fontWeight: '600' },
         }}
