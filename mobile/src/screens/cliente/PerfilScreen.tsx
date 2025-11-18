@@ -6,7 +6,7 @@ import { ClienteTabParamList } from '@/navigation/ClienteStack';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { logout, updateProfile } from '@/store/slices/authSlice';
 import { InputField, ScreenContainer } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 
 type Props = NativeStackScreenProps<ClienteTabParamList, 'Perfil'>;
 
@@ -158,7 +158,7 @@ const PerfilScreen = ({ navigation }: Props) => {
           icon="logout"
           onPress={handleLogout}
           style={[styles.button, styles.logoutButton]}
-          buttonColor={theme.colors.error}
+          buttonColor={colors.error}
         >
           Cerrar Sesión
         </Button>
@@ -179,18 +179,18 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: 12,
     elevation: 2,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
   },
   title: {
     fontWeight: 'bold',
     marginBottom: spacing.lg,
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   section: {
     marginBottom: spacing.md,
   },
   label: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginBottom: spacing.xs,
   },
   roleText: {

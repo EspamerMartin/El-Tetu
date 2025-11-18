@@ -6,7 +6,7 @@ import { ClienteStackParamList } from '@/navigation/ClienteStack';
 import { pedidosAPI } from '@/services/api';
 import { Pedido } from '@/types';
 import { LoadingOverlay, ScreenContainer } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors, getEstadoColor as getEstadoColorHelper, getColorWithOpacity } from '@/theme';
 import { formatPrice, formatDateTime } from '@/utils';
 
 type Props = NativeStackScreenProps<ClienteStackParamList, 'PedidoDetalle'>;
@@ -60,16 +60,7 @@ const PedidoDetalleScreen = ({ route }: Props) => {
   }
 
   const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'PENDIENTE':
-        return theme.colors.secondary;
-      case 'CONFIRMADO':
-        return '#2196F3';
-      case 'CANCELADO':
-        return theme.colors.error;
-      default:
-        return theme.colors.onSurfaceVariant;
-    }
+    return getEstadoColorHelper(estado);
   };
 
   const getEstadoLabel = (estado: string) => {
@@ -102,7 +93,7 @@ const PedidoDetalleScreen = ({ route }: Props) => {
           <Chip
             style={[
               styles.estadoChip,
-              { backgroundColor: getEstadoColor(pedido.estado) + '20' },
+              { backgroundColor: getColorWithOpacity(getEstadoColor(pedido.estado), 0.2) },
             ]}
             textStyle={[
               styles.estadoText,
@@ -239,7 +230,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: 12,
     elevation: 2,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
   },
   header: {
     flexDirection: 'row',
@@ -249,10 +240,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   date: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginTop: spacing.xs,
   },
   estadoChip: {
@@ -276,7 +267,7 @@ const styles = StyleSheet.create({
   _removed_promoChip: {
     marginRight: spacing.sm,
     marginBottom: spacing.xs,
-    backgroundColor: theme.colors.tertiary + '20',
+    backgroundColor: getColorWithOpacity(colors.success, 0.2),
   },
   totalsSection: {
     marginBottom: spacing.lg,
@@ -287,19 +278,19 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   discountText: {
-    color: theme.colors.tertiary,
+    color: colors.success,
   },
   totalLabel: {
     fontWeight: 'bold',
   },
   totalPrice: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   notesSection: {
     marginBottom: spacing.lg,
     padding: spacing.md,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: colors.surfaceVariant,
     borderRadius: 8,
   },
   dateRow: {
@@ -314,7 +305,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   errorText: {
-    color: theme.colors.error,
+    color: colors.error,
     textAlign: 'center',
   },
 });

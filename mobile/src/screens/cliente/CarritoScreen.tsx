@@ -7,7 +7,7 @@ import { useAppSelector, useAppDispatch } from '@/store';
 import { removeFromCart, updateQuantity, clearCart } from '@/store/slices/cartSlice';
 import { pedidosAPI } from '@/services/api';
 import { LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 import { formatPrice } from '@/utils';
 
 type Props = NativeStackScreenProps<ClienteTabParamList, 'Carrito'>;
@@ -140,7 +140,7 @@ const CarritoScreen = ({ navigation }: Props) => {
             <IconButton
               icon="delete"
               size={20}
-              iconColor={theme.colors.error}
+              iconColor={colors.error}
               onPress={() => handleRemove(item.producto.id, item.producto.nombre)}
             />
           </View>
@@ -272,14 +272,14 @@ const styles = StyleSheet.create({
   promoBadgeInline: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.secondaryContainer,
+    backgroundColor: colors.warningContainer,
     paddingHorizontal: spacing.xs,
     paddingVertical: spacing.xs / 2,
     borderRadius: 8,
     gap: spacing.xs / 2,
   },
   promoBadgeTextInline: {
-    color: theme.colors.secondary,
+    color: colors.secondary,
     fontWeight: '600',
     fontSize: 10,
   },
@@ -295,10 +295,10 @@ const styles = StyleSheet.create({
     gap: spacing.xs / 2,
   },
   promoDescuentoLabel: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   promoDescuentoValue: {
-    color: theme.colors.secondary,
+    color: colors.secondary,
     fontWeight: '600',
   },
   totalItemRow: {
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   totalItemValue: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '700',
   },
   descuentoRow: {
@@ -320,11 +320,11 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   itemCodigo: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginBottom: spacing.xs,
   },
   itemPrecio: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: 'bold',
   },
   quantityContainer: {
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     elevation: 8,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.outline + '20',
+    borderTopColor: colors.border,
   },
   totalRow: {
     flexDirection: 'row',
@@ -367,14 +367,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   discountText: {
-    color: theme.colors.tertiary,
+    color: colors.success,
   },
   totalLabel: {
     fontWeight: 'bold',
   },
   totalPrice: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   confirmButton: {
     marginTop: spacing.md,

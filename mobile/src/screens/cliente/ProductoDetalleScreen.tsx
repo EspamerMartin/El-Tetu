@@ -10,7 +10,7 @@ import { Producto } from '@/types';
 import { LoadingOverlay, ScreenContainer } from '@/components';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { addToCart } from '@/store/slices/cartSlice';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors, shadows } from '@/theme';
 import { formatPrice } from '@/utils';
 
 type Props = NativeStackScreenProps<ClienteStackParamList, 'ProductoDetalle'>;
@@ -196,7 +196,7 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
               {cantidadEnCarrito > 0 && (
                 <View style={styles.cartIndicator}>
                   <Surface style={styles.cartIndicatorSurface}>
-                    <Icon name="cart" size={20} color={theme.colors.primary} />
+                    <Icon name="cart" size={20} color={colors.primary} />
                     <Text variant="bodyMedium" style={styles.cartIndicatorText}>
                       Tienes <Text style={styles.cartIndicatorBold}>{cantidadEnCarrito}</Text> {cantidadEnCarrito === 1 ? 'unidad' : 'unidades'} en el carrito
                     </Text>
@@ -256,13 +256,13 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
             setSnackbarVisible(false);
             navigation.navigate('ClienteTabs', { screen: 'Carrito' } as any);
           },
-          labelStyle: { color: '#FFFFFF', fontWeight: '600' },
+          labelStyle: { color: colors.onPrimary, fontWeight: '600' },
         }}
         style={styles.snackbar}
         wrapperStyle={styles.snackbarWrapperStyle}
       >
         <View style={styles.snackbarContent}>
-          <Icon name="check-circle" size={18} color="#FFFFFF" style={styles.snackbarIcon} />
+          <Icon name="check-circle" size={18} color={colors.onPrimary} style={styles.snackbarIcon} />
           <Text style={styles.snackbarText}>
             {cantidadAgregada} {cantidadAgregada === 1 ? 'unidad agregada' : 'unidades agregadas'}
           </Text>
@@ -283,14 +283,14 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: 12,
     elevation: 2,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
   },
   image: {
     width: '100%',
     height: 250,
     borderRadius: 12,
     marginBottom: spacing.md,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: colors.surfaceVariant,
   },
   header: {
     marginBottom: spacing.md,
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   codigo: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   section: {
     marginBottom: spacing.lg,
@@ -324,17 +324,17 @@ const styles = StyleSheet.create({
   priceBox: {
     flex: 1,
     padding: spacing.md,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: colors.surfaceVariant,
     borderRadius: 8,
     alignItems: 'center',
   },
   price: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: 'bold',
     marginTop: spacing.xs,
   },
   priceSecondary: {
-    color: theme.colors.secondary,
+    color: colors.secondary,
     fontWeight: '600',
     marginTop: spacing.xs,
   },
@@ -342,13 +342,13 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   chipSuccess: {
-    backgroundColor: theme.colors.tertiary + '20',
+    backgroundColor: colors.successContainer,
   },
   chipWarning: {
-    backgroundColor: theme.colors.secondary + '20',
+    backgroundColor: colors.warningContainer,
   },
   chipError: {
-    backgroundColor: theme.colors.error + '20',
+    backgroundColor: colors.errorContainer,
   },
   quantityContainer: {
     flexDirection: 'row',
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   },
   quantityHint: {
     textAlign: 'center',
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginTop: spacing.xs,
   },
   addButton: {
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   errorText: {
-    color: theme.colors.error,
+    color: colors.error,
     textAlign: 'center',
     marginBottom: spacing.lg,
   },
@@ -391,13 +391,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   snackbar: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: colors.success,
     borderRadius: 8,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
+    ...shadows.large,
     width: '80%',
     maxWidth: '80%',
   },
@@ -412,7 +408,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.xs,
   },
   snackbarText: {
-    color: '#FFFFFF',
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
@@ -425,17 +421,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.md,
     borderRadius: 8,
-    backgroundColor: theme.colors.primaryContainer,
+    backgroundColor: colors.infoContainer,
     elevation: 1,
   },
   cartIndicatorText: {
     marginLeft: spacing.sm,
-    color: theme.colors.onPrimaryContainer,
+    color: colors.info,
     flex: 1,
   },
   cartIndicatorBold: {
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
 });
 

@@ -6,7 +6,7 @@ import { AdminStackParamList } from '@/navigation/AdminStack';
 import { pedidosAPI } from '@/services/api';
 import { Pedido } from '@/types';
 import { LoadingOverlay, ScreenContainer } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors, getEstadoColor as getEstadoColorHelper } from '@/theme';
 import { formatPrice, formatDateTime } from '@/utils';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'PedidoAdminDetalle'>;
@@ -155,16 +155,7 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
   }
 
   const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'PENDIENTE':
-        return theme.colors.secondary;
-      case 'CONFIRMADO':
-        return '#2196F3';
-      case 'CANCELADO':
-        return theme.colors.error;
-      default:
-        return theme.colors.onSurfaceVariant;
-    }
+    return getEstadoColorHelper(estado);
   };
 
   const getEstadoLabel = (estado: string) => {
@@ -286,6 +277,7 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
                 disabled={processing}
                 loading={processing}
                 style={styles.aprobarButton}
+                buttonColor={colors.success}
                 icon="check-circle"
               >
                 Aprobar Pedido
@@ -297,7 +289,7 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
                 disabled={processing}
                 loading={processing}
                 style={styles.rechazarButton}
-                buttonColor={theme.colors.error}
+                buttonColor={colors.error}
                 icon="close-circle"
               >
                 Rechazar Pedido
@@ -331,7 +323,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: 12,
     elevation: 2,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
   },
   errorContainer: {
     flex: 1,
@@ -340,7 +332,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   errorText: {
-    color: theme.colors.error,
+    color: colors.error,
     textAlign: 'center',
     marginBottom: spacing.lg,
   },
@@ -358,17 +350,17 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
     marginBottom: spacing.xs,
   },
   date: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   estadoChip: {
     marginLeft: spacing.sm,
   },
   estadoChipText: {
-    color: '#FFFFFF',
+    color: colors.onPrimary,
     fontWeight: 'bold',
   },
   divider: {
@@ -379,7 +371,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
     marginBottom: spacing.md,
   },
   infoRow: {
@@ -389,11 +381,11 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: 'bold',
     width: 80,
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   value: {
     flex: 1,
-    color: theme.colors.onSurface,
+    color: colors.onSurface,
   },
   priceRow: {
     flexDirection: 'row',
@@ -401,15 +393,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   discountText: {
-    color: theme.colors.tertiary,
+    color: colors.success,
   },
   totalLabel: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   totalValue: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   // Estilo promoChip eliminado (no se usa)
   _removed_promoChip: {
@@ -421,19 +413,19 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   aprobarButton: {
-    backgroundColor: theme.colors.tertiary,
+    // buttonColor prop se usa en el componente
   },
   rechazarButton: {
     // buttonColor prop se usa en el componente
   },
   estadoInfo: {
     padding: spacing.md,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: colors.surfaceVariant,
     borderRadius: 8,
     alignItems: 'center',
   },
   estadoInfoText: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     textAlign: 'center',
   },
 });

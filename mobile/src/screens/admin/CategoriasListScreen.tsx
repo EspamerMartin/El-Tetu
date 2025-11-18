@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
 import { InputField, LoadingOverlay } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type EstadoFilter = 'TODOS' | 'ACTIVO' | 'INACTIVO';
@@ -325,9 +325,9 @@ const CategoriasListScreen = () => {
         ListEmptyComponent={
           !loading ? (
             <View style={styles.empty}>
-              <Icon name="tag-off" size={64} color={theme.colors.outline} />
+              <Icon name="tag-off" size={64} color={colors.outline} />
               <Text variant="bodyLarge">No hay categorías</Text>
-              {error && <Text variant="bodySmall" style={{ color: theme.colors.error, marginTop: spacing.sm }}>{error}</Text>}
+              {error && <Text variant="bodySmall" style={{ color: colors.error, marginTop: spacing.sm }}>{error}</Text>}
             </View>
           ) : null
         }
@@ -381,9 +381,9 @@ const CategoriasListScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: colors.backgroundLight },
   filtersContainer: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     elevation: 2,
     paddingVertical: spacing.md,
   },
@@ -404,11 +404,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     paddingLeft: spacing.md,
     borderLeftWidth: 2,
-    borderLeftColor: theme.colors.outline,
+    borderLeftColor: colors.border,
   },
   subCard: { 
     marginBottom: spacing.sm,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: colors.surfaceVariant,
   },
   empty: { alignItems: 'center', padding: spacing.xxl },
   fab: { position: 'absolute', bottom: spacing.lg, right: spacing.lg },

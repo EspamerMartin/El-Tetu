@@ -11,7 +11,7 @@ import { useFetch } from '@/hooks';
 import { clientesAPI, productosAPI, pedidosAPI } from '@/services/api';
 import { LoadingOverlay, ScreenContainer } from '@/components';
 import { useAppSelector } from '@/store';
-import { spacing } from '@/theme';
+import { spacing, colors } from '@/theme';
 import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -116,9 +116,9 @@ const AdminHomeScreen = ({ navigation }: Props) => {
             <Text variant="bodyMedium" style={styles.kpiLabel}>Pedidos del Mes</Text>
           </Surface>
 
-          <Surface style={[styles.kpiCard, { backgroundColor: '#E8F5E9' }]} elevation={2}>
-            <Icon name="cash-multiple" size={40} color="#4CAF50" />
-            <Text variant="headlineLarge" style={[styles.kpiValue, { color: '#4CAF50' }]}>
+          <Surface style={[styles.kpiCard, { backgroundColor: colors.successContainer }]} elevation={2}>
+            <Icon name="cash-multiple" size={40} color={colors.success} />
+            <Text variant="headlineLarge" style={[styles.kpiValue, { color: colors.success }]}>
               {formatPrice(stats.ventasMes)}
             </Text>
             <Text variant="bodyMedium" style={styles.kpiLabel}>Ventas del Mes</Text>

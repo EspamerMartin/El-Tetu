@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Button } from 'react-native-paper';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 interface EmptyStateProps {
@@ -29,7 +29,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <Icon name={icon} size={64} color={theme.colors.outline} />
+      <Icon name={icon} size={64} color={colors.outline} />
       <Text variant="titleMedium" style={styles.title}>
         {title}
       </Text>
@@ -62,11 +62,11 @@ const styles = StyleSheet.create({
   title: {
     marginTop: spacing.md,
     marginBottom: spacing.xs,
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     textAlign: 'center',
   },
   message: {
-    color: theme.colors.outline,
+    color: colors.outline,
     textAlign: 'center',
     marginBottom: spacing.md,
   },

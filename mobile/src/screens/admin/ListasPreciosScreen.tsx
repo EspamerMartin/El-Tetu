@@ -8,7 +8,7 @@ import { useFetch } from '@/hooks';
 import { listasAPI } from '@/services/api';
 import { ListaPrecio } from '@/types';
 import { LoadingOverlay } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'ListasPrecios'>;
 
@@ -151,7 +151,7 @@ const ListasPreciosScreen = ({ navigation }: Props) => {
         />
         <IconButton
           icon="delete"
-          iconColor={item.codigo === 'base' ? theme.colors.surfaceDisabled : theme.colors.error}
+          iconColor={item.codigo === 'base' ? colors.textSecondary : colors.error}
           disabled={item.codigo === 'base'}
           onPress={() => handleDelete(item)}
         />
@@ -232,10 +232,10 @@ const ListasPreciosScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.backgroundLight,
   },
   filtersContainer: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     elevation: 2,
     paddingVertical: spacing.md,
   },
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   filterChip: { marginRight: spacing.xs },
   header: {
     padding: spacing.md,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     elevation: 2,
   },
   searchbar: {
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   codigo: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   statusRow: {
     flexDirection: 'row',
@@ -284,16 +284,16 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   chipDescuento: {
-    backgroundColor: theme.colors.tertiaryContainer,
+    backgroundColor: colors.successContainer,
   },
   chipBase: {
-    backgroundColor: theme.colors.secondaryContainer,
+    backgroundColor: colors.warningContainer,
   },
   chipActivo: {
-    backgroundColor: theme.colors.primaryContainer,
+    backgroundColor: colors.infoContainer,
   },
   chipInactivo: {
-    backgroundColor: theme.colors.errorContainer,
+    backgroundColor: colors.errorContainer,
   },
   chipText: {
     fontSize: 12,

@@ -2,6 +2,7 @@ import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { colors } from '@/theme';
 
 // Screens
 import AdminHomeScreen from '@/screens/admin/AdminHomeScreen';
@@ -57,8 +58,8 @@ const AdminDrawer = () => {
   return (
     <Drawer.Navigator
       screenOptions={{
-        drawerActiveTintColor: '#1976D2',
-        drawerInactiveTintColor: '#757575',
+        drawerActiveTintColor: colors.primary,
+        drawerInactiveTintColor: colors.textSecondary,
         headerShown: true,
       }}
     >

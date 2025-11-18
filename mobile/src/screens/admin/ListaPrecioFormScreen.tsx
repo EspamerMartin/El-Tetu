@@ -6,7 +6,7 @@ import { AdminStackParamList } from '@/navigation/AdminStack';
 import { useFetch } from '@/hooks';
 import { listasAPI } from '@/services/api';
 import { InputField, LoadingOverlay } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'ListaPrecioForm'>;
 
@@ -171,7 +171,7 @@ const ListaPrecioFormScreen = ({ route, navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.backgroundLight,
   },
   content: {
     padding: spacing.md,
@@ -181,22 +181,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   warningBox: {
-    backgroundColor: theme.colors.errorContainer,
+    backgroundColor: colors.errorContainer,
     padding: spacing.md,
     borderRadius: 8,
     marginBottom: spacing.md,
   },
   warningText: {
-    color: theme.colors.onErrorContainer,
+    color: colors.error,
   },
   infoBox: {
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: colors.surfaceVariant,
     padding: spacing.md,
     borderRadius: 8,
     marginBottom: spacing.md,
   },
   infoText: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginBottom: spacing.xs,
   },
   switchRow: {

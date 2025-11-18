@@ -2,6 +2,7 @@ import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { colors } from '@/theme';
 
 // Screens
 import VendedorHomeScreen from '@/screens/vendedor/VendedorHomeScreen';
@@ -43,8 +44,8 @@ const VendedorDrawer = () => {
   return (
     <Drawer.Navigator
       screenOptions={{
-        drawerActiveTintColor: '#1976D2',
-        drawerInactiveTintColor: '#757575',
+        drawerActiveTintColor: colors.primary,
+        drawerInactiveTintColor: colors.textSecondary,
         headerShown: true,
       }}
     >

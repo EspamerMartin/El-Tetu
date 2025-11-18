@@ -6,7 +6,7 @@ import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { useFetch } from '@/hooks';
 import { clientesAPI, pedidosAPI } from '@/services/api';
 import { LoadingOverlay, PedidoCard } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type Props = NativeStackScreenProps<VendedorStackParamList, 'ClienteDetalle'>;
@@ -35,7 +35,7 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
   if (errorCliente) {
     return (
       <View style={styles.errorContainer}>
-        <Icon name="alert-circle" size={64} color={theme.colors.error} />
+        <Icon name="alert-circle" size={64} color={colors.error} />
         <Text variant="titleMedium" style={styles.errorText}>
           Error al cargar el cliente
         </Text>
@@ -63,7 +63,7 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
           icon={cliente.is_active ? 'check-circle' : 'close-circle'}
           style={[
             styles.statusChip,
-            { backgroundColor: cliente.is_active ? theme.colors.tertiaryContainer : theme.colors.errorContainer },
+            { backgroundColor: cliente.is_active ? colors.successContainer : colors.errorContainer },
           ]}
         >
           {cliente.is_active ? 'Activo' : 'Inactivo'}
@@ -110,12 +110,12 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
         
         <View style={styles.statsContainer}>
           <View style={styles.statBox}>
-            <Icon name="package-variant" size={32} color={theme.colors.primary} />
+            <Icon name="package-variant" size={32} color={colors.primary} />
             <Text variant="headlineSmall" style={styles.statValue}>{pedidos.length}</Text>
             <Text variant="bodySmall" style={styles.statLabel}>Pedidos Totales</Text>
           </View>
           <View style={styles.statBox}>
-            <Icon name="cash-multiple" size={32} color={theme.colors.secondary} />
+            <Icon name="cash-multiple" size={32} color={colors.secondary} />
             <Text variant="headlineSmall" style={styles.statValue}>
               ${(() => {
                 const total = pedidos.reduce((acc, p) => {
@@ -139,7 +139,7 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
         
         {pedidos.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Icon name="clipboard-off" size={48} color={theme.colors.outline} />
+            <Icon name="clipboard-off" size={48} color={colors.outline} />
             <Text variant="bodyMedium" style={styles.emptyText}>
               Este cliente aún no tiene pedidos
             </Text>
@@ -168,7 +168,7 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.backgroundLight,
   },
   header: {
     alignItems: 'center',
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     marginTop: spacing.sm,
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   pedidosList: {
     marginTop: spacing.sm,
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   moreText: {
     textAlign: 'center',
     marginTop: spacing.md,
-    color: theme.colors.primary,
+    color: colors.primary,
     fontStyle: 'italic',
   },
   errorContainer: {
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     marginTop: spacing.md,
-    color: theme.colors.error,
+    color: colors.error,
   },
 });
 

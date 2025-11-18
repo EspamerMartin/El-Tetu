@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { colors } from '@/theme';
 
 // Screens
 import CatalogoScreen from '@/screens/cliente/CatalogoScreen';
@@ -40,8 +41,8 @@ const ClienteTabs = () => {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#1976D2',
-        tabBarInactiveTintColor: '#757575',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
         headerShown: true,
       }}
     >

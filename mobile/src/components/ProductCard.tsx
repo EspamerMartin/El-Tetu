@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import { Card, Text, Button, Chip } from 'react-native-paper';
 import { Producto } from '@/types';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors, shadows } from '@/theme';
 import { formatPrice } from '@/utils';
 
 interface ProductCardProps {
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
   },
   cardContent: {
     padding: 0,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
     height: 140,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: colors.surfaceVariant,
   },
   image: {
     width: '100%',
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.surfaceVariant,
   },
   placeholderIcon: {
     opacity: 0.3,
@@ -134,28 +134,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
+    ...shadows.medium,
     maxWidth: '85%',
     borderWidth: 1.5,
   },
   stockBadgeSuccess: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#2E7D32',
+    backgroundColor: colors.success,
+    borderColor: colors.success,
   },
   stockBadgeWarning: {
-    backgroundColor: '#FF9800',
-    borderColor: '#F57C00',
+    backgroundColor: colors.warning,
+    borderColor: colors.warning,
   },
   stockBadgeError: {
-    backgroundColor: '#F44336',
-    borderColor: '#C62828',
+    backgroundColor: colors.error,
+    borderColor: colors.error,
   },
   stockBadgeText: {
-    color: 'white',
+    color: colors.onPrimary,
     fontWeight: '700',
     fontSize: 11,
     letterSpacing: 0.3,
@@ -170,17 +166,17 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   infoLabel: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontWeight: '600',
     fontSize: 10,
   },
   categoryValue: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '500',
     fontSize: 10,
   },
   subcategoryValue: {
-    color: theme.colors.secondary,
+    color: colors.secondary,
     fontWeight: '500',
     fontSize: 10,
   },
@@ -191,34 +187,34 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   categoryLabel: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '600',
     fontSize: 9,
     textTransform: 'uppercase',
   },
   categorySeparator: {
-    color: theme.colors.outline,
+    color: colors.outline,
     fontSize: 10,
   },
   subcategoryLabel: {
-    color: theme.colors.secondary,
+    color: colors.secondary,
     fontWeight: '500',
     fontSize: 9,
     textTransform: 'uppercase',
   },
   nombre: {
     fontWeight: '600',
-    color: theme.colors.onSurface,
+    color: colors.onSurface,
     flex: 1,
     fontSize: 12,
   },
   codigo: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginBottom: 6,
     fontSize: 10,
   },
   price: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '700',
     marginTop: 4,
   },
@@ -233,10 +229,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   priceLabel: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   priceSecondary: {
-    color: theme.colors.secondary,
+    color: colors.secondary,
     fontWeight: '600',
   },
   stockContainer: {
@@ -246,13 +242,13 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   chipSuccess: {
-    backgroundColor: theme.colors.tertiary + '20',
+    backgroundColor: colors.successContainer,
   },
   chipWarning: {
-    backgroundColor: theme.colors.secondary + '20',
+    backgroundColor: colors.warningContainer,
   },
   chipError: {
-    backgroundColor: theme.colors.error + '20',
+    backgroundColor: colors.errorContainer,
   },
   chipText: {
     fontSize: 12,

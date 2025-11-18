@@ -7,7 +7,7 @@ import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { useFetch } from '@/hooks';
 import { pedidosAPI } from '@/services/api';
 import { PedidoCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type Props = NativeStackScreenProps<VendedorStackParamList, 'PedidosList'>;
@@ -116,7 +116,7 @@ const PedidosListScreen = ({ navigation }: Props) => {
 
 const styles = StyleSheet.create({
   filtersContainer: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     elevation: 2,
     paddingVertical: spacing.md,
   },

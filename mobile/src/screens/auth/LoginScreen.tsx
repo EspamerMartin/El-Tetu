@@ -5,7 +5,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '@/navigation/AuthStack';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { login } from '@/store/slices/authSlice';
-import { theme } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
@@ -127,38 +127,38 @@ const LoginScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.backgroundLight,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: theme.spacing.md,
+    padding: spacing.md,
   },
   surface: {
-    padding: theme.spacing.lg,
+    padding: spacing.lg,
     borderRadius: 12,
     elevation: 4,
   },
   header: {
     alignItems: 'center',
-    marginBottom: theme.spacing.xl,
+    marginBottom: spacing.xl,
   },
   title: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: 'bold',
-    marginBottom: theme.spacing.xs,
+    marginBottom: spacing.xs,
   },
   subtitle: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   form: {
     width: '100%',
   },
   input: {
-    marginBottom: theme.spacing.xs,
+    marginBottom: spacing.xs,
   },
   button: {
-    marginTop: theme.spacing.md,
+    marginTop: spacing.md,
   },
 });
 

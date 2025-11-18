@@ -9,7 +9,7 @@ import { Producto, Categoria, Subcategoria } from '@/types';
 import { ProductCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { addToCart, updateQuantity } from '@/store/slices/cartSlice';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors, shadows } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type NavigationProp = NativeStackNavigationProp<ClienteStackParamList>;
@@ -190,7 +190,7 @@ const CatalogoScreen = () => {
                 <IconButton
                   icon="minus"
                   size={18}
-                  iconColor={theme.colors.error}
+                  iconColor={colors.error}
                   onPress={() => handleUpdateCantidad(item.id, cantidadEnCarrito - 1)}
                   style={styles.cantidadButtonOverlay}
                 />
@@ -202,7 +202,7 @@ const CatalogoScreen = () => {
                 <IconButton
                   icon="plus"
                   size={18}
-                  iconColor={theme.colors.primary}
+                  iconColor={colors.primary}
                   onPress={() => handleAddProducto(item)}
                   disabled={!puedeAgregar}
                   style={styles.cantidadButtonOverlay}
@@ -372,7 +372,7 @@ const CatalogoScreen = () => {
       {/* Estadísticas */}
       <Surface style={styles.statsBar} elevation={0}>
         <View style={styles.statItem}>
-          <Icon name="package-variant" size={18} color={theme.colors.primary} />
+          <Icon name="package-variant" size={18} color={colors.primary} />
           <Text variant="bodySmall" style={styles.statText}>
             {productos.length} producto{productos.length !== 1 ? 's' : ''}
           </Text>
@@ -407,7 +407,7 @@ const CatalogoScreen = () => {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
@@ -420,19 +420,19 @@ const styles = StyleSheet.create({
   searchbar: {
     flex: 1,
     elevation: 0,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surfaceVariant,
   },
   filterButton: {
     marginLeft: 8,
   },
   filterButtonActive: {
-    backgroundColor: theme.colors.primaryContainer,
+    backgroundColor: colors.infoContainer,
   },
   filterBadge: {
     position: 'absolute',
     right: 8,
     top: 8,
-    backgroundColor: theme.colors.error,
+    backgroundColor: colors.error,
   },
   filtersPanel: {
     marginTop: 12,
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
   filterTitle: {
     fontWeight: '600',
     marginBottom: 8,
-    color: theme.colors.onSurface,
+    color: colors.onSurface,
   },
   chipsRow: {
     flexDirection: 'row',
@@ -475,9 +475,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   statItem: {
     flexDirection: 'row',
@@ -485,13 +485,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   statText: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   statDivider: {
     width: 1,
     height: 16,
     marginHorizontal: 12,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: colors.border,
   },
   productsList: {
     paddingHorizontal: 12,
@@ -508,19 +508,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: theme.colors.error,
+    backgroundColor: colors.accent,
     borderRadius: 12,
     padding: 5,
-    elevation: 6,
     zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    ...shadows.large,
   },
   searchContainer: {
     padding: spacing.md,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     elevation: 2,
   },
   categoriesContainer: {
@@ -551,15 +547,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     paddingVertical: 4,
     paddingHorizontal: 8,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    ...shadows.medium,
   },
   cantidadButtonOverlay: {
     margin: 0,
@@ -572,12 +564,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     marginHorizontal: 8,
     borderRadius: 16,
-    backgroundColor: theme.colors.primaryContainer,
+    backgroundColor: colors.infoContainer,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cantidadTextOverlay: {
-    color: theme.colors.onPrimaryContainer,
+    color: colors.info,
     fontWeight: '700',
   },
   addButtonOverlay: {
@@ -589,11 +581,7 @@ const styles = StyleSheet.create({
   },
   addButtonOverlayStyle: {
     borderRadius: 20,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    ...shadows.medium,
   },
   addButtonContent: {
     paddingVertical: 4,

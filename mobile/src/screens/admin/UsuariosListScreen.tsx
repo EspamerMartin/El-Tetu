@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { clientesAPI } from '@/services/api';
 import { LoadingOverlay } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const getRolLabel = (rol: string) => {
@@ -113,7 +113,7 @@ const UsuariosListScreen = ({ navigation }: any) => {
           )}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Icon name="account-off" size={64} color={theme.colors.outline} />
+              <Icon name="account-off" size={64} color={colors.outline} />
               <Text variant="bodyLarge">No hay usuarios</Text>
             </View>
           }
@@ -126,7 +126,7 @@ const UsuariosListScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: colors.backgroundLight },
   searchbar: { margin: spacing.md },
   list: { padding: spacing.md },
   card: { marginBottom: spacing.md },

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { TextInput, Button, Dialog, Portal, Text } from 'react-native-paper';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 
 interface DateTimePickerFieldProps {
   label: string;
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   input: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
   },
   inputDialog: {
     marginBottom: spacing.sm,

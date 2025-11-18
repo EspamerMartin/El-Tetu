@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
 import { ProductCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -127,7 +127,7 @@ const ProductosListScreen = ({ navigation }: any) => {
 
 const styles = StyleSheet.create({
   filtersContainer: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     elevation: 2,
     paddingVertical: spacing.md,
   },

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Button, List, IconButton, FAB, Dialog, Portal } from 'react-native-paper';
 import { InputField, LoadingOverlay } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 
 /**
  * CategoriaFormScreen - Formulario simple para crear/editar categoría
@@ -96,7 +96,7 @@ const CategoriaFormScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: colors.backgroundLight },
   content: { padding: spacing.md },
   title: { marginBottom: spacing.lg, fontWeight: 'bold' },
   actions: { flexDirection: 'row' },

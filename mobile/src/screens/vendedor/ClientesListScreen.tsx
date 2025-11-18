@@ -7,7 +7,7 @@ import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { clientesAPI } from '@/services/api';
 import { Cliente } from '@/types';
 import { LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type Props = NativeStackScreenProps<VendedorStackParamList, 'ClientesList'>;
@@ -77,7 +77,7 @@ const ClientesListScreen = ({ navigation }: Props) => {
             <Avatar.Text {...props} label={iniciales} size={48} />
           )}
           right={(props) => (
-            <Icon {...props} name="chevron-right" size={24} color={theme.colors.onSurface} />
+            <Icon {...props} name="chevron-right" size={24} color={colors.onSurface} />
           )}
         />
         <Card.Content>
@@ -99,7 +99,7 @@ const ClientesListScreen = ({ navigation }: Props) => {
               compact
               style={[
                 styles.statusChip,
-                { backgroundColor: item.is_active ? theme.colors.tertiaryContainer : theme.colors.errorContainer },
+                { backgroundColor: item.is_active ? colors.successContainer : colors.errorContainer },
               ]}
             >
               {item.is_active ? 'Activo' : 'Inactivo'}
@@ -144,7 +144,7 @@ const ClientesListScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   searchContainer: {
     padding: spacing.md,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     elevation: 2,
   },
   list: {

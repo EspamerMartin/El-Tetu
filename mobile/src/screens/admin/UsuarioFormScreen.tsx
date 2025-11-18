@@ -4,7 +4,7 @@ import { Text, Button, Switch, SegmentedButtons } from 'react-native-paper';
 import { useFetch } from '@/hooks';
 import { clientesAPI, authAPI } from '@/services/api';
 import { InputField, LoadingOverlay } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 
 const UsuarioFormScreen = ({ route, navigation }: any) => {
   const { usuarioId } = route.params || {};
@@ -152,12 +152,12 @@ const UsuarioFormScreen = ({ route, navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: colors.backgroundLight },
   content: { padding: spacing.md },
   title: { marginBottom: spacing.lg, fontWeight: 'bold' },
   section: { marginVertical: spacing.md },
   label: { marginBottom: spacing.sm },
-  errorText: { color: theme.colors.error, marginTop: -spacing.sm, marginBottom: spacing.sm },
+  errorText: { color: colors.error, marginTop: -spacing.sm, marginBottom: spacing.sm },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: spacing.md },
   button: { marginTop: spacing.lg },
 });

@@ -4,7 +4,7 @@ import { Text, Button, Switch, Menu } from 'react-native-paper';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
 import { InputField, LoadingOverlay } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 import { Categoria, Subcategoria } from '@/types';
 
 const ProductoFormScreen = ({ route, navigation }: any) => {
@@ -286,21 +286,21 @@ const ProductoFormScreen = ({ route, navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: colors.backgroundLight },
   content: { padding: spacing.md },
   title: { marginBottom: spacing.lg, fontWeight: 'bold' },
   menuContainer: { marginVertical: spacing.sm },
   label: { marginBottom: spacing.xs },
   menuButton: { justifyContent: 'flex-start' },
-  errorText: { color: theme.colors.error, marginBottom: spacing.sm },
+  errorText: { color: colors.error, marginBottom: spacing.sm },
   infoContainer: { 
     marginVertical: spacing.sm,
     padding: spacing.md,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: colors.surfaceVariant,
     borderRadius: 8,
   },
   infoText: { 
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontStyle: 'italic',
   },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: spacing.md },

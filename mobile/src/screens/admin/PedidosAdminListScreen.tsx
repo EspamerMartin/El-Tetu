@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { pedidosAPI } from '@/services/api';
 import { PedidoCard, LoadingOverlay } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 
 /**
  * PedidosAdminListScreen - Todos los pedidos con filtros (admin)
@@ -80,9 +80,9 @@ const PedidosAdminListScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: colors.backgroundLight },
   filtersContainer: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     elevation: 2,
     paddingVertical: spacing.md,
   },

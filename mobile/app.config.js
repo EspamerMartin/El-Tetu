@@ -9,7 +9,7 @@ module.exports = {
     splash: {
       image: "./assets/splash.png",
       resizeMode: "contain",
-      backgroundColor: "#ffffff"
+      backgroundColor: "#F5F5F5"
     },
     assetBundlePatterns: [
       "**/*"
@@ -21,7 +21,7 @@ module.exports = {
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
-        backgroundColor: "#ffffff"
+        backgroundColor: "#F5F5F5"
       },
       package: "com.eltetu.app"
     },

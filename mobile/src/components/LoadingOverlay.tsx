@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, Modal } from 'react-native';
 import { ActivityIndicator, Text, Surface } from 'react-native-paper';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 
 interface LoadingOverlayProps {
   visible: boolean;
@@ -22,7 +22,7 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
         <Surface style={styles.surface}>
           <ActivityIndicator
             size="large"
-            color={theme.colors.primary}
+            color={colors.primary}
             style={styles.spinner}
           />
           <Text variant="bodyMedium" style={styles.message}>
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   },
   message: {
     textAlign: 'center',
-    color: theme.colors.onSurface,
+    color: colors.onSurface,
   },
 });
 

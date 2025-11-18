@@ -8,7 +8,7 @@ import { useFetch } from '@/hooks';
 import { clientesAPI, listasAPI } from '@/services/api';
 import { User, ListaPrecio } from '@/types';
 import { LoadingOverlay } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'AsignarListasClientes'>;
 
@@ -213,11 +213,11 @@ const AsignarListasClientesScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.backgroundLight,
   },
   header: {
     padding: spacing.md,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     elevation: 2,
   },
   searchbar: {
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   email: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   listaRow: {
     flexDirection: 'row',
@@ -258,10 +258,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   listaLabel: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   chip: {
-    backgroundColor: theme.colors.secondaryContainer,
+    backgroundColor: colors.warningContainer,
   },
   chipText: {
     fontSize: 12,

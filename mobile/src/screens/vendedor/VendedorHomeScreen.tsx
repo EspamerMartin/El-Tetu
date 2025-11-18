@@ -10,7 +10,7 @@ import { useFetch } from '@/hooks';
 import { pedidosAPI, productosAPI } from '@/services/api';
 import { LoadingOverlay, ScreenContainer } from '@/components';
 import { useAppSelector } from '@/store';
-import { spacing } from '@/theme';
+import { spacing, colors as themeColors } from '@/theme';
 import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -105,10 +105,10 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
           </Surface>
 
           {/* Ventas del Día */}
-          <Surface style={[styles.kpiCard, { backgroundColor: colors.secondaryContainer }]} elevation={2}>
+          <Surface style={[styles.kpiCard, { backgroundColor: themeColors.successContainer }]} elevation={2}>
             <View style={styles.kpiHeader}>
-              <Icon name="cash-multiple" size={32} color={colors.secondary} />
-              <Text variant="headlineSmall" style={[styles.kpiValue, { color: colors.secondary }]}>
+              <Icon name="cash-multiple" size={32} color={themeColors.success} />
+              <Text variant="headlineSmall" style={[styles.kpiValue, { color: themeColors.success }]}>
                 {formatPrice(stats.ventasDelDia)}
               </Text>
             </View>

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Card, Text, Chip, Divider } from 'react-native-paper';
 import { Pedido } from '@/types';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors, getEstadoColor as getEstadoColorHelper } from '@/theme';
 import { formatPrice, formatDate } from '@/utils';
 
 interface PedidoCardProps {
@@ -17,16 +17,7 @@ interface PedidoCardProps {
 const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onPress }) => {
 
   const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'PENDIENTE':
-        return theme.colors.secondary;
-      case 'CONFIRMADO':
-        return '#2196F3';
-      case 'CANCELADO':
-        return theme.colors.error;
-      default:
-        return theme.colors.onSurfaceVariant;
-    }
+    return getEstadoColorHelper(estado);
   };
 
   const getEstadoLabel = (estado: string) => {
@@ -136,10 +127,10 @@ const styles = StyleSheet.create({
   },
   id: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   date: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginTop: spacing.xs,
   },
   estadoChip: {
@@ -162,22 +153,22 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   label: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   discount: {
-    color: theme.colors.tertiary,
+    color: colors.success,
   },
   totalLabel: {
     fontWeight: 'bold',
   },
   total: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   notes: {
     marginTop: spacing.sm,
     padding: spacing.sm,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: colors.surfaceVariant,
     borderRadius: 8,
   },
   notesLabel: {

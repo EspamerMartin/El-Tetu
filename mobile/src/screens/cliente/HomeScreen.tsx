@@ -8,7 +8,7 @@ import { Producto } from '@/types';
 import { ProductCard, LoadingOverlay } from '@/components';
 import { useAppDispatch } from '@/store';
 import { addToCart } from '@/store/slices/cartSlice';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 
 type Props = NativeStackScreenProps<ClienteTabParamList, 'Home'>;
 
@@ -127,15 +127,15 @@ const HomeScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.backgroundLight,
   },
   header: {
     padding: spacing.md,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     elevation: 2,
   },
   title: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: 'bold',
     marginBottom: spacing.sm,
   },
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   errorText: {
-    color: theme.colors.error,
+    color: colors.error,
     textAlign: 'center',
   },
   emptyContainer: {
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
   },
 });
 

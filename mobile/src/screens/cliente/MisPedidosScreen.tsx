@@ -7,7 +7,7 @@ import { ClienteStackParamList } from '@/navigation/ClienteStack';
 import { pedidosAPI } from '@/services/api';
 import { Pedido } from '@/types';
 import { PedidoCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors } from '@/theme';
 
 type NavigationProp = NativeStackNavigationProp<ClienteStackParamList>;
 
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   errorText: {
-    color: theme.colors.error,
+    color: colors.error,
     textAlign: 'center',
   },
 });

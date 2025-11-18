@@ -6,7 +6,7 @@ import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { useFetch } from '@/hooks';
 import { pedidosAPI } from '@/services/api';
 import { LoadingOverlay } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors, getEstadoColor as getEstadoColorHelper } from '@/theme';
 import { formatPrice, formatDate } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -27,12 +27,7 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
   );
 
   const getEstadoColor = (estado: EstadoPedido): string => {
-    switch (estado) {
-      case 'PENDIENTE': return theme.colors.secondary;
-      case 'CONFIRMADO': return '#2196F3';
-      case 'CANCELADO': return theme.colors.error;
-      default: return theme.colors.outline;
-    }
+    return getEstadoColorHelper(estado);
   };
 
   const getEstadoLabel = (estado: EstadoPedido): string => {
@@ -48,7 +43,7 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Icon name="alert-circle" size={64} color={theme.colors.error} />
+        <Icon name="alert-circle" size={64} color={colors.error} />
         <Text variant="titleMedium" style={styles.errorText}>
           Error al cargar el pedido
         </Text>
@@ -71,7 +66,7 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
           <Chip
             icon="circle"
             style={{ backgroundColor: getEstadoColor(pedido.estado) }}
-            textStyle={{ color: '#FFF' }}
+            textStyle={{ color: colors.onPrimary }}
           >
             {getEstadoLabel(pedido.estado)}
           </Chip>
@@ -128,7 +123,7 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
         {parseFloat(pedido.descuento_total || '0') > 0 && (
           <View style={styles.totalRow}>
             <Text variant="bodyLarge">Descuento:</Text>
-            <Text variant="bodyLarge" style={{ color: theme.colors.error }}>
+            <Text variant="bodyLarge" style={{ color: colors.error }}>
               -{formatPrice(pedido.descuento_total)}
             </Text>
           </View>
@@ -155,7 +150,7 @@ const PedidoDetalleScreen = ({ route, navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.backgroundLight,
   },
   header: {
     padding: spacing.lg,
@@ -194,7 +189,7 @@ const styles = StyleSheet.create({
   },
   // Estilo promoChip eliminado (no se usa)
   _removed_promoChip: {
-    backgroundColor: theme.colors.tertiaryContainer,
+    backgroundColor: colors.successContainer,
   },
   totalRow: {
     flexDirection: 'row',
@@ -206,10 +201,10 @@ const styles = StyleSheet.create({
   },
   totalValue: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   notasSection: {
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: colors.surfaceVariant,
   },
   errorContainer: {
     flex: 1,
@@ -219,7 +214,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     marginTop: spacing.md,
-    color: theme.colors.error,
+    color: colors.error,
   },
 });
 

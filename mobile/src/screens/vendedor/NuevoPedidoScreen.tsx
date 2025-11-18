@@ -8,7 +8,7 @@ import { useFetch } from '@/hooks';
 import { clientesAPI, productosAPI, pedidosAPI, listasAPI } from '@/services/api';
 import { Cliente, Producto, CreatePedidoData, ListaPrecio } from '@/types';
 import { LoadingOverlay, ScreenContainer, ProductCard } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors, shadows, getColorWithOpacity } from '@/theme';
 import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -170,10 +170,14 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   // Calcular precio con descuento de la lista seleccionada
   const calcularPrecioConDescuento = (precioBase: number | string): number => {
     const precio = typeof precioBase === 'string' ? parseFloat(precioBase) : precioBase;
-    if (!listaSeleccionada || listaSeleccionada.descuento_porcentaje === 0) {
+    if (!listaSeleccionada) {
       return precio;
     }
-    const descuento = precio * (listaSeleccionada.descuento_porcentaje / 100);
+    const descuentoPorcentaje = parseFloat(listaSeleccionada.descuento_porcentaje);
+    if (descuentoPorcentaje === 0 || isNaN(descuentoPorcentaje)) {
+      return precio;
+    }
+    const descuento = precio * (descuentoPorcentaje / 100);
     return precio - descuento;
   };
 
@@ -237,7 +241,6 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
       {/* PASO 1: Seleccionar Cliente */}
       {paso === 1 && (
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text variant="titleLarge" style={styles.title}>Seleccione un cliente</Text>
           <Searchbar
             placeholder="Buscar por nombre o email..."
             onChangeText={setSearchCliente}
@@ -264,13 +267,13 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
             <View style={styles.headerCompact}>
               <View style={styles.headerInfo}>
                 <View style={styles.headerRow}>
-                  <Icon name="account" size={24} color={theme.colors.primary} />
+                  <Icon name="account" size={24} color={colors.primary} />
                   <Text variant="bodyLarge" style={styles.headerText} numberOfLines={1}>
                     {clienteSeleccionado?.nombre} {clienteSeleccionado?.apellido}
                   </Text>
                   <Button 
                     mode="text" 
-                    textColor={theme.colors.primary}
+                    textColor={colors.primary}
                     onPress={() => setPaso(1)}
                     style={styles.changeButton}
                     contentStyle={styles.changeButtonContent}
@@ -315,7 +318,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
                               <IconButton
                                 icon="minus"
                                 size={18}
-                                iconColor={theme.colors.error}
+                                iconColor={colors.error}
                                 onPress={() => handleUpdateCantidad(producto.id, cantidadEnCarrito - 1)}
                                 style={styles.cantidadButtonOverlay}
                               />
@@ -327,7 +330,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
                               <IconButton
                                 icon="plus"
                                 size={18}
-                                iconColor={theme.colors.primary}
+                                iconColor={colors.primary}
                                 onPress={() => handleAddProducto(producto)}
                                 disabled={!puedeAgregar}
                                 style={styles.cantidadButtonOverlay}
@@ -384,10 +387,10 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
             )}
           </ScrollView>
 
-          <Surface style={styles.carrito} elevation={8}>
+          <Surface style={styles.carrito} elevation={5}>
             <View style={styles.carritoInfo}>
               <View style={styles.carritoInfoRow}>
-                <Icon name="cart" size={24} color={theme.colors.primary} />
+                <Icon name="cart" size={24} color={colors.primary} />
                 <View style={styles.carritoInfoText}>
                   <Text variant="titleMedium" style={styles.carritoItems}>
                     {items.length} {items.length === 1 ? 'item' : 'items'}
@@ -484,7 +487,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
                       <IconButton
                         icon="minus-circle"
                         size={22}
-                        iconColor={theme.colors.error}
+                        iconColor={colors.error}
                         onPress={() => handleUpdateCantidad(item.producto.id, item.cantidad - 1)}
                         style={styles.cantidadButtonConfirm}
                       />
@@ -496,7 +499,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
                       <IconButton
                         icon="plus-circle"
                         size={22}
-                        iconColor={theme.colors.primary}
+                        iconColor={colors.primary}
                         onPress={() => handleUpdateCantidad(item.producto.id, item.cantidad + 1)}
                         disabled={!puedeIncrementar}
                         style={styles.cantidadButtonConfirm}
@@ -505,7 +508,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
                     <IconButton
                       icon="delete"
                       size={20}
-                      iconColor={theme.colors.error}
+                      iconColor={colors.error}
                       onPress={() => handleRemoveItem(item.producto.id)}
                       style={styles.deleteButton}
                     />
@@ -540,21 +543,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-    backgroundColor: theme.colors.surface,
-    elevation: 2,
+    backgroundColor: colors.surface,
+    ...shadows.medium,
   },
   step: {
     flex: 1,
     alignItems: 'center',
     padding: spacing.sm,
     borderRadius: 8,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: colors.surfaceVariant,
   },
   stepActive: {
-    backgroundColor: theme.colors.primaryContainer,
+    backgroundColor: colors.infoContainer,
   },
   stepTextActive: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: 'bold',
   },
   stepDivider: {
@@ -564,7 +567,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   paso2Header: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     padding: spacing.md,
     paddingBottom: spacing.sm,
   },
@@ -617,6 +620,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
     elevation: 0,
   },
+  scrollContent: {
+    padding: spacing.md,
+    paddingBottom: spacing.xl,
+  },
+  productosScrollView: {
+    flex: 1,
+  },
   productsList: {
     padding: spacing.sm,
     paddingBottom: spacing.xl,
@@ -643,20 +653,16 @@ const styles = StyleSheet.create({
     left: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: colors.primary,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs / 2,
     borderRadius: 12,
     zIndex: 10,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
+    ...shadows.medium,
     gap: spacing.xs / 2,
   },
   promoBadgeText: {
-    color: 'white',
+    color: colors.onPrimary,
     fontWeight: '700',
     fontSize: 10,
     letterSpacing: 0.5,
@@ -665,16 +671,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: spacing.xs / 2,
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
+    ...shadows.medium,
     borderWidth: 1,
-    borderColor: theme.colors.outline + '20',
+    borderColor: getColorWithOpacity(colors.border, 0.2),
   },
   cantidadControlsOverlay: {
     flexDirection: 'row',
@@ -691,14 +693,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs / 2,
     borderRadius: 12,
-    backgroundColor: theme.colors.primaryContainer,
+    backgroundColor: colors.infoContainer,
     minWidth: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cantidadTextOverlay: {
     fontWeight: '700',
-    color: theme.colors.onPrimaryContainer,
+    color: colors.info,
     fontSize: 13,
   },
   addButtonOverlay: {
@@ -724,19 +726,19 @@ const styles = StyleSheet.create({
     bottom: 8,
     left: 8,
     right: 8,
-    backgroundColor: theme.colors.error,
+    backgroundColor: colors.error,
     borderRadius: 8,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 4,
+    ...shadows.medium,
     borderWidth: 2,
-    borderColor: theme.colors.errorContainer,
+    borderColor: colors.errorContainer,
     minHeight: 36,
   },
   disabledText: {
-    color: 'white',
+    color: colors.onPrimary,
     fontWeight: '700',
     fontSize: 12,
     textTransform: 'uppercase',
@@ -747,7 +749,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.md,
     marginHorizontal: spacing.xs,
-    color: theme.colors.error,
+    color: colors.error,
     fontWeight: '600',
   },
   title: {
@@ -762,7 +764,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   clienteCard: {
     padding: spacing.md,
@@ -786,7 +788,7 @@ const styles = StyleSheet.create({
   },
   productoCard: {
     marginBottom: spacing.md,
-    elevation: 2,
+    ...shadows.medium,
   },
   productoHeader: {
     flexDirection: 'row',
@@ -815,25 +817,25 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   stockOk: {
-    backgroundColor: theme.colors.tertiaryContainer,
+    backgroundColor: colors.successContainer,
   },
   stockWarning: {
-    backgroundColor: theme.colors.secondaryContainer,
+    backgroundColor: colors.warningContainer,
   },
   stockError: {
-    backgroundColor: theme.colors.errorContainer,
+    backgroundColor: colors.errorContainer,
   },
   stockChipText: {
     fontSize: 11,
     fontWeight: '600',
   },
   precio: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: 'bold',
     fontSize: 16,
   },
   cantidadBadge: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     position: 'absolute',
     top: -8,
     right: -8,
@@ -854,20 +856,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: 8,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: colors.surfaceVariant,
     minWidth: 50,
     alignItems: 'center',
   },
   cantidadText: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   carrito: {
     padding: spacing.md,
     paddingBottom: spacing.lg,
     borderTopWidth: 2,
-    borderTopColor: theme.colors.primary + '30',
-    backgroundColor: theme.colors.surface,
+    borderTopColor: getColorWithOpacity(colors.primary, 0.3),
+    backgroundColor: colors.surface,
   },
   carritoInfo: {
     marginBottom: spacing.md,
@@ -885,7 +887,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   carritoTotal: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '600',
   },
   continuarButton: {
@@ -914,7 +916,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.outline + '20',
+    borderBottomColor: getColorWithOpacity(colors.border, 0.2),
   },
   itemInfo: {
     flex: 1,
@@ -938,14 +940,14 @@ const styles = StyleSheet.create({
   promoBadgeInline: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.secondaryContainer,
+    backgroundColor: colors.warningContainer,
     paddingHorizontal: spacing.xs,
     paddingVertical: spacing.xs / 2,
     borderRadius: 8,
     gap: spacing.xs / 2,
   },
   promoBadgeTextInline: {
-    color: theme.colors.secondary,
+    color: colors.primary,
     fontWeight: '600',
     fontSize: 10,
   },
@@ -956,22 +958,22 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs / 2,
   },
   promoDescuentoLabel: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   promoDescuentoValue: {
-    color: theme.colors.secondary,
+    color: colors.primary,
     fontWeight: '600',
   },
   itemTotalConDescuento: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '600',
     marginTop: spacing.xs / 2,
   },
   itemPrecioUnitario: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   itemSubtotal: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '600',
   },
   itemActions: {
@@ -982,8 +984,8 @@ const styles = StyleSheet.create({
   cantidadControlsConfirm: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceVariant,
-    borderRadius: 10,
+    backgroundColor: colors.surfaceVariant,
+    borderRadius: 12,
     padding: spacing.xs / 2,
     gap: spacing.xs / 2,
   },
@@ -996,14 +998,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: 6,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     minWidth: 45,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cantidadTextConfirm: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
     fontSize: 16,
   },
   deleteButton: {
@@ -1027,7 +1029,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   listaPrecioInfo: {
-    color: theme.colors.secondary,
+    color: colors.primary,
     fontWeight: '500',
     marginTop: spacing.xs,
   },
@@ -1035,7 +1037,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.md,
     borderRadius: 8,
-    backgroundColor: theme.colors.primaryContainer,
+    backgroundColor: colors.infoContainer,
   },
   totalRow: {
     flexDirection: 'row',
@@ -1049,10 +1051,10 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   descuentoLabel: {
-    color: theme.colors.secondary,
+    color: colors.primary,
   },
   descuentoValue: {
-    color: theme.colors.secondary,
+    color: colors.primary,
     fontWeight: '700',
   },
   totalDivider: {
@@ -1060,11 +1062,11 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   totalValue: {
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   actions: {
     flexDirection: 'row',

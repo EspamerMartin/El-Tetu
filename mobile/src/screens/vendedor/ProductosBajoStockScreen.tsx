@@ -9,7 +9,7 @@ import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
 import { Producto } from '@/types';
 import { LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
-import { theme, spacing } from '@/theme';
+import { theme, spacing, colors, getColorWithOpacity } from '@/theme';
 import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -49,9 +49,9 @@ const ProductosBajoStockScreen = ({ navigation }: Props) => {
   const productosOrdenados = [...productosFiltrados].sort((a, b) => a.stock - b.stock);
 
   const getStockColor = (stock: number) => {
-    if (stock === 0) return theme.colors.error;
-    if (stock < 5) return theme.colors.error;
-    return theme.colors.secondary;
+    if (stock === 0) return colors.error;
+    if (stock < 5) return colors.error;
+    return colors.warning;
   };
 
   const getStockLabel = (stock: number) => {
@@ -150,7 +150,7 @@ const ProductosBajoStockScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   searchContainer: {
     padding: spacing.md,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     elevation: 2,
   },
   list: {
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   productoCodigo: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginBottom: spacing.xs,
   },
   categoriaChip: {
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     marginVertical: spacing.xs,
   },
   stockLabel: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontSize: 11,
   },
   precioContainer: {
@@ -211,13 +211,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.outline + '20',
+    borderTopColor: getColorWithOpacity(colors.border, 0.2),
   },
   precioLabel: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   precio: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: 'bold',
   },
 });
