@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import { Card, Text, Button, Chip } from 'react-native-paper';
 import { Producto } from '@/types';
@@ -16,7 +16,7 @@ interface ProductCardProps {
  * ProductCard
  * Tarjeta reutilizable para mostrar productos
  */
-const ProductCard: React.FC<ProductCardProps> = ({
+const ProductCard: React.FC<ProductCardProps> = memo(({
   producto,
   onPress,
   onAddToCart,
@@ -97,7 +97,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
       </Card.Content>
     </Card>
   );
-};
+});
+
+ProductCard.displayName = 'ProductCard';
 
 const styles = StyleSheet.create({
   card: {
@@ -115,10 +117,12 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 140,
     backgroundColor: theme.colors.surfaceVariant,
+    overflow: 'hidden',
   },
   image: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
   },
   imagePlaceholder: {
     width: '100%',

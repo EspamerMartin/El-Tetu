@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, Alert, FlatList, Dimensions } from 'react-native';
 import { Text, Button, Searchbar, List, Divider, Card, Chip, Surface, Menu, IconButton, Badge } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -6,7 +6,7 @@ import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { AdminStackParamList } from '@/navigation/AdminStack';
 import { useFetch } from '@/hooks';
 import { clientesAPI, productosAPI, pedidosAPI, listasAPI } from '@/services/api';
-import { Cliente, Producto, CreatePedidoData, ListaPrecio } from '@/types';
+import { Cliente, Producto, CreatePedidoData, ListaPrecio, Categoria } from '@/types';
 import { LoadingOverlay, ScreenContainer, ProductCard } from '@/components';
 import { theme, spacing } from '@/theme';
 import { formatPrice } from '@/utils';
@@ -35,20 +35,39 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   const [items, setItems] = useState<ItemPedido[]>([]);
   const [searchCliente, setSearchCliente] = useState('');
   const [searchProducto, setSearchProducto] = useState('');
+  const [categoriaFiltro, setCategoriaFiltro] = useState<number | null>(null);
   const [listaSeleccionada, setListaSeleccionada] = useState<ListaPrecio | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuListaPrecioVisible, setMenuListaPrecioVisible] = useState(false);
+  const [menuCategoriaVisible, setMenuCategoriaVisible] = useState(false);
   const [creating, setCreating] = useState(false);
   const menuOpenTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const menuCategoriaTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: clientesData, loading: loadingClientes } = useFetch(() => 
     clientesAPI.getAll({ rol: 'cliente' })
   );
-  const { data: productosData, loading: loadingProductos } = useFetch(() => productosAPI.getAll({ activo: true }));
+  // Fetch productos - se actualiza cuando cambia categoriaFiltro
+  const { data: productosData, loading: loadingProductos, refetch: refetchProductos } = useFetch(() => {
+    const params: any = { activo: true };
+    if (categoriaFiltro) {
+      params.categoria = categoriaFiltro;
+    }
+    return productosAPI.getAll(params);
+  });
   const { data: listasData, loading: loadingListas } = useFetch(() => listasAPI.getAll());
+  const { data: categoriasData } = useFetch(() => productosAPI.getCategorias({ activo: 'true' }));
   const clientes = clientesData?.results || [];
   const productos = productosData?.results || [];
   const listas = listasData?.results || [];
+  const categorias = categoriasData?.results || [];
+
+  // Refetch productos cuando cambie el filtro de categoría
+  useEffect(() => {
+    if (paso === 2) {
+      refetchProductos();
+    }
+  }, [categoriaFiltro, paso, refetchProductos]);
 
   // Seleccionar Lista Base por defecto (solo una vez)
   useEffect(() => {
@@ -58,11 +77,14 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
     }
   }, [listas]); // Removido listaSeleccionada de dependencias
 
-  // Limpiar timeout al desmontar
+  // Limpiar timeouts al desmontar
   useEffect(() => {
     return () => {
       if (menuOpenTimeoutRef.current) {
         clearTimeout(menuOpenTimeoutRef.current);
+      }
+      if (menuCategoriaTimeoutRef.current) {
+        clearTimeout(menuCategoriaTimeoutRef.current);
       }
     };
   }, []);
@@ -98,6 +120,38 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
     }, 100);
   }, []);
 
+  // Manejo robusto del menú de categoría
+  const handleOpenMenuCategoria = useCallback(() => {
+    // Limpiar cualquier timeout pendiente
+    if (menuCategoriaTimeoutRef.current) {
+      clearTimeout(menuCategoriaTimeoutRef.current);
+      menuCategoriaTimeoutRef.current = null;
+    }
+    // Usar un pequeño delay para asegurar que el estado anterior se haya limpiado
+    menuCategoriaTimeoutRef.current = setTimeout(() => {
+      setMenuCategoriaVisible(true);
+      menuCategoriaTimeoutRef.current = null;
+    }, 50);
+  }, []);
+
+  const handleCloseMenuCategoria = useCallback(() => {
+    // Limpiar timeout si existe
+    if (menuCategoriaTimeoutRef.current) {
+      clearTimeout(menuCategoriaTimeoutRef.current);
+      menuCategoriaTimeoutRef.current = null;
+    }
+    setMenuCategoriaVisible(false);
+  }, []);
+
+  const handleSelectCategoria = useCallback((categoriaId: number | null) => {
+    // Cerrar el menú primero
+    setMenuCategoriaVisible(false);
+    // Luego actualizar el filtro con un pequeño delay para evitar conflictos
+    setTimeout(() => {
+      setCategoriaFiltro(categoriaId);
+    }, 100);
+  }, []);
+
   const clientesFiltrados = searchCliente
     ? clientes.filter(c => 
         c.nombre.toLowerCase().includes(searchCliente.toLowerCase()) ||
@@ -109,9 +163,15 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
     ? productos.filter(p => p.nombre.toLowerCase().includes(searchProducto.toLowerCase()))
     : productos;
 
-  // Separar productos con stock y sin stock
-  const productosConStock = productosFiltrados.filter(p => p.stock > 0);
-  const productosSinStock = productosFiltrados.filter(p => p.stock === 0);
+  // Separar productos con stock y sin stock (memoizado para optimización)
+  const productosConStock = useMemo(() => 
+    productosFiltrados.filter(p => p.stock > 0), 
+    [productosFiltrados]
+  );
+  const productosSinStock = useMemo(() => 
+    productosFiltrados.filter(p => p.stock === 0), 
+    [productosFiltrados]
+  );
 
 
   const handleSelectCliente = (cliente: Cliente) => {
@@ -166,6 +226,82 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
         : i
     ));
   };
+
+  // Renderizado optimizado de productos con stock (memoizado)
+  const renderProductoConStock = useCallback(({ item: producto }: { item: Producto }) => {
+    const itemEnCarrito = items.find(i => i.producto.id === producto.id);
+    const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
+    const puedeAgregar = producto.stock > cantidadEnCarrito;
+    
+    return (
+      <View style={styles.productWrapper}>
+        <View style={styles.productCardContainer}>
+          <ProductCard 
+            producto={producto} 
+            onPress={() => {}}
+            showAddButton={false}
+          />
+          {cantidadEnCarrito > 0 && (
+            <View style={styles.cantidadOverlay}>
+              <View style={styles.cantidadControlsOverlay}>
+                <IconButton
+                  icon="minus"
+                  size={18}
+                  iconColor={theme.colors.error}
+                  onPress={() => handleUpdateCantidad(producto.id, cantidadEnCarrito - 1)}
+                  style={styles.cantidadButtonOverlay}
+                />
+                <Surface style={styles.cantidadDisplayOverlay}>
+                  <Text variant="titleSmall" style={styles.cantidadTextOverlay}>
+                    {cantidadEnCarrito}
+                  </Text>
+                </Surface>
+                <IconButton
+                  icon="plus"
+                  size={18}
+                  iconColor={theme.colors.primary}
+                  onPress={() => handleAddProducto(producto)}
+                  disabled={!puedeAgregar}
+                  style={styles.cantidadButtonOverlay}
+                />
+              </View>
+            </View>
+          )}
+          {cantidadEnCarrito === 0 && producto.stock > 0 && (
+            <View style={styles.addButtonOverlay}>
+              <Button
+                mode="contained"
+                icon="plus"
+                compact
+                onPress={() => handleAddProducto(producto)}
+                style={styles.addButtonOverlayStyle}
+              >
+                Agregar
+              </Button>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  }, [items]);
+
+  // Renderizado optimizado de productos sin stock (memoizado)
+  const renderProductoSinStock = useCallback(({ item: producto }: { item: Producto }) => (
+    <View style={styles.productWrapper}>
+      <View style={[styles.productCardContainer, styles.productoSinStockContainer]}>
+        <ProductCard 
+          producto={producto} 
+          onPress={() => {}}
+          showAddButton={false}
+        />
+        <View style={styles.disabledOverlay}>
+          <Text variant="bodySmall" style={styles.disabledText} numberOfLines={1}>
+            Sin stock
+          </Text>
+        </View>
+      </View>
+    </View>
+  ), []);
 
   // Calcular precio con descuento de la lista seleccionada
   const calcularPrecioConDescuento = (precioBase: number | string): number => {
@@ -293,103 +429,82 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
               value={searchProducto}
               style={styles.searchbarCompact}
             />
+            {/* Filtro por categoría */}
+            <View style={styles.filtroCategoriaContainer}>
+              <Menu
+                visible={menuCategoriaVisible}
+                onDismiss={handleCloseMenuCategoria}
+                anchor={
+                  <Button
+                    mode="outlined"
+                    icon="filter"
+                    onPress={handleOpenMenuCategoria}
+                    style={styles.filtroCategoriaButton}
+                    contentStyle={styles.filtroCategoriaButtonContent}
+                    compact
+                  >
+                    {categoriaFiltro 
+                      ? categorias.find(c => c.id === categoriaFiltro)?.nombre || 'Categoría'
+                      : 'Todas las categorías'}
+                  </Button>
+                }
+              >
+                <Menu.Item
+                  onPress={() => handleSelectCategoria(null)}
+                  title="Todas las categorías"
+                />
+                {categorias.map((cat) => (
+                  <Menu.Item
+                    key={cat.id}
+                    onPress={() => handleSelectCategoria(cat.id)}
+                    title={cat.nombre}
+                  />
+                ))}
+              </Menu>
+            </View>
           </Surface>
 
-          {/* Lista de productos en grid */}
-          <ScrollView 
-            style={styles.productosScrollView}
+          {/* Lista de productos en grid - Optimizado con FlatList */}
+          <FlatList
+            data={productosConStock}
+            renderItem={renderProductoConStock}
+            keyExtractor={(item) => item.id.toString()}
+            numColumns={2}
             contentContainerStyle={styles.productsList}
-          >
-            {/* Productos */}
-            {productosConStock.length > 0 && (
-              <View style={styles.productsGrid}>
-                {productosConStock.map((producto) => {
-                  const itemEnCarrito = items.find(i => i.producto.id === producto.id);
-                  const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
-                  const puedeAgregar = producto.stock > cantidadEnCarrito;
-                  
-                  return (
-                    <View key={producto.id} style={styles.productWrapper}>
-                      <View style={styles.productCardContainer}>
-                        <ProductCard 
-                          producto={producto} 
-                          onPress={() => {}}
-                          showAddButton={false}
-                        />
-                        {cantidadEnCarrito > 0 && (
-                          <View style={styles.cantidadOverlay}>
-                            <View style={styles.cantidadControlsOverlay}>
-                              <IconButton
-                                icon="minus"
-                                size={18}
-                                iconColor={theme.colors.error}
-                                onPress={() => handleUpdateCantidad(producto.id, cantidadEnCarrito - 1)}
-                                style={styles.cantidadButtonOverlay}
-                              />
-                              <Surface style={styles.cantidadDisplayOverlay}>
-                                <Text variant="titleSmall" style={styles.cantidadTextOverlay}>
-                                  {cantidadEnCarrito}
-                                </Text>
-                              </Surface>
-                              <IconButton
-                                icon="plus"
-                                size={18}
-                                iconColor={theme.colors.primary}
-                                onPress={() => handleAddProducto(producto)}
-                                disabled={!puedeAgregar}
-                                style={styles.cantidadButtonOverlay}
-                              />
-                            </View>
-                          </View>
-                        )}
-                        {cantidadEnCarrito === 0 && producto.stock > 0 && (
-                          <View style={styles.addButtonOverlay}>
-                            <Button
-                              mode="contained"
-                              icon="plus"
-                              compact
-                              onPress={() => handleAddProducto(producto)}
-                              style={styles.addButtonOverlayStyle}
-                            >
-                              Agregar
-                            </Button>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-
-
-            {/* Productos sin Stock */}
-            {productosSinStock.length > 0 && (
-              <>
-                <Text variant="titleMedium" style={styles.sinStockSectionTitle}>
-                  Productos Sin Stock
-                </Text>
-                <View style={styles.productsGrid}>
-                  {productosSinStock.map((producto) => (
-                    <View key={producto.id} style={styles.productWrapper}>
-                      <View style={[styles.productCardContainer, styles.productoSinStockContainer]}>
-                        <ProductCard 
-                          producto={producto} 
-                          onPress={() => {}}
-                          showAddButton={false}
-                        />
-                        <View style={styles.disabledOverlay}>
-                          <Text variant="bodySmall" style={styles.disabledText} numberOfLines={1}>
-                            Sin stock
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </>
-            )}
-          </ScrollView>
+            style={styles.productosScrollView}
+            showsVerticalScrollIndicator={false}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            updateCellsBatchingPeriod={50}
+            initialNumToRender={10}
+            windowSize={10}
+            getItemLayout={(data, index) => {
+              const row = Math.floor(index / 2);
+              return {
+                length: 240,
+                offset: 240 * row + (spacing.xs * row),
+                index,
+              };
+            }}
+            ListFooterComponent={
+              productosSinStock.length > 0 ? (
+                <>
+                  <Text variant="titleMedium" style={styles.sinStockSectionTitle}>
+                    Productos Sin Stock
+                  </Text>
+                  <FlatList
+                    data={productosSinStock}
+                    renderItem={renderProductoSinStock}
+                    keyExtractor={(item) => `sin-stock-${item.id}`}
+                    numColumns={2}
+                    scrollEnabled={false}
+                    removeClippedSubviews={true}
+                    maxToRenderPerBatch={10}
+                  />
+                </>
+              ) : null
+            }
+          />
 
           <Surface style={styles.carrito} elevation={5}>
             <View style={styles.carritoInfo}>
@@ -545,14 +660,14 @@ const styles = StyleSheet.create({
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
+    padding: spacing.sm,
     backgroundColor: theme.colors.surface,
     elevation: 2,
   },
   step: {
     flex: 1,
     alignItems: 'center',
-    padding: spacing.sm,
+    padding: spacing.xs,
     borderRadius: 8,
     backgroundColor: theme.colors.surfaceVariant,
   },
@@ -571,8 +686,8 @@ const styles = StyleSheet.create({
   },
   paso2Header: {
     backgroundColor: theme.colors.surface,
-    padding: spacing.md,
-    paddingBottom: spacing.sm,
+    padding: spacing.sm,
+    paddingBottom: spacing.xs,
   },
   headerCompact: {
     paddingHorizontal: spacing.xs,
@@ -583,8 +698,8 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    minHeight: 40,
+    gap: spacing.xs,
+    minHeight: 36,
   },
   headerText: {
     flex: 1,
@@ -623,20 +738,30 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
     elevation: 0,
   },
+  filtroCategoriaContainer: {
+    marginTop: spacing.xs,
+    marginHorizontal: 0,
+  },
+  filtroCategoriaButton: {
+    margin: 0,
+  },
+  filtroCategoriaButtonContent: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs / 2,
+  },
   productsList: {
-    padding: spacing.sm,
-    paddingBottom: spacing.xl,
+    padding: spacing.xs,
+    paddingBottom: spacing.lg,
   },
   productsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.xs,
   },
   productWrapper: {
-    flex: 1,
-    margin: spacing.xs,
-    maxWidth: (screenWidth - spacing.sm * 2 - spacing.xs * 4) / 2,
+    width: (screenWidth - spacing.sm * 2 - spacing.xs * 3) / 2,
+    marginBottom: spacing.xs,
     minHeight: 240,
     position: 'relative',
   },
@@ -869,14 +994,14 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
   carrito: {
-    padding: spacing.md,
-    paddingBottom: spacing.lg,
+    padding: spacing.sm,
+    paddingBottom: spacing.md,
     borderTopWidth: 2,
     borderTopColor: theme.colors.primary + '30',
     backgroundColor: theme.colors.surface,
   },
   carritoInfo: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   carritoInfoRow: {
     flexDirection: 'row',
@@ -898,7 +1023,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   continuarButtonContent: {
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   productoSinStock: {
     opacity: 0.6,
