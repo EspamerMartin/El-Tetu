@@ -50,21 +50,25 @@ const UsuariosListScreen = ({ navigation }: { navigation: NavigationProp }) => {
     : usuarios;
 
   const handleDelete = async (id: number) => {
-    Alert.alert('Confirmar', '¿Eliminar este usuario?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await clientesAPI.delete(id);
-            refetch();
-          } catch (err: any) {
-            Alert.alert('Error', err.response?.data?.error || 'No se pudo eliminar');
-          }
+    Alert.alert(
+      'Confirmar',
+      '¿Desea eliminar este usuario? Si tiene pedidos asociados, solo se desactivará.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await clientesAPI.delete(id);
+              refetch();
+            } catch (err: any) {
+              Alert.alert('Error', err.response?.data?.error || 'No se pudo eliminar');
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   return (

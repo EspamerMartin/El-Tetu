@@ -1,5 +1,14 @@
 from rest_framework import serializers
-from .models import Categoria, Subcategoria, Producto, ListaPrecio
+from .models import Categoria, Subcategoria, Producto, ListaPrecio, Marca
+
+
+class MarcaSerializer(serializers.ModelSerializer):
+    """Serializer para el modelo Marca."""
+    
+    class Meta:
+        model = Marca
+        fields = ['id', 'nombre', 'descripcion', 'activo', 'fecha_creacion']
+        read_only_fields = ['id', 'fecha_creacion']
 
 
 class ListaPrecioSerializer(serializers.ModelSerializer):
@@ -37,10 +46,12 @@ class SubcategoriaSerializer(serializers.ModelSerializer):
 class ProductoListSerializer(serializers.ModelSerializer):
     """Serializer para listado de productos (versión ligera)."""
     
+    marca_nombre = serializers.CharField(source='marca.nombre', read_only=True)
     categoria_nombre = serializers.CharField(source='categoria.nombre', read_only=True)
     subcategoria_nombre = serializers.CharField(source='subcategoria.nombre', read_only=True)
     tiene_stock = serializers.ReadOnlyField()
     stock_bajo = serializers.ReadOnlyField()
+    unidad_tamaño_display = serializers.CharField(source='get_unidad_tamaño_display', read_only=True)
     
     # Precio calculado según lista del usuario actual
     precio = serializers.SerializerMethodField()
@@ -48,10 +59,11 @@ class ProductoListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Producto
         fields = [
-            'id', 'codigo', 'nombre', 'categoria', 'categoria_nombre',
-            'subcategoria', 'subcategoria_nombre', 'precio_base', 'precio',
-            'stock', 'tiene_stock', 'stock_bajo',
-            'activo', 'imagen'
+            'id', 'codigo_barra', 'nombre', 'marca', 'marca_nombre',
+            'categoria', 'categoria_nombre', 'subcategoria', 'subcategoria_nombre',
+            'tamaño', 'unidad_tamaño', 'unidad_tamaño_display', 'unidades_caja',
+            'precio_base', 'precio', 'stock', 'tiene_stock', 'stock_bajo',
+            'activo', 'url_imagen'
         ]
     
     def get_precio(self, obj):
@@ -66,10 +78,12 @@ class ProductoListSerializer(serializers.ModelSerializer):
 class ProductoDetailSerializer(serializers.ModelSerializer):
     """Serializer para detalle de producto (versión completa)."""
     
+    marca_nombre = serializers.CharField(source='marca.nombre', read_only=True)
     categoria_nombre = serializers.CharField(source='categoria.nombre', read_only=True)
     subcategoria_nombre = serializers.CharField(source='subcategoria.nombre', read_only=True)
     tiene_stock = serializers.ReadOnlyField()
     stock_bajo = serializers.ReadOnlyField()
+    unidad_tamaño_display = serializers.CharField(source='get_unidad_tamaño_display', read_only=True)
     
     # Precio calculado según lista del usuario actual
     precio = serializers.SerializerMethodField()
@@ -77,12 +91,14 @@ class ProductoDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Producto
         fields = [
-            'id', 'codigo', 'nombre', 'descripcion',
+            'id', 'codigo_barra', 'nombre', 'descripcion',
+            'marca', 'marca_nombre',
             'categoria', 'categoria_nombre',
             'subcategoria', 'subcategoria_nombre',
+            'tamaño', 'unidad_tamaño', 'unidad_tamaño_display', 'unidades_caja',
             'precio_base', 'precio',
             'stock', 'stock_minimo', 'tiene_stock', 'stock_bajo',
-            'imagen', 'activo',
+            'url_imagen', 'activo',
             'fecha_creacion', 'fecha_actualizacion'
         ]
         read_only_fields = ['id', 'fecha_creacion', 'fecha_actualizacion']
@@ -102,20 +118,21 @@ class ProductoCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Producto
         fields = [
-            'codigo', 'nombre', 'descripcion',
-            'categoria', 'subcategoria',
+            'codigo_barra', 'nombre', 'descripcion',
+            'marca', 'categoria', 'subcategoria',
+            'tamaño', 'unidad_tamaño', 'unidades_caja',
             'precio_base',
             'stock', 'stock_minimo',
-            'imagen', 'activo'
+            'url_imagen', 'activo'
         ]
     
-    def validate_codigo(self, value):
-        """Valida que el código sea único (excepto para actualizaciones)."""
+    def validate_codigo_barra(self, value):
+        """Valida que el código de barra sea único (excepto para actualizaciones)."""
         if not value or not value.strip():
-            raise serializers.ValidationError("El código es obligatorio.")
+            raise serializers.ValidationError("El código de barra es obligatorio.")
         instance = self.instance
-        if Producto.objects.filter(codigo=value).exclude(pk=instance.pk if instance else None).exists():
-            raise serializers.ValidationError("Ya existe un producto con este código.")
+        if Producto.objects.filter(codigo_barra=value).exclude(pk=instance.pk if instance else None).exists():
+            raise serializers.ValidationError("Ya existe un producto con este código de barra.")
         return value.strip()
     
     def validate_precio_base(self, value):
@@ -124,11 +141,30 @@ class ProductoCreateUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("El precio base no puede ser negativo.")
         return value
     
+    def validate_tamaño(self, value):
+        """Valida que el tamaño sea positivo."""
+        if value <= 0:
+            raise serializers.ValidationError("El tamaño debe ser mayor a 0.")
+        return value
+    
+    def validate_unidades_caja(self, value):
+        """Valida que las unidades por caja sean positivas."""
+        if value <= 0:
+            raise serializers.ValidationError("Las unidades por caja deben ser mayor a 0.")
+        return value
+    
     def validate(self, data):
         """Valida que la subcategoría pertenezca a la categoría seleccionada."""
         # Obtener categoria de data o de la instancia (si es actualización)
         categoria = data.get('categoria', self.instance.categoria if self.instance else None)
         subcategoria = data.get('subcategoria', None)
+        marca = data.get('marca', self.instance.marca if self.instance else None)
+        
+        # Validar que haya marca
+        if not marca:
+            raise serializers.ValidationError({
+                'marca': 'La marca es obligatoria.'
+            })
         
         # Validar que haya categoría
         if not categoria:

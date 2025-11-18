@@ -31,7 +31,7 @@ class PedidoItemSerializer(serializers.ModelSerializer):
     
     def get_producto_codigo(self, obj):
         """Retorna el código del producto desde snapshot o del objeto."""
-        return obj.producto_codigo_snapshot or (obj.producto.codigo if obj.producto else None)
+        return obj.producto_codigo_snapshot or (obj.producto.codigo_barra if obj.producto else None)
 
 
 class PedidoItemCreateSerializer(serializers.ModelSerializer):
@@ -247,7 +247,7 @@ class PedidoCreateSerializer(serializers.ModelSerializer):
                 cantidad=cantidad,
                 precio_unitario=precio_unitario,
                 producto_nombre_snapshot=producto.nombre,
-                producto_codigo_snapshot=producto.codigo
+                producto_codigo_snapshot=producto.codigo_barra
             )
         
         # Calcular totales

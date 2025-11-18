@@ -270,6 +270,6 @@ class PedidoItem(models.Model):
         # Guardar snapshots del producto si existe y no están guardados
         if self.producto and not self.producto_nombre_snapshot:
             self.producto_nombre_snapshot = self.producto.nombre
-            self.producto_codigo_snapshot = self.producto.codigo
+            self.producto_codigo_snapshot = self.producto.codigo_barra
         
         super().save(*args, **kwargs)

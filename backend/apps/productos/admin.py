@@ -1,5 +1,16 @@
 from django.contrib import admin
-from .models import ListaPrecio, Categoria, Subcategoria, Producto
+from .models import ListaPrecio, Categoria, Subcategoria, Producto, Marca
+
+
+@admin.register(Marca)
+class MarcaAdmin(admin.ModelAdmin):
+    """Admin para el modelo Marca."""
+    
+    list_display = ['nombre', 'activo', 'fecha_creacion']
+    list_filter = ['activo', 'fecha_creacion']
+    search_fields = ['nombre', 'descripcion']
+    ordering = ['nombre']
+    readonly_fields = ['fecha_creacion', 'fecha_actualizacion']
 
 
 @admin.register(ListaPrecio)
@@ -38,19 +49,22 @@ class ProductoAdmin(admin.ModelAdmin):
     """Admin para el modelo Producto."""
     
     list_display = [
-        'codigo', 'nombre', 'categoria', 'subcategoria',
-        'precio_base', 'stock', 'activo'
+        'codigo_barra', 'nombre', 'marca', 'categoria', 'subcategoria',
+        'tamaño', 'unidad_tamaño', 'precio_base', 'stock', 'activo'
     ]
-    list_filter = ['categoria', 'subcategoria', 'activo', 'fecha_creacion']
-    search_fields = ['codigo', 'nombre', 'descripcion']
+    list_filter = ['marca', 'categoria', 'subcategoria', 'unidad_tamaño', 'activo', 'fecha_creacion']
+    search_fields = ['codigo_barra', 'nombre', 'descripcion', 'marca__nombre']
     ordering = ['nombre']
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('codigo', 'nombre', 'descripcion')
+            'fields': ('codigo_barra', 'nombre', 'descripcion', 'marca')
         }),
         ('Categorización', {
             'fields': ('categoria', 'subcategoria')
+        }),
+        ('Especificaciones', {
+            'fields': ('tamaño', 'unidad_tamaño', 'unidades_caja')
         }),
         ('Precio', {
             'fields': ('precio_base',),
@@ -60,7 +74,7 @@ class ProductoAdmin(admin.ModelAdmin):
             'fields': ('stock', 'stock_minimo')
         }),
         ('Media', {
-            'fields': ('imagen',)
+            'fields': ('url_imagen',)
         }),
         ('Estado', {
             'fields': ('activo',)

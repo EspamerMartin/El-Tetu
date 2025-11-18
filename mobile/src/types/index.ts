@@ -44,6 +44,14 @@ export type Cliente = User;
 
 // ========== Product Types ==========
 
+export interface Marca {
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  activo: boolean;
+  fecha_creacion: string;
+}
+
 export interface Categoria {
   id: number;
   nombre: string;
@@ -62,22 +70,30 @@ export interface Subcategoria {
   fecha_creacion: string;
 }
 
+export type UnidadTamaño = 'ud' | 'ml' | 'l' | 'g' | 'kg' | 'cm' | 'm';
+
 export interface Producto {
   id: number;
-  codigo: string;
+  codigo_barra: string;
   nombre: string;
   descripcion?: string;
+  marca: number;
+  marca_nombre: string;
   categoria: number;
   categoria_nombre: string;
   subcategoria?: number;
   subcategoria_nombre?: string;
+  tamaño: string;
+  unidad_tamaño: UnidadTamaño;
+  unidad_tamaño_display: string;
+  unidades_caja: number;
   precio_base: string;
   precio: string; // Precio calculado según la lista del usuario
   stock: number;
   stock_minimo: number;
   tiene_stock: boolean;
   stock_bajo: boolean;
-  imagen?: string;
+  url_imagen?: string;
   activo: boolean;
   fecha_creacion: string;
   fecha_actualizacion: string;

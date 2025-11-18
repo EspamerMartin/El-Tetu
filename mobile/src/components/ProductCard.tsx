@@ -28,9 +28,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
       <Card.Content style={styles.cardContent}>
         {/* Imagen del producto o placeholder */}
         <View style={styles.imageContainer}>
-          {producto.imagen ? (
+          {producto.url_imagen ? (
             <Image
-              source={{ uri: producto.imagen }}
+              source={{ uri: producto.url_imagen }}
               style={styles.image}
               resizeMode="cover"
             />
@@ -57,6 +57,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
         
         {/* Info del producto */}
         <View style={styles.infoContainer}>
+          {/* Marca */}
+          <View style={styles.infoRow}>
+            <Text variant="labelSmall" style={styles.infoLabel}>Marca: </Text>
+            <Text variant="labelSmall" style={styles.marcaValue}>
+              {producto.marca_nombre}
+            </Text>
+          </View>
+          
           {/* Categoría y Subcategoría */}
           <View style={styles.infoRow}>
             <Text variant="labelSmall" style={styles.infoLabel}>Categoría: </Text>
@@ -80,11 +88,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
               {producto.nombre}
             </Text>
           </View>
-          
-          {/* Código */}
-          <Text variant="labelSmall" style={styles.codigo} numberOfLines={1}>
-            Cód: {producto.codigo}
-          </Text>
           
           {/* Precio */}
           <Text variant="titleMedium" style={styles.price}>
@@ -171,6 +174,11 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     color: theme.colors.onSurfaceVariant,
+    fontWeight: '600',
+    fontSize: 10,
+  },
+  marcaValue: {
+    color: theme.colors.tertiary,
     fontWeight: '600',
     fontSize: 10,
   },

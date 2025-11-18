@@ -11,6 +11,7 @@ import {
   Pedido,
   CreatePedidoData,
   ListaPrecio,
+  Marca,
 } from '@/types';
 
 // ========== Auth API ==========
@@ -55,6 +56,7 @@ export const authAPI = {
 
 export const productosAPI = {
   getAll: async (params?: {
+    marca?: number;
     categoria?: number;
     subcategoria?: number;
     search?: string;
@@ -85,6 +87,32 @@ export const productosAPI = {
     await api.delete(`/productos/${id}/`);
   },
 
+  getMarcas: async (params?: {
+    activo?: string;
+    search?: string;
+    page?: number;
+  }): Promise<PaginatedResponse<Marca>> => {
+    const response = await api.get('/productos/marcas/', { params });
+    return response.data;
+  },
+
+  createMarca: async (data: Partial<Marca>): Promise<Marca> => {
+    const response = await api.post('/productos/marcas/', data);
+    return response.data;
+  },
+
+  updateMarca: async (id: number, data: Partial<Marca>): Promise<Marca> => {
+    const response = await api.put(`/productos/marcas/${id}/`, data);
+    return response.data;
+  },
+
+  deleteMarca: async (id: number): Promise<{ message?: string } | void> => {
+    const response = await api.delete(`/productos/marcas/${id}/`);
+    // Si es 204 (No Content), response.data puede ser undefined o string vacío
+    // Si es 200, response.data contiene el mensaje
+    return response.data || undefined;
+  },
+
   getCategorias: async (params?: {
     activo?: string;
     page?: number;
@@ -103,12 +131,17 @@ export const productosAPI = {
     return response.data;
   },
 
-  deleteCategoria: async (id: number): Promise<void> => {
-    await api.delete(`/productos/categorias/${id}/`);
+  deleteCategoria: async (id: number): Promise<{ message?: string } | void> => {
+    const response = await api.delete(`/productos/categorias/${id}/`);
+    // Si es 204 (No Content), response.data puede ser undefined o string vacío
+    // Si es 200, response.data contiene el mensaje
+    return response.data || undefined;
   },
 
-  getSubcategorias: async (categoriaId?: number): Promise<PaginatedResponse<Subcategoria>> => {
-    const params = categoriaId ? { categoria: categoriaId } : undefined;
+  getSubcategorias: async (params?: {
+    categoria?: number;
+    activo?: string;
+  }): Promise<PaginatedResponse<Subcategoria>> => {
     const response = await api.get('/productos/subcategorias/', { params });
     return response.data;
   },
@@ -123,8 +156,11 @@ export const productosAPI = {
     return response.data;
   },
 
-  deleteSubcategoria: async (id: number): Promise<void> => {
-    await api.delete(`/productos/subcategorias/${id}/`);
+  deleteSubcategoria: async (id: number): Promise<{ message?: string } | void> => {
+    const response = await api.delete(`/productos/subcategorias/${id}/`);
+    // Si es 204 (No Content), response.data puede ser undefined o string vacío
+    // Si es 200, response.data contiene el mensaje
+    return response.data || undefined;
   },
 };
 
@@ -135,6 +171,7 @@ export const pedidosAPI = {
     mine?: boolean;
     estado?: string;
     cliente?: number;
+    fecha_creacion?: string; // Formato: YYYY-MM-DD
     page?: number;
   }): Promise<PaginatedResponse<Pedido>> => {
     const response = await api.get('/pedidos/', { params });

@@ -12,6 +12,7 @@ import { useAppDispatch, useAppSelector } from '@/store';
 import { addToCart } from '@/store/slices/cartSlice';
 import { theme, spacing } from '@/theme';
 import { formatPrice } from '@/utils';
+import { useAppSelector as useUserSelector } from '@/store';
 
 type Props = NativeStackScreenProps<ClienteStackParamList, 'ProductoDetalle'>;
 
@@ -28,6 +29,7 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
   const { productoId } = route.params;
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector(state => state.cart.items);
+  const user = useUserSelector(state => state.auth.user);
   
   const [producto, setProducto] = useState<Producto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,6 +37,9 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
   const [error, setError] = useState<string | null>(null);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [cantidadAgregada, setCantidadAgregada] = useState(1);
+  
+  // Determinar si es cliente (no muestra código de barra)
+  const isCliente = user?.rol === 'cliente';
   
   // Obtener cantidad actual en el carrito
   const cantidadEnCarrito = producto 
@@ -112,9 +117,9 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
     <ScreenContainer>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <Surface style={styles.surface}>
-          {producto.imagen && (
+          {producto.url_imagen && (
             <Image
-              source={{ uri: producto.imagen }}
+              source={{ uri: producto.url_imagen }}
               style={styles.image}
               resizeMode="cover"
             />
@@ -124,9 +129,11 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
             <Text variant="headlineSmall" style={styles.nombre}>
               {producto.nombre}
             </Text>
-            <Text variant="bodyMedium" style={styles.codigo}>
-              Código: {producto.codigo}
-            </Text>
+            {!isCliente && (
+              <Text variant="bodyMedium" style={styles.codigo}>
+                Código de Barra: {producto.codigo_barra}
+              </Text>
+            )}
           </View>
 
           {producto.descripcion && (
@@ -137,6 +144,15 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
               <Text variant="bodyMedium">{producto.descripcion}</Text>
             </View>
           )}
+
+          <View style={styles.section}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Marca
+            </Text>
+            <Chip icon="tag-heart" style={styles.chip}>
+              {producto.marca_nombre}
+            </Chip>
+          </View>
 
           <View style={styles.section}>
             <Text variant="titleMedium" style={styles.sectionTitle}>
@@ -151,6 +167,22 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
                   {producto.subcategoria_nombre}
                 </Chip>
               )}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Especificaciones
+            </Text>
+            <View style={styles.specRow}>
+              <Text variant="bodyMedium" style={styles.specLabel}>Tamaño:</Text>
+              <Text variant="bodyMedium" style={styles.specValue}>
+                {producto.tamaño} {producto.unidad_tamaño_display}
+              </Text>
+            </View>
+            <View style={styles.specRow}>
+              <Text variant="bodyMedium" style={styles.specLabel}>Unidades por Caja:</Text>
+              <Text variant="bodyMedium" style={styles.specValue}>{producto.unidades_caja}</Text>
             </View>
           </View>
 
@@ -316,6 +348,23 @@ const styles = StyleSheet.create({
   chip: {
     marginRight: spacing.sm,
     marginBottom: spacing.xs,
+  },
+  specRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+    paddingVertical: spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.surfaceVariant,
+  },
+  specLabel: {
+    color: theme.colors.onSurfaceVariant,
+    fontWeight: '600',
+  },
+  specValue: {
+    color: theme.colors.onSurface,
+    fontWeight: '500',
   },
   pricesContainer: {
     flexDirection: 'row',

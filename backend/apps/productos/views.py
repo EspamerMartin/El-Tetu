@@ -5,16 +5,60 @@ import logging
 
 from apps.users.permissions import IsAdmin
 from apps.core.mixins import SoftDeleteMixin
-from .models import Categoria, Subcategoria, Producto
+from .models import Categoria, Subcategoria, Producto, Marca
 from .serializers import (
     CategoriaSerializer,
     SubcategoriaSerializer,
     ProductoListSerializer,
     ProductoDetailSerializer,
     ProductoCreateUpdateSerializer,
+    MarcaSerializer,
 )
 
 logger = logging.getLogger('eltetu')
+
+
+# ========== Marcas ==========
+
+class MarcaListCreateView(generics.ListCreateAPIView):
+    """
+    Vista para listar y crear marcas.
+    GET/POST /api/productos/marcas/
+    """
+    serializer_class = MarcaSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['activo']
+    search_fields = ['nombre']
+    
+    def get_queryset(self):
+        """Admin ve todas (incluyendo eliminadas), otros solo activas y no eliminadas."""
+        queryset = Marca.objects.all()
+        if not self.request.user.is_admin():
+            queryset = queryset.filter(activo=True, fecha_eliminacion__isnull=True)
+        return queryset.order_by('-activo', 'fecha_eliminacion', 'nombre')
+    
+    def get_permissions(self):
+        """Solo admin puede crear marcas."""
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsAdmin()]
+        return [IsAuthenticated()]
+
+
+class MarcaDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView):
+    """
+    Vista para obtener, actualizar y eliminar marca.
+    GET/PUT/DELETE /api/productos/marcas/{id}/
+    """
+    queryset = Marca.objects.all()
+    serializer_class = MarcaSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get_reference_checks(self, instance):
+        """Define las relaciones a verificar para soft delete."""
+        return [
+            (instance.productos, 'productos'),
+        ]
 
 
 # ========== Categorías ==========
@@ -71,7 +115,7 @@ class SubcategoriaListCreateView(generics.ListCreateAPIView):
     serializer_class = SubcategoriaSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['categoria']
+    filterset_fields = ['categoria', 'activo']
     
     def get_queryset(self):
         """Admin ve todas (incluyendo eliminadas), otros solo activas y no eliminadas."""
@@ -112,17 +156,18 @@ class ProductoListCreateView(generics.ListCreateAPIView):
     GET/POST /api/productos/
     
     Filtros disponibles:
+    - marca: ID de marca
     - categoria: ID de categoría
     - subcategoria: ID de subcategoría
     - stock: mínimo stock disponible
-    - search: búsqueda por nombre o código
+    - search: búsqueda por nombre o código de barra
     """
-    queryset = Producto.objects.select_related('categoria', 'subcategoria')
+    queryset = Producto.objects.select_related('marca', 'categoria', 'subcategoria')
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['categoria', 'subcategoria', 'activo']
-    search_fields = ['nombre', 'codigo', 'descripcion'] 
-    ordering_fields = ['nombre', 'codigo', 'stock'] 
+    filterset_fields = ['marca', 'categoria', 'subcategoria', 'activo']
+    search_fields = ['nombre', 'codigo_barra', 'descripcion'] 
+    ordering_fields = ['nombre', 'codigo_barra', 'stock'] 
     ordering = ['-activo', 'fecha_eliminacion', 'nombre']
     
     def get_serializer_class(self):
@@ -182,7 +227,7 @@ class ProductoDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView)
     Vista para obtener, actualizar y eliminar producto.
     GET/PUT/DELETE /api/productos/{id}/
     """
-    queryset = Producto.objects.select_related('categoria', 'subcategoria')
+    queryset = Producto.objects.select_related('marca', 'categoria', 'subcategoria')
     permission_classes = [IsAuthenticated]
     
     def get_serializer_class(self):

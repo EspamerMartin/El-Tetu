@@ -3,6 +3,22 @@ from decimal import Decimal
 from apps.core.models import SoftDeleteMixin, TimestampMixin
 
 
+class Marca(SoftDeleteMixin, TimestampMixin):
+    """Modelo para marcas de productos."""
+    
+    nombre = models.CharField(max_length=100, unique=True, verbose_name='Nombre')
+    descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
+    activo = models.BooleanField(default=True, verbose_name='Activo')
+    
+    class Meta:
+        verbose_name = 'Marca'
+        verbose_name_plural = 'Marcas'
+        ordering = ['nombre']
+    
+    def __str__(self):
+        return self.nombre
+
+
 class ListaPrecio(SoftDeleteMixin, TimestampMixin):
     """Modelo para listas de precios con descuentos."""
     
@@ -77,10 +93,34 @@ class Subcategoria(SoftDeleteMixin, TimestampMixin):
 class Producto(SoftDeleteMixin, TimestampMixin):
     """Modelo para productos del catálogo."""
     
-    codigo = models.CharField(max_length=50, unique=True, verbose_name='Código')
+    UNIDAD_CHOICES = [
+        ('ud', 'Unidad'),
+        ('ml', 'Mililitros'),
+        ('l', 'Litros'),
+        ('g', 'Gramos'),
+        ('kg', 'Kilogramos'),
+        ('cm', 'Centímetros'),
+        ('m', 'Metros'),
+    ]
+    
+    codigo_barra = models.CharField(
+        max_length=100, 
+        unique=True, 
+        verbose_name='Código de Barra',
+        help_text='Código de barras único del producto',
+        default='0000000000000'
+    )
     nombre = models.CharField(max_length=200, verbose_name='Nombre')
     descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
     
+    marca = models.ForeignKey(
+        Marca,
+        on_delete=models.PROTECT,
+        related_name='productos',
+        verbose_name='Marca',
+        null=True,
+        default=1
+    )
     categoria = models.ForeignKey(
         Categoria,
         on_delete=models.PROTECT,
@@ -96,6 +136,26 @@ class Producto(SoftDeleteMixin, TimestampMixin):
         verbose_name='Subcategoría'
     )
     
+    tamaño = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name='Tamaño',
+        help_text='Tamaño del producto',
+        default=1.0
+    )
+    unidad_tamaño = models.CharField(
+        max_length=10,
+        choices=UNIDAD_CHOICES,
+        verbose_name='Unidad de Tamaño',
+        help_text='Unidad de medida del tamaño',
+        default='ud'
+    )
+    unidades_caja = models.IntegerField(
+        default=1,
+        verbose_name='Unidades por Caja',
+        help_text='Cantidad de unidades por caja'
+    )
+    
     # Precio base (sin descuentos)
     precio_base = models.DecimalField(
         max_digits=10,
@@ -108,11 +168,11 @@ class Producto(SoftDeleteMixin, TimestampMixin):
     stock = models.IntegerField(default=0, verbose_name='Stock')
     stock_minimo = models.IntegerField(default=0, verbose_name='Stock Mínimo')
     
-    imagen = models.ImageField(
-        upload_to='productos/',
+    url_imagen = models.URLField(
         blank=True,
         null=True,
-        verbose_name='Imagen'
+        verbose_name='URL de Imagen',
+        help_text='URL de la imagen del producto (ej: S3)'
     )
     
     activo = models.BooleanField(default=True, verbose_name='Activo')
@@ -123,7 +183,7 @@ class Producto(SoftDeleteMixin, TimestampMixin):
         ordering = ['nombre']
     
     def __str__(self):
-        return f"{self.codigo} - {self.nombre}"
+        return f"{self.codigo_barra} - {self.nombre}"
     
     def get_precio_lista(self, lista_precio=None):
         """

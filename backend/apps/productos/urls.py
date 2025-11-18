@@ -1,5 +1,7 @@
 from django.urls import path
 from .views import (
+    MarcaListCreateView,
+    MarcaDetailView,
     CategoriaListCreateView,
     CategoriaDetailView,
     SubcategoriaListCreateView,
@@ -16,6 +18,10 @@ urlpatterns = [
     # Listas de Precios
     path('listas-precios/', ListaPrecioListCreateView.as_view(), name='lista_precio_list_create'),
     path('listas-precios/<int:pk>/', ListaPrecioDetailView.as_view(), name='lista_precio_detail'),
+    
+    # Marcas
+    path('marcas/', MarcaListCreateView.as_view(), name='marca_list_create'),
+    path('marcas/<int:pk>/', MarcaDetailView.as_view(), name='marca_detail'),
     
     # Categorías
     path('categorias/', CategoriaListCreateView.as_view(), name='categoria_list_create'),

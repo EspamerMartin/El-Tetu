@@ -41,20 +41,25 @@ const ProductosListScreen = ({ navigation }: { navigation: NavigationProp }) => 
     : productos;
 
   const handleDelete = async (id: number) => {
-    Alert.alert('Confirmar', '¿Eliminar este producto?', [
-      { text: 'Cancelar' },
-      {
-        text: 'Eliminar',
-        onPress: async () => {
-          try {
-            await productosAPI.delete(id);
-            refetch();
-          } catch (err: any) {
-            Alert.alert('Error', err.response?.data?.error || 'No se pudo eliminar');
-          }
+    Alert.alert(
+      'Confirmar',
+      '¿Desea eliminar este producto? Si tiene pedidos asociados, solo se desactivará.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await productosAPI.delete(id);
+              refetch();
+            } catch (err: any) {
+              Alert.alert('Error', err.response?.data?.error || 'No se pudo eliminar');
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const estados: { value: EstadoFilter; label: string; icon: string }[] = [
