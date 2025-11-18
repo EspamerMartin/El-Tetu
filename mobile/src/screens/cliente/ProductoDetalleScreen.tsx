@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Image } from 'react-native';
 import { Text, Button, Surface, Chip, IconButton, Snackbar } from 'react-native-paper';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { ClienteStackParamList } from '@/navigation/ClienteStack';
 import { productosAPI } from '@/services/api';
 import { Producto } from '@/types';
 import { LoadingOverlay, ScreenContainer } from '@/components';
-import { useAppDispatch } from '@/store';
+import { useAppDispatch, useAppSelector } from '@/store';
 import { addToCart } from '@/store/slices/cartSlice';
 import { theme, spacing } from '@/theme';
 import { formatPrice } from '@/utils';
@@ -26,12 +27,19 @@ type Props = NativeStackScreenProps<ClienteStackParamList, 'ProductoDetalle'>;
 const ProductoDetalleScreen = ({ route, navigation }: Props) => {
   const { productoId } = route.params;
   const dispatch = useAppDispatch();
+  const cartItems = useAppSelector(state => state.cart.items);
   
   const [producto, setProducto] = useState<Producto | null>(null);
   const [loading, setLoading] = useState(true);
   const [cantidad, setCantidad] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [cantidadAgregada, setCantidadAgregada] = useState(1);
+  
+  // Obtener cantidad actual en el carrito
+  const cantidadEnCarrito = producto 
+    ? cartItems.find(item => item.producto.id === producto.id)?.cantidad || 0
+    : 0;
 
   useEffect(() => {
     fetchProducto();
@@ -71,6 +79,7 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
 
   const handleAddToCart = () => {
     if (producto) {
+      setCantidadAgregada(cantidad); // Guardar la cantidad antes de resetear
       dispatch(addToCart({ producto, cantidad }));
       setSnackbarVisible(true);
       setCantidad(1);
@@ -183,9 +192,21 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
 
           {producto.tiene_stock && (
             <>
+              {/* Indicador de cantidad en carrito */}
+              {cantidadEnCarrito > 0 && (
+                <View style={styles.cartIndicator}>
+                  <Surface style={styles.cartIndicatorSurface}>
+                    <Icon name="cart" size={20} color={theme.colors.primary} />
+                    <Text variant="bodyMedium" style={styles.cartIndicatorText}>
+                      Tienes <Text style={styles.cartIndicatorBold}>{cantidadEnCarrito}</Text> {cantidadEnCarrito === 1 ? 'unidad' : 'unidades'} en el carrito
+                    </Text>
+                  </Surface>
+                </View>
+              )}
+
               <View style={styles.section}>
                 <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Cantidad
+                  Cantidad a agregar
                 </Text>
                 <View style={styles.quantityContainer}>
                   <IconButton
@@ -217,30 +238,35 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
                 onPress={handleAddToCart}
                 style={styles.addButton}
               >
-                Agregar al carrito
+                {cantidadEnCarrito > 0 ? 'Agregar más al carrito' : 'Agregar al carrito'}
               </Button>
             </>
           )}
         </Surface>
       </ScrollView>
 
+      {/* Snackbar flotante por encima de todo */}
       <Snackbar
         visible={snackbarVisible}
         onDismiss={() => setSnackbarVisible(false)}
         duration={3000}
         action={{
-          label: 'Ver Carrito',
+          label: 'Ver',
           onPress: () => {
             setSnackbarVisible(false);
             navigation.navigate('ClienteTabs', { screen: 'Carrito' } as any);
           },
-          labelStyle: { color: theme.colors.primary },
+          labelStyle: { color: '#FFFFFF', fontWeight: '600' },
         }}
         style={styles.snackbar}
+        wrapperStyle={styles.snackbarWrapperStyle}
       >
-        <Text style={{ color: theme.colors.onSurface }}>
-          ✓ {cantidad} {cantidad === 1 ? 'producto agregado' : 'productos agregados'} al carrito
-        </Text>
+        <View style={styles.snackbarContent}>
+          <Icon name="check-circle" size={18} color="#FFFFFF" style={styles.snackbarIcon} />
+          <Text style={styles.snackbarText}>
+            {cantidadAgregada} {cantidadAgregada === 1 ? 'unidad agregada' : 'unidades agregadas'}
+          </Text>
+        </View>
       </Snackbar>
     </ScreenContainer>
   );
@@ -355,9 +381,61 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: spacing.lg,
   },
+  snackbarWrapperStyle: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1000,
+    paddingHorizontal: spacing.md,
+  },
   snackbar: {
     backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    width: '80%',
+    maxWidth: '80%',
+  },
+  snackbarContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingHorizontal: 8,
+  },
+  snackbarIcon: {
+    marginRight: spacing.xs,
+  },
+  snackbarText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  cartIndicator: {
     marginBottom: spacing.md,
+  },
+  cartIndicatorSurface: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderRadius: 8,
+    backgroundColor: theme.colors.primaryContainer,
+    elevation: 1,
+  },
+  cartIndicatorText: {
+    marginLeft: spacing.sm,
+    color: theme.colors.onPrimaryContainer,
+    flex: 1,
+  },
+  cartIndicatorBold: {
+    fontWeight: '700',
+    color: theme.colors.primary,
   },
 });
 
