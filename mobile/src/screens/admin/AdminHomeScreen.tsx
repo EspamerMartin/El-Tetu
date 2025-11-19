@@ -48,12 +48,19 @@ const AdminHomeScreen = ({ navigation }: Props) => {
 
   const hoy = new Date();
   
+  // Asegurar que siempre tengamos arrays, incluso si la respuesta es directa
+  const pedidosArray = Array.isArray(pedidos) ? pedidos : (pedidos?.results || []);
+  const productosArray = Array.isArray(productos) ? productos : (productos?.results || []);
+  const productosBajoStockArray = Array.isArray(productosBajoStock) 
+    ? productosBajoStock 
+    : (productosBajoStock?.results || []);
+
   // Pedidos del mes (todos los estados)
-  const pedidosMes = pedidos?.results?.filter((p: any) => {
+  const pedidosMes = pedidosArray.filter((p: any) => {
     const fechaPedido = new Date(p.fecha_creacion);
     return fechaPedido.getMonth() === hoy.getMonth() && 
            fechaPedido.getFullYear() === hoy.getFullYear();
-  }) || [];
+  });
 
   // Pedidos aprobados del mes (solo CONFIRMADO)
   const pedidosAprobadosMes = pedidosMes.filter((p: any) => 
@@ -61,13 +68,13 @@ const AdminHomeScreen = ({ navigation }: Props) => {
   );
 
   // Filtrar productos con stock < 10 (doble verificación)
-  const productosBajoStockFiltrados = productosBajoStock?.results?.filter(
+  const productosBajoStockFiltrados = productosBajoStockArray.filter(
     (p: any) => p.stock < 10
-  ) || [];
+  );
 
   const stats = {
-    totalUsuarios: usuarios?.count || 0,
-    productosActivos: productos?.results?.filter((p: any) => p.activo).length || 0,
+    totalUsuarios: Array.isArray(usuarios) ? usuarios.length : (usuarios?.count || 0),
+    productosActivos: productosArray.filter((p: any) => p.activo).length,
     pedidosMes: pedidosMes.length,
     ventasMes: pedidosAprobadosMes.reduce((acc: number, p: any) => {
       const total = parseFloat(p.total);

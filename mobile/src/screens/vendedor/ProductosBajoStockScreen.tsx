@@ -33,7 +33,8 @@ const ProductosBajoStockScreen = ({ navigation }: Props) => {
     }, [])
   );
 
-  const productos = productosData?.results || [];
+  // Asegurar que siempre tengamos un array, incluso si la respuesta es directa
+  const productos = Array.isArray(productosData) ? productosData : (productosData?.results || []);
   
   // Filtrar productos con stock < 10 (doble verificación)
   const productosBajoStock = productos.filter((p: Producto) => p.stock < 10);

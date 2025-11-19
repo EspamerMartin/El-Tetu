@@ -100,7 +100,8 @@ const CatalogoScreen = () => {
       if (filters.disponible) params.disponible = true;
       
       const data = await productosAPI.getAll(params);
-      let filteredProducts = data?.results || [];
+      // Asegurar que siempre tengamos un array, incluso si la respuesta es directa
+      const filteredProducts = Array.isArray(data) ? data : (data?.results || []);
       
       setProductos(filteredProducts);
     } catch (err) {

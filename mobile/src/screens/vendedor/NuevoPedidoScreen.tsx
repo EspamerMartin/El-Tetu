@@ -57,10 +57,11 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   });
   const { data: listasData, loading: loadingListas } = useFetch(() => listasAPI.getAll());
   const { data: categoriasData } = useFetch(() => productosAPI.getCategorias({ activo: 'true' }));
-  const clientes = clientesData?.results || [];
-  const productos = productosData?.results || [];
-  const listas = listasData?.results || [];
-  const categorias = categoriasData?.results || [];
+  // Asegurar que siempre tengamos arrays, incluso si la respuesta es directa
+  const clientes = Array.isArray(clientesData) ? clientesData : (clientesData?.results || []);
+  const productos = Array.isArray(productosData) ? productosData : (productosData?.results || []);
+  const listas = Array.isArray(listasData) ? listasData : (listasData?.results || []);
+  const categorias = Array.isArray(categoriasData) ? categoriasData : (categoriasData?.results || []);
 
   // Refetch productos cuando cambie el filtro de categoría
   useEffect(() => {

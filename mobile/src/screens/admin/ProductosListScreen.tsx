@@ -35,7 +35,8 @@ const ProductosListScreen = ({ navigation }: { navigation: NavigationProp }) => 
     refetch();
   }, [estadoFilter]);
 
-  const productos = productosData?.results || [];
+  // Asegurar que siempre tengamos un array, incluso si la respuesta es directa
+  const productos = Array.isArray(productosData) ? productosData : (productosData?.results || []);
   const productosFiltrados = searchQuery
     ? productos.filter((p: any) => p.nombre.toLowerCase().includes(searchQuery.toLowerCase()))
     : productos;

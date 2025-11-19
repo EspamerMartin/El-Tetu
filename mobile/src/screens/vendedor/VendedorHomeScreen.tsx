@@ -62,14 +62,21 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
 
   const loading = loadingPedidos || loadingVentas || loadingProductos;
 
+  // Asegurar que siempre tengamos arrays, incluso si la respuesta es directa
+  const pedidosArray = Array.isArray(pedidos) ? pedidos : (pedidos?.results || []);
+  const ventasHoyArray = Array.isArray(ventasHoy) ? ventasHoy : (ventasHoy?.results || []);
+  const productosBajoStockArray = Array.isArray(productosBajoStock) 
+    ? productosBajoStock 
+    : (productosBajoStock?.results || []);
+
   // Filtrar productos con stock < 10 (doble verificación)
-  const productosBajoStockFiltrados = productosBajoStock?.results?.filter(
+  const productosBajoStockFiltrados = productosBajoStockArray.filter(
     (p: any) => p.stock < 10
-  ) || [];
+  );
 
   const stats: DashboardStats = {
-    totalPedidos: pedidos?.results?.length || 0,
-    ventasDelDia: ventasHoy?.results?.reduce((acc, p) => {
+    totalPedidos: pedidosArray.length,
+    ventasDelDia: ventasHoyArray.reduce((acc, p) => {
       const total = parseFloat(p.total);
       return acc + (isNaN(total) ? 0 : total);
     }, 0),

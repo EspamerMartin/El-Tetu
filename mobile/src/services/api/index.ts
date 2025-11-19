@@ -65,7 +65,20 @@ export const productosAPI = {
     page?: number;
   }): Promise<PaginatedResponse<Producto>> => {
     const response = await api.get('/productos/', { params });
-    return response.data;
+    const data = response.data;
+    
+    // Si la respuesta es un array (sin paginación), convertir a formato paginado
+    if (Array.isArray(data)) {
+      return {
+        count: data.length,
+        next: null,
+        previous: null,
+        results: data,
+      };
+    }
+    
+    // Si ya viene paginado, devolverlo tal cual
+    return data;
   },
 
   getById: async (id: number): Promise<Producto> => {

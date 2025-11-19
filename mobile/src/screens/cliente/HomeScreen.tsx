@@ -37,7 +37,8 @@ const HomeScreen = ({ navigation }: Props) => {
         params.search = search;
       }
       const data = await productosAPI.getAll(params);
-      setProductos(data.results);
+      // Asegurar que siempre tengamos un array, incluso si la respuesta es directa
+      setProductos(Array.isArray(data) ? data : (data?.results || []));
     } catch (err: any) {
       setError('Error al cargar productos');
       console.error(err);

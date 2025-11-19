@@ -174,6 +174,15 @@ class ProductoListCreateView(generics.ListCreateAPIView):
         """Desactiva la paginación completamente para este endpoint."""
         return None
     
+    def list(self, request, *args, **kwargs):
+        """
+        Sobrescribe list() para devolver todos los resultados sin paginar.
+        Cuando paginate_queryset retorna None, DRF devuelve un array directo.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
     def get_serializer_class(self):
         """Usa serializer ligero para listado, completo para creación."""
         if self.request.method == 'POST':
