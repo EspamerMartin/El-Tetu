@@ -1,8 +1,9 @@
 module.exports = {
   expo: {
     name: "El-Tetu",
-    slug: "el-tetu-mobile",
+    slug: "el-tetu",
     version: "1.0.0",
+    owner: "espamerit",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
