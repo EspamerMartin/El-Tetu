@@ -17,7 +17,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://el-tetu-production.up.railway.app/api"
+        "EXPO_PUBLIC_API_URL": "https://el-tetu-prod.up.railway.app/api"
       }
     }
   },
