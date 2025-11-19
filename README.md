@@ -13,70 +13,9 @@ Sistema de punto de venta desarrollado con Django REST Framework y React Native 
 
 - **Backend:** Django 4.2 + Django REST Framework + SimpleJWT
 - **Base de datos:** PostgreSQL (Railway) / SQLite (desarrollo local)
-- **Frontend:** React Native (Expo SDK 49) + TypeScript
+- **Frontend:** React Native (Expo SDK 54) + TypeScript
 - **Infraestructura:** Docker & docker-compose
 - **Deploy:** Railway
-
----
-
-## 🚀 Inicio Rápido
-
-### Requisitos Previos
-
-- Docker & Docker Compose
-- Node.js 18+ y npm/yarn
-- Expo CLI: `npm install -g expo-cli`
-- Python 3.11+ (opcional, para desarrollo sin Docker)
-
-### 1. Configuración del Backend
-
-```bash
-# Copiar variables de entorno
-cp .env.example .env
-
-# Editar .env con tus credenciales
-
-# Levantar servicios con Docker
-docker-compose up -d
-
-# Ejecutar migraciones
-docker-compose exec backend python manage.py migrate
-
-# Crear superusuario
-docker-compose exec backend python manage.py createsuperuser
-
-# Cargar datos desde Excel (opcional)
-# Colocar datos.xlsx en backend/ y ejecutar:
-docker-compose exec backend python load_datos_excel.py
-```
-
-**Sin Docker (Windows):**
-```bash
-cd backend
-start_backend.bat
-```
-
-El backend estará disponible en `http://localhost:8000`
-
-### 2. Configuración del Frontend
-
-```bash
-cd mobile
-
-# Instalar dependencias
-npm install
-
-# Configurar API endpoint
-# Crear mobile/.env con:
-# EXPO_PUBLIC_API_URL=http://TU_IP_LOCAL:8000/api
-
-# Iniciar Expo
-npm start
-
-# Escanear QR con Expo Go o usar emulador
-```
-
-**⚠️ Importante:** El backend debe ejecutarse en `0.0.0.0:8000` (no `127.0.0.1`) para que la app móvil pueda conectarse desde la red local.
 
 ---
 
@@ -92,31 +31,26 @@ Después de ejecutar `init_users.py` o `loaddata initial_data`:
 
 ---
 
-## 📊 Carga de Datos desde Excel
+## 📊 Carga de Datos
 
-El sistema permite cargar productos, marcas, categorías y precios desde un archivo Excel (`datos.xlsx`):
+El sistema permite cargar productos desde un archivo CSV (`datos.csv`):
 
-### Estructura del Excel
+### Estructura del CSV
 
-**Sheet1:**
-- Columnas requeridas: `Marca`, `Categoria`, `Subcategoria`, `Nombre`, `Cod. Barras`, etc.
-- El script crea automáticamente marcas, categorías y subcategorías únicas
-- Los productos se vinculan por código de barras
+Columnas requeridas:
+- `categoria`, `subcategoria`, `marca`
+- `decripcionproducto` (nombre del producto)
+- `tamano`, `unidaddetamano`, `unidadescaja`
+- `precio_base`, `codigodebarra`, `imagen`
 
-**Hoja 'Precios':**
-- Columnas: `Cod. Barras`, `Lista 4`
-- Los precios se actualizan por código de barras
-- Productos sin precio en esta hoja reciben `precio_base = 1`
-
-### Ejecución
+### Generación de SQL
 
 ```bash
-# Colocar datos.xlsx en backend/
 cd backend
-python load_datos_excel.py
+python generar_productos_sql.py
 ```
 
-El script se ejecuta automáticamente al iniciar el backend con `start_backend.bat`.
+Esto genera un archivo `datos.sql` con los INSERT statements para PostgreSQL.
 
 ---
 
@@ -134,7 +68,7 @@ El script se ejecuta automáticamente al iniciar el backend con `start_backend.b
 - pandas & openpyxl (carga de Excel)
 
 ### Frontend
-- React Native (Expo SDK 49)
+- React Native (Expo SDK 54)
 - TypeScript
 - React Navigation 6
 - Redux Toolkit + Redux Persist
@@ -155,7 +89,7 @@ El-Tetu/
 │   │   ├── pedidos/        # Gestión de pedidos
 │   │   └── informacion/    # Información general
 │   ├── config/             # Configuración Django
-│   ├── load_datos_excel.py # Script de carga de Excel
+│   ├── generar_productos_sql.py # Script de generación SQL desde CSV
 │   ├── init_users.py       # Script de usuarios iniciales
 │   ├── requirements.txt
 │   └── Dockerfile
@@ -185,7 +119,7 @@ El-Tetu/
 - `POST /api/auth/change-password/` - Cambiar contraseña
 
 ### Productos
-- `GET /api/productos/` - Listar productos (con filtros: `categoria`, `activo`, `search`, etc.)
+- `GET /api/productos/` - Listar todos los productos sin paginación (con filtros: `categoria`, `activo`, `search`, etc.)
 - `GET /api/productos/{id}/` - Detalle de producto
 - `POST /api/productos/` - Crear producto (admin)
 - `PUT /api/productos/{id}/` - Actualizar producto (admin)
@@ -243,10 +177,7 @@ railway run python manage.py createsuperuser
 
 ### 4. Configurar Mobile App
 
-Actualizar `mobile/.env`:
-```
-EXPO_PUBLIC_API_URL=https://tu-app.railway.app/api
-```
+La app móvil está configurada para usar la URL de producción por defecto en `mobile/app.config.js`. Para builds de producción, la URL se configura automáticamente desde `mobile/eas.json`.
 
 ---
 
