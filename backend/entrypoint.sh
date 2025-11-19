@@ -35,16 +35,22 @@ if [ $? -ne 0 ]; then
 fi
 
 # Ejecutar migraciones con timeout
+# migrate es idempotente (no hace daño ejecutarlo múltiples veces)
 echo "Running database migrations..."
 timeout 300 python manage.py migrate --noinput || {
   echo "ERROR: Migrations failed or timed out"
   exit 1
 }
 
-# Recolectar archivos estáticos (solo si hay cambios o es primera vez)
+# Recolectar archivos estáticos (sin --clear para evitar borrar todo cada vez)
+# Solo usar --clear si STATICFILES_DIRS cambió o hay problemas
 echo "Collecting static files..."
-python manage.py collectstatic --noinput --clear || {
-  echo "WARNING: collectstatic failed, continuing anyway..."
+python manage.py collectstatic --noinput || {
+  echo "WARNING: collectstatic failed, trying with --clear..."
+  python manage.py collectstatic --noinput --clear || {
+    echo "ERROR: collectstatic failed even with --clear"
+    exit 1
+  }
 }
 
 # Crear usuarios iniciales solo si la base de datos está vacía
