@@ -138,8 +138,8 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ],
-    # Deshabilitar documentación automática de DRF (no se usa)
-    'DEFAULT_SCHEMA_CLASS': None,
+    # NOTA: No incluimos DEFAULT_SCHEMA_CLASS para deshabilitar documentación automática
+    # La documentación de DRF no se usa, pero no podemos poner None porque DRF lo requiere internamente
 }
 
 # JWT Settings
