@@ -3,7 +3,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
 // Obtener API URL de las variables de entorno (configuradas en app.config.js)
-const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:8000/api';
+// Manejo seguro de Constants.expoConfig que puede ser undefined en algunos builds
+let API_URL = 'http://localhost:8000/api';
+
+try {
+  if (Constants.expoConfig?.extra?.apiUrl) {
+    API_URL = Constants.expoConfig.extra.apiUrl;
+  } else if (Constants.manifest?.extra?.apiUrl) {
+    // Fallback para builds legacy
+    API_URL = Constants.manifest.extra.apiUrl;
+  }
+} catch (error) {
+  console.warn('⚠️ Error al obtener API_URL de config, usando fallback:', error);
+}
 
 console.log('🔧 API_URL configurada:', API_URL);
 

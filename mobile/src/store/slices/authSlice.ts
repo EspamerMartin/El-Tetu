@@ -68,13 +68,30 @@ export const loadStoredAuth = createAsyncThunk(
       const userStr = await AsyncStorage.getItem('user');
       
       if (access && refresh && userStr) {
-        const user = JSON.parse(userStr);
-        return { user, access, refresh };
+        try {
+          const user = JSON.parse(userStr);
+          // Validar que user tenga la estructura esperada
+          if (user && typeof user === 'object' && user.id) {
+            return { user, access, refresh };
+          }
+        } catch (parseError) {
+          // Si el JSON está corrupto, limpiar y rechazar
+          console.warn('⚠️ Error al parsear user de AsyncStorage, limpiando datos corruptos');
+          await AsyncStorage.multiRemove(['access_token', 'refresh_token', 'user']);
+          return rejectWithValue('Corrupted stored auth data');
+        }
       }
       
       return rejectWithValue('No stored auth');
-    } catch (error) {
-      return rejectWithValue('Error loading stored auth');
+    } catch (error: any) {
+      console.error('❌ Error loading stored auth:', error);
+      // Limpiar datos corruptos si hay error
+      try {
+        await AsyncStorage.multiRemove(['access_token', 'refresh_token', 'user']);
+      } catch (cleanupError) {
+        console.error('❌ Error al limpiar AsyncStorage:', cleanupError);
+      }
+      return rejectWithValue(error?.message || 'Error loading stored auth');
     }
   }
 );
@@ -148,11 +165,26 @@ const authSlice = createSlice({
     });
 
     // Load Stored Auth
+    builder.addCase(loadStoredAuth.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
     builder.addCase(loadStoredAuth.fulfilled, (state, action: any) => {
+      state.loading = false;
       state.isAuthenticated = true;
       state.user = action.payload.user;
       state.access_token = action.payload.access;
       state.refresh_token = action.payload.refresh;
+      state.error = null;
+    });
+    builder.addCase(loadStoredAuth.rejected, (state) => {
+      state.loading = false;
+      state.isAuthenticated = false;
+      state.user = null;
+      state.access_token = null;
+      state.refresh_token = null;
+      // No establecer error aquí, es normal si no hay auth guardada
+      state.error = null;
     });
 
     // Logout
