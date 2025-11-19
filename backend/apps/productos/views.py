@@ -170,6 +170,10 @@ class ProductoListCreateView(generics.ListCreateAPIView):
     ordering_fields = ['nombre', 'codigo_barra', 'stock'] 
     ordering = ['-activo', 'fecha_eliminacion', 'nombre']
     
+    def paginate_queryset(self, queryset):
+        """Desactiva la paginación completamente para este endpoint."""
+        return None
+    
     def get_serializer_class(self):
         """Usa serializer ligero para listado, completo para creación."""
         if self.request.method == 'POST':
