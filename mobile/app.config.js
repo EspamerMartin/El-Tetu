@@ -30,7 +30,7 @@ module.exports = {
     },
     extra: {
       eas: {
-        projectId: "301fbcd6-7b42-412e-b33e-e7401ab0bb6f"
+        projectId: "6acb7627-96cb-4d31-b3b4-a441b27ae8db"
       },
       apiUrl: process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000/api"
     }
