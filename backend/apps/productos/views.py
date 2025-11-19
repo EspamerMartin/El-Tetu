@@ -1,5 +1,6 @@
 from rest_framework import generics, filters
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 import logging
 
