@@ -18,7 +18,9 @@ RUN useradd -m -u 1000 appuser
 
 COPY --chown=appuser:appuser . /app/
 
-RUN chmod +x /app/entrypoint.sh
+RUN mkdir -p /app/staticfiles /app/media /app/logs && \
+    chown -R appuser:appuser /app && \
+    chmod +x /app/entrypoint.sh
 
 USER appuser
 
