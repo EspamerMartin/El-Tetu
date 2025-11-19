@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import HttpResponse
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -9,6 +10,8 @@ urlpatterns = [
     path('api/productos/', include('apps.productos.urls')),
     path('api/pedidos/', include('apps.pedidos.urls')),
     path('api/info/', include('apps.informacion.urls')),
+    # Health check endpoint
+    path('health/', lambda r: HttpResponse('OK', content_type='text/plain'), name='health'),
 ]
 
 if settings.DEBUG:

@@ -1,15 +1,42 @@
-Django==5.2.7
-djangorestframework==3.14.0
-djangorestframework-simplejwt==5.3.0
-psycopg2-binary==2.9.11
-python-decouple==3.8
-django-cors-headers==4.9.0
-django-filter==23.5
-dj-database-url==3.0.1
-gunicorn==23.0.0
-whitenoise==6.6.0
-Pillow==12.0.0
-reportlab==4.0.7
-pandas==2.2.0
-openpyxl==3.1.2
-setuptools>=65.0.0
+# Core Django
+# Actualizado a versiones más recientes (Noviembre 2025)
+# Django 5.2.x es la versión estable más reciente compatible con DRF
+Django>=5.2.0,<6.0
+djangorestframework>=3.15.0,<4.0
+
+# JWT Authentication
+# IMPORTANTE: 5.5.1 corrige CVE-2024-22513 (vulnerabilidad de seguridad)
+# Versión más reciente disponible (Julio 2025)
+djangorestframework-simplejwt>=5.5.1
+
+# Database
+# psycopg2-binary 2.9.9+ es compatible con PostgreSQL 12-16
+psycopg2-binary>=2.9.9
+dj-database-url>=3.0.1
+
+# Configuration & Environment
+python-decouple>=3.8
+# Fijar setuptools <81 para evitar warning de pkg_resources deprecado
+# TODO: Remover esta restricción cuando djangorestframework-simplejwt actualice a importlib.metadata
+setuptools>=65.0.0,<81.0.0
+
+# HTTP & CORS
+django-cors-headers>=4.9.0,<5.0
+gunicorn>=23.0.0,<24.0
+
+# Static files
+whitenoise>=6.6.0,<7.0
+
+# Filtering & Search
+django-filter>=24.0,<25.0
+
+# NOTA: Pillow y reportlab fueron removidos porque no se usan:
+# - Pillow: Solo se necesitaría si hubiera ImageField (actualmente se usa URLField)
+# - reportlab: No hay endpoints que generen PDFs
+# Si en el futuro necesitas estas funcionalidades, agrégalas de vuelta.
+
+# NOTA: pandas y openpyxl se removieron porque solo se usan en scripts de desarrollo
+# (load_datos_excel.py). Si necesitas cargar datos en producción, instálalos manualmente
+# o agrégalos temporalmente cuando sea necesario.
+# pandas>=2.2.0
+# openpyxl>=3.1.2

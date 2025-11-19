@@ -41,7 +41,6 @@ def setup_logging():
     # Configurar niveles específicos por módulo
     logging.getLogger('django').setLevel(logging.WARNING)
     logging.getLogger('django.db.backends').setLevel(logging.WARNING)
-    logging.getLogger('PIL').setLevel(logging.WARNING)
     
     # Logger para la aplicación
     logger = logging.getLogger('eltetu')
