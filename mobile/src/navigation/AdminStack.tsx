@@ -9,9 +9,10 @@ import UsuariosListScreen from '@/screens/admin/UsuariosListScreen';
 import UsuarioFormScreen from '@/screens/admin/UsuarioFormScreen';
 import ProductosListScreen from '@/screens/admin/ProductosListScreen';
 import ProductoFormScreen from '@/screens/admin/ProductoFormScreen';
+import MarcasListScreen from '@/screens/admin/MarcasListScreen';
 import CategoriasListScreen from '@/screens/admin/CategoriasListScreen';
-import PedidosAdminListScreen from '@/screens/admin/PedidosAdminListScreen';
-import PedidoAdminDetalleScreen from '@/screens/admin/PedidoAdminDetalleScreen';
+import PedidosListScreen from '@/screens/shared/PedidosListScreen';
+import PedidoDetalleScreen from '@/screens/shared/PedidoDetalleScreen';
 import ListasPreciosScreen from '@/screens/admin/ListasPreciosScreen';
 import ListaPrecioFormScreen from '@/screens/admin/ListaPrecioFormScreen';
 import AsignarListasClientesScreen from '@/screens/admin/AsignarListasClientesScreen';
@@ -23,6 +24,7 @@ export type AdminDrawerParamList = {
   AdminHome: undefined;
   Usuarios: undefined;
   Productos: undefined;
+  Marcas: undefined;
   Categorias: undefined;
   ListasPrecios: undefined;
   Pedidos: undefined;
@@ -93,6 +95,16 @@ const AdminDrawer = () => {
         }}
       />
       <Drawer.Screen
+        name="Marcas"
+        component={MarcasListScreen}
+        options={{
+          title: 'Marcas',
+          drawerIcon: ({ color, size }) => (
+            <Icon name="tag-heart" color={color} size={size} />
+          ),
+        }}
+      />
+      <Drawer.Screen
         name="Categorias"
         component={CategoriasListScreen}
         options={{
@@ -114,7 +126,7 @@ const AdminDrawer = () => {
       />
       <Drawer.Screen
         name="Pedidos"
-        component={PedidosAdminListScreen}
+        component={PedidosListScreen}
         options={{
           title: 'Pedidos',
           drawerIcon: ({ color, size }) => (
@@ -180,7 +192,7 @@ const AdminStack = () => {
       />
       <Stack.Screen
         name="PedidoAdminDetalle"
-        component={PedidoAdminDetalleScreen}
+        component={PedidoDetalleScreen}
         options={{ title: 'Detalle Pedido' }}
       />
       <Stack.Screen

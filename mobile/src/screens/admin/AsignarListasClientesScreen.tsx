@@ -80,8 +80,8 @@ const AsignarListasClientesScreen = ({ navigation }: Props) => {
       handleCloseMenu();
 
       // Enviar explícitamente null si no hay lista
-      const updateData: any = {
-        lista_precio: listaId === null ? null : listaId,
+      const updateData: Partial<User> = {
+        lista_precio: listaId === null ? undefined : listaId,
       };
 
       await clientesAPI.update(cliente.id, updateData);

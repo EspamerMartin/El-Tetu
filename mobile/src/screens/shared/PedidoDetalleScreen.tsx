@@ -1,26 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Button, Surface, Chip, Divider, DataTable } from 'react-native-paper';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AdminStackParamList } from '@/navigation/AdminStack';
+import { useAppSelector } from '@/store';
 import { pedidosAPI } from '@/services/api';
-import { Pedido } from '@/types';
+import { Pedido, PedidoItem } from '@/types';
 import { LoadingOverlay, ScreenContainer } from '@/components';
 import { theme, spacing } from '@/theme';
-import { formatPrice, formatDateTime } from '@/utils';
+import { formatPrice, formatDateTime, formatDate } from '@/utils';
 
-type Props = NativeStackScreenProps<AdminStackParamList, 'PedidoAdminDetalle'>;
+interface PedidoDetalleScreenProps {
+  route: { params: { pedidoId: number } };
+  navigation: any;
+}
 
 /**
- * PedidoAdminDetalleScreen
+ * PedidoDetalleScreen - Pantalla unificada para ver detalle de pedido
  * 
- * Pantalla de detalle de pedido para administrador con opciones de:
- * - Ver todos los detalles del pedido
- * - Aprobar pedido (cambiar estado a CONFIRMADO)
- * - Eliminar pedido
+ * Funciona para admin y vendedor con:
+ * - Admin: Puede aprobar/rechazar pedidos pendientes
+ * - Vendedor: Solo visualización
+ * - Ambos: Ven toda la información del pedido
  */
-const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
+const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) => {
   const { pedidoId } = route.params;
+  const { user } = useAppSelector((state) => state.auth);
+  const isAdmin = user?.rol === 'admin';
   
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +68,6 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
               Alert.alert('Éxito', 'Pedido aprobado correctamente');
               await fetchPedido();
             } catch (err: any) {
-              // Extraer mensaje de error del backend
               const errorMessage = 
                 err.response?.data?.error || 
                 err.response?.data?.message ||
@@ -73,13 +76,7 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
                 'No se pudo aprobar el pedido';
               
               console.error('Error al aprobar pedido:', err);
-              console.error('Error response:', err.response?.data);
-              
-              Alert.alert(
-                'Error al aprobar pedido',
-                errorMessage,
-                [{ text: 'OK' }]
-              );
+              Alert.alert('Error al aprobar pedido', errorMessage, [{ text: 'OK' }]);
             } finally {
               setProcessing(false);
             }
@@ -110,7 +107,6 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
               Alert.alert('Pedido Rechazado', 'El pedido ha sido rechazado y marcado como cancelado');
               await fetchPedido();
             } catch (err: any) {
-              // Extraer mensaje de error del backend
               const errorMessage = 
                 err.response?.data?.error || 
                 err.response?.data?.message ||
@@ -119,13 +115,7 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
                 'No se pudo rechazar el pedido';
               
               console.error('Error al rechazar pedido:', err);
-              console.error('Error response:', err.response?.data);
-              
-              Alert.alert(
-                'Error al rechazar pedido',
-                errorMessage,
-                [{ text: 'OK' }]
-              );
+              Alert.alert('Error al rechazar pedido', errorMessage, [{ text: 'OK' }]);
             } finally {
               setProcessing(false);
             }
@@ -184,136 +174,152 @@ const PedidoAdminDetalleScreen = ({ route, navigation }: Props) => {
     <ScreenContainer>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <Surface style={styles.surface}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerInfo}>
-            <Text variant="headlineSmall" style={styles.title}>
-              Pedido #{pedido.id}
-            </Text>
-            <Text variant="bodyMedium" style={styles.date}>
-              {formatDateTime(pedido.fecha_creacion)}
-            </Text>
-          </View>
-          <Chip
-            style={[styles.estadoChip, { backgroundColor: getEstadoColor(pedido.estado) }]}
-            textStyle={styles.estadoChipText}
-          >
-            {getEstadoLabel(pedido.estado)}
-          </Chip>
-        </View>
-
-        <Divider style={styles.divider} />
-
-        {/* Información del Cliente */}
-        <View style={styles.section}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Cliente
-          </Text>
-          <View style={styles.infoRow}>
-            <Text variant="bodyMedium" style={styles.label}>Nombre:</Text>
-            <Text variant="bodyMedium" style={styles.value}>{pedido.cliente_nombre || 'N/A'}</Text>
-          </View>
-        </View>
-
-        <Divider style={styles.divider} />
-
-        {/* Items del Pedido */}
-        <View style={styles.section}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Productos
-          </Text>
-          <DataTable>
-            <DataTable.Header>
-              <DataTable.Title>Producto</DataTable.Title>
-              <DataTable.Title numeric>Cant.</DataTable.Title>
-              <DataTable.Title numeric>Precio</DataTable.Title>
-              <DataTable.Title numeric>Subtotal</DataTable.Title>
-            </DataTable.Header>
-
-            {pedido.items && pedido.items.map((item) => (
-              <DataTable.Row key={item.id}>
-                <DataTable.Cell>{item.producto_detalle?.nombre || 'Producto'}</DataTable.Cell>
-                <DataTable.Cell numeric>{item.cantidad}</DataTable.Cell>
-                <DataTable.Cell numeric>{formatPrice(item.precio_unitario)}</DataTable.Cell>
-                <DataTable.Cell numeric>{formatPrice(item.subtotal)}</DataTable.Cell>
-              </DataTable.Row>
-            ))}
-          </DataTable>
-        </View>
-
-        <Divider style={styles.divider} />
-
-        {/* Resumen de Precios */}
-        <View style={styles.section}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Resumen
-          </Text>
-          
-          <View style={styles.priceRow}>
-            <Text variant="bodyLarge">Subtotal:</Text>
-            <Text variant="bodyLarge">{formatPrice(pedido.subtotal)}</Text>
-          </View>
-
-          {parseFloat(pedido.descuento_total) > 0 && (
-            <View style={styles.priceRow}>
-              <Text variant="bodyLarge" style={styles.discountText}>Descuento:</Text>
-              <Text variant="bodyLarge" style={styles.discountText}>
-                -{formatPrice(pedido.descuento_total)}
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerInfo}>
+              <Text variant="headlineSmall" style={styles.title}>
+                Pedido #{pedido.id}
+              </Text>
+              <Text variant="bodyMedium" style={styles.date}>
+                {isAdmin ? formatDateTime(pedido.fecha_creacion) : formatDate(pedido.fecha_creacion)}
               </Text>
             </View>
-          )}
+            <Chip
+              style={[styles.estadoChip, { backgroundColor: getEstadoColor(pedido.estado) }]}
+              textStyle={styles.estadoChipText}
+            >
+              {getEstadoLabel(pedido.estado)}
+            </Chip>
+          </View>
 
           <Divider style={styles.divider} />
 
-          <View style={styles.priceRow}>
-            <Text variant="headlineSmall" style={styles.totalLabel}>Total:</Text>
-            <Text variant="headlineSmall" style={styles.totalValue}>
-              {formatPrice(pedido.total)}
+          {/* Información del Cliente */}
+          <View style={styles.section}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Cliente
             </Text>
+            <View style={styles.infoRow}>
+              <Text variant="bodyMedium" style={styles.label}>Nombre:</Text>
+              <Text variant="bodyMedium" style={styles.value}>{pedido.cliente_nombre || 'N/A'}</Text>
+            </View>
           </View>
-        </View>
 
+          <Divider style={styles.divider} />
 
-        <Divider style={styles.divider} />
+          {/* Items del Pedido */}
+          <View style={styles.section}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Productos
+            </Text>
+            <DataTable>
+              <DataTable.Header>
+                <DataTable.Title>Producto</DataTable.Title>
+                <DataTable.Title numeric>Cant.</DataTable.Title>
+                <DataTable.Title numeric>Precio</DataTable.Title>
+                <DataTable.Title numeric>Subtotal</DataTable.Title>
+              </DataTable.Header>
 
-        {/* Botones de Acción */}
-        <View style={styles.actionsSection}>
-          {pedido.estado === 'PENDIENTE' && (
+              {pedido.items && pedido.items.map((item: PedidoItem) => {
+                const productoNombre = item.producto_nombre || item.producto_detalle?.nombre || 'Producto eliminado';
+                return (
+                  <DataTable.Row key={item.id}>
+                    <DataTable.Cell>{productoNombre}</DataTable.Cell>
+                    <DataTable.Cell numeric>{item.cantidad}</DataTable.Cell>
+                    <DataTable.Cell numeric>{formatPrice(item.precio_unitario)}</DataTable.Cell>
+                    <DataTable.Cell numeric>{formatPrice(item.subtotal)}</DataTable.Cell>
+                  </DataTable.Row>
+                );
+              })}
+            </DataTable>
+          </View>
+
+          <Divider style={styles.divider} />
+
+          {/* Resumen de Precios */}
+          <View style={styles.section}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Resumen
+            </Text>
+            
+            <View style={styles.priceRow}>
+              <Text variant="bodyLarge">Subtotal:</Text>
+              <Text variant="bodyLarge">{formatPrice(pedido.subtotal)}</Text>
+            </View>
+
+            {parseFloat(pedido.descuento_total) > 0 && (
+              <View style={styles.priceRow}>
+                <Text variant="bodyLarge" style={styles.discountText}>Descuento:</Text>
+                <Text variant="bodyLarge" style={styles.discountText}>
+                  -{formatPrice(pedido.descuento_total)}
+                </Text>
+              </View>
+            )}
+
+            <Divider style={styles.divider} />
+
+            <View style={styles.priceRow}>
+              <Text variant="headlineSmall" style={styles.totalLabel}>Total:</Text>
+              <Text variant="headlineSmall" style={styles.totalValue}>
+                {formatPrice(pedido.total)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Notas */}
+          {pedido.notas && (
             <>
-              <Button
-                mode="contained"
-                onPress={handleAprobar}
-                disabled={processing}
-                loading={processing}
-                style={styles.aprobarButton}
-                icon="check-circle"
-              >
-                Aprobar Pedido
-              </Button>
-
-              <Button
-                mode="contained"
-                onPress={handleRechazar}
-                disabled={processing}
-                loading={processing}
-                style={styles.rechazarButton}
-                buttonColor={theme.colors.error}
-                icon="close-circle"
-              >
-                Rechazar Pedido
-              </Button>
+              <Divider style={styles.divider} />
+              <View style={styles.section}>
+                <Text variant="titleMedium" style={styles.sectionTitle}>Notas</Text>
+                <Text variant="bodyMedium">{pedido.notas}</Text>
+              </View>
             </>
           )}
 
-          {pedido.estado !== 'PENDIENTE' && (
-            <View style={styles.estadoInfo}>
-              <Text variant="bodyLarge" style={styles.estadoInfoText}>
-                Este pedido ya ha sido procesado ({getEstadoLabel(pedido.estado)})
-              </Text>
-            </View>
+          {/* Botones de Acción (Solo Admin) */}
+          {isAdmin && (
+            <>
+              <Divider style={styles.divider} />
+              <View style={styles.actionsSection}>
+                {pedido.estado === 'PENDIENTE' && (
+                  <>
+                    <Button
+                      mode="contained"
+                      onPress={handleAprobar}
+                      disabled={processing}
+                      loading={processing}
+                      style={styles.aprobarButton}
+                      icon="check-circle"
+                    >
+                      Aprobar Pedido
+                    </Button>
+
+                    <Button
+                      mode="contained"
+                      onPress={handleRechazar}
+                      disabled={processing}
+                      loading={processing}
+                      style={styles.rechazarButton}
+                      buttonColor={theme.colors.error}
+                      icon="close-circle"
+                    >
+                      Rechazar Pedido
+                    </Button>
+                  </>
+                )}
+
+                {pedido.estado !== 'PENDIENTE' && (
+                  <View style={styles.estadoInfo}>
+                    <Text variant="bodyLarge" style={styles.estadoInfoText}>
+                      Este pedido ya ha sido procesado ({getEstadoLabel(pedido.estado)})
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </>
           )}
-        </View>
-      </Surface>
+        </Surface>
       </ScrollView>
       <LoadingOverlay visible={processing} message="Procesando..." />
     </ScreenContainer>
@@ -411,11 +417,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: theme.colors.primary,
   },
-  // Estilo promoChip eliminado (no se usa)
-  _removed_promoChip: {
-    marginTop: spacing.sm,
-    alignSelf: 'flex-start',
-  },
   actionsSection: {
     marginTop: spacing.md,
     gap: spacing.md,
@@ -438,4 +439,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PedidoAdminDetalleScreen;
+export default PedidoDetalleScreen;
+

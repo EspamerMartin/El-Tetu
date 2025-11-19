@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Button, Switch, SegmentedButtons } from 'react-native-paper';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AdminStackParamList } from '@/navigation/AdminStack';
 import { useFetch } from '@/hooks';
 import { clientesAPI, authAPI } from '@/services/api';
 import { InputField, LoadingOverlay } from '@/components';
 import { theme, spacing } from '@/theme';
 
-const UsuarioFormScreen = ({ route, navigation }: any) => {
+type Props = NativeStackScreenProps<AdminStackParamList, 'UsuarioForm'>;
+
+const UsuarioFormScreen = ({ route, navigation }: Props) => {
   const { usuarioId } = route.params || {};
   const isEdit = !!usuarioId;
 

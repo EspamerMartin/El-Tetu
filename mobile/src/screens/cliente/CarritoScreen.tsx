@@ -6,6 +6,7 @@ import { ClienteTabParamList } from '@/navigation/ClienteStack';
 import { useAppSelector, useAppDispatch } from '@/store';
 import { removeFromCart, updateQuantity, clearCart } from '@/store/slices/cartSlice';
 import { pedidosAPI } from '@/services/api';
+import { CartItem } from '@/types';
 import { LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
 import { theme, spacing } from '@/theme';
 import { formatPrice } from '@/utils';
@@ -31,6 +32,9 @@ const CarritoScreen = ({ navigation }: Props) => {
   // Calcular subtotal y total
   const subtotal = items.reduce((acc, item) => {
     const precio = parseFloat(item.producto.precio);
+    if (isNaN(precio)) {
+      return acc;
+    }
     return acc + (precio * item.cantidad);
   }, 0);
 
@@ -118,8 +122,11 @@ const CarritoScreen = ({ navigation }: Props) => {
   };
 
 
-  const renderItem = ({ item }: any) => {
+  const renderItem = ({ item }: { item: CartItem }) => {
     const precio = parseFloat(item.producto.precio);
+    if (isNaN(precio)) {
+      return null;
+    }
     const subtotalItem = precio * item.cantidad;
 
     return (

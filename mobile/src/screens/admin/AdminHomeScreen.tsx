@@ -70,8 +70,8 @@ const AdminHomeScreen = ({ navigation }: Props) => {
     productosActivos: productos?.results?.filter((p: any) => p.activo).length || 0,
     pedidosMes: pedidosMes.length,
     ventasMes: pedidosAprobadosMes.reduce((acc: number, p: any) => {
-      const total = parseFloat(p.total) || 0;
-      return acc + total;
+      const total = parseFloat(p.total);
+      return acc + (isNaN(total) ? 0 : total);
     }, 0),
     productosConBajoStock: productosBajoStockFiltrados.length,
   };

@@ -2,16 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, FAB, Card, Chip, IconButton, Searchbar } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
+import { AdminDrawerParamList } from '@/navigation/AdminStack';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
 import { ProductCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
 import { theme, spacing } from '@/theme';
 import { formatPrice } from '@/utils';
+import { Producto } from '@/types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type EstadoFilter = 'TODOS' | 'ACTIVO' | 'INACTIVO';
 
-const ProductosListScreen = ({ navigation }: any) => {
+type NavigationProp = DrawerNavigationProp<AdminDrawerParamList, 'Productos'>;
+
+const ProductosListScreen = ({ navigation }: { navigation: NavigationProp }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>('TODOS');
   
@@ -36,20 +41,25 @@ const ProductosListScreen = ({ navigation }: any) => {
     : productos;
 
   const handleDelete = async (id: number) => {
-    Alert.alert('Confirmar', '¿Eliminar este producto?', [
-      { text: 'Cancelar' },
-      {
-        text: 'Eliminar',
-        onPress: async () => {
-          try {
-            await productosAPI.delete(id);
-            refetch();
-          } catch (err: any) {
-            Alert.alert('Error', err.response?.data?.error || 'No se pudo eliminar');
-          }
+    Alert.alert(
+      'Confirmar',
+      '¿Desea eliminar este producto? Si tiene pedidos asociados, solo se desactivará.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await productosAPI.delete(id);
+              refetch();
+            } catch (err: any) {
+              Alert.alert('Error', err.response?.data?.error || 'No se pudo eliminar');
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const estados: { value: EstadoFilter; label: string; icon: string }[] = [
@@ -88,9 +98,9 @@ const ProductosListScreen = ({ navigation }: any) => {
       ) : (
         <FlatList
           data={productosFiltrados}
-          keyExtractor={(item: any) => item.id.toString()}
+          keyExtractor={(item: Producto) => item.id.toString()}
           contentContainerStyle={styles.list}
-          renderItem={({ item }: any) => (
+          renderItem={({ item }: { item: Producto }) => (
             <Card style={styles.card}>
               <Card.Title
                 title={item.nombre}

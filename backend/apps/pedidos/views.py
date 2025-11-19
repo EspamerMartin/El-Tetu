@@ -59,6 +59,12 @@ class PedidoListCreateView(generics.ListCreateAPIView):
             if cliente_id:
                 queryset = queryset.filter(cliente_id=cliente_id)
         
+        # Filtro por fecha de creación
+        fecha_creacion = self.request.query_params.get('fecha_creacion', None)
+        if fecha_creacion:
+            # Formato esperado: YYYY-MM-DD
+            queryset = queryset.filter(fecha_creacion__date=fecha_creacion)
+        
         # Ordenar: primero pedidos activos (no cancelados), luego por fecha de creación (más recientes primero)
         # Usar Case/When para que CANCELADO vaya al final
         return queryset.annotate(

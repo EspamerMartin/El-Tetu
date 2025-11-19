@@ -498,9 +498,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   productWrapper: {
-    flex: 1,
+    width: (screenWidth - 48) / 2,
     margin: 6,
-    maxWidth: (screenWidth - 48) / 2,
     minHeight: 220,
     position: 'relative',
   },

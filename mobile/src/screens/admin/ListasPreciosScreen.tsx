@@ -68,8 +68,8 @@ const ListasPreciosScreen = ({ navigation }: Props) => {
     }
 
     Alert.alert(
-      'Eliminar lista',
-      `¿Estás seguro de eliminar "${lista.nombre}"? Los clientes asignados a esta lista pasarán a usar Lista Base.`,
+      'Confirmar',
+      `¿Desea eliminar esta lista de precios "${lista.nombre}"? Si tiene pedidos o clientes asociados, solo se desactivará. Los clientes asignados a esta lista pasarán a usar Lista Base.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {

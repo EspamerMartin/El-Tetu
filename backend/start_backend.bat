@@ -22,6 +22,11 @@ echo [2/4] Inicializando usuarios de prueba...
 python init_users.py
 echo.
 
+REM Cargar datos desde Excel si existe
+echo [2.5/4] Cargando datos desde datos.xlsx...
+python load_datos_excel.py || echo "No se encontró datos.xlsx o hubo un error (continuando...)"
+echo.
+
 REM Recolectar archivos estaticos
 echo [3/4] Recolectando archivos estaticos...
 python manage.py collectstatic --noinput

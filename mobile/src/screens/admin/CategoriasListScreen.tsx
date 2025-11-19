@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { Text, Button, Card, IconButton, FAB, Dialog, Portal, Chip, Avatar, Menu } from 'react-native-paper';
+import { Text, Button, Card, IconButton, FAB, Dialog, Portal, Chip, Avatar, Menu, Switch } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
 import { InputField, LoadingOverlay } from '@/components';
 import { theme, spacing } from '@/theme';
+import { Subcategoria, Categoria } from '@/types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type EstadoFilter = 'TODOS' | 'ACTIVO' | 'INACTIVO';
@@ -51,7 +52,11 @@ const CategoriasListScreen = () => {
 
     try {
       setSaving(true);
-      const data = { nombre: nombre.trim(), descripcion: descripcion.trim(), activo };
+      const data: Partial<Categoria> = { 
+        nombre: nombre.trim(), 
+        descripcion: descripcion.trim() || undefined, 
+        activo 
+      };
       
       if (editingId) {
         await productosAPI.updateCategoria(editingId, data);
@@ -86,9 +91,9 @@ const CategoriasListScreen = () => {
 
     try {
       setSaving(true);
-      const data: any = { 
+      const data: Partial<Subcategoria> = { 
         nombre: nombre.trim(), 
-        descripcion: descripcion.trim(), 
+        descripcion: descripcion.trim() || undefined, 
         activo
       };
       
@@ -117,7 +122,7 @@ const CategoriasListScreen = () => {
     }
   };
 
-  const handleEdit = (categoria: any) => {
+  const handleEdit = (categoria: Categoria) => {
     setEditingId(categoria.id);
     setNombre(categoria.nombre);
     setDescripcion(categoria.descripcion || '');
@@ -125,7 +130,7 @@ const CategoriasListScreen = () => {
     setDialogVisible(true);
   };
 
-  const handleEditSubcategoria = (subcategoria: any) => {
+  const handleEditSubcategoria = (subcategoria: Subcategoria) => {
     setEditingSubId(subcategoria.id);
     setSelectedCategoriaId(subcategoria.categoria);
     setNombre(subcategoria.nombre);
@@ -211,8 +216,170 @@ const CategoriasListScreen = () => {
     setSubDialogVisible(true);
   };
 
+  const handleDesactivarCategoria = async () => {
+    if (!editingId) return;
+
+    // Primero mostrar confirmación
+    const confirmar = await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        'Confirmar',
+        '¿Desea eliminar esta categoría? Si tiene productos o subcategorías asociadas, solo se desactivará.',
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+            onPress: () => resolve(false),
+          },
+          {
+            text: 'Eliminar',
+            style: 'destructive',
+            onPress: () => resolve(true),
+          },
+        ]
+      );
+    });
+
+    // Si el usuario canceló, restaurar el switch a activo
+    if (!confirmar) {
+      setActivo(true);
+      return;
+    }
+
+    try {
+      // Intentar hacer DELETE (el backend maneja soft/hard delete automáticamente)
+      const response = await productosAPI.deleteCategoria(editingId);
+      
+      // Si tiene productos o subcategorías, el backend hace soft delete (retorna 200 con mensaje)
+      // Si no tiene referencias, el backend hace hard delete (retorna 204 sin body)
+      const message = response && response.message 
+        ? response.message 
+        : 'Categoría eliminada correctamente';
+      
+      // Esperar a que el usuario presione OK antes de cerrar y refrescar
+      await new Promise<void>((resolve) => {
+        Alert.alert('Éxito', message, [
+          {
+            text: 'OK',
+            onPress: () => {
+              resolve();
+            },
+          },
+        ]);
+      });
+      
+      setDialogVisible(false);
+      refetch();
+    } catch (err: any) {
+      // Si hay error, solo desactivar (fallback)
+      try {
+        await productosAPI.updateCategoria(editingId, { activo: false });
+        setActivo(false);
+        
+        // Esperar a que el usuario presione OK antes de refrescar
+        await new Promise<void>((resolve) => {
+          Alert.alert('Categoría desactivada', 'La categoría fue desactivada.', [
+            {
+              text: 'OK',
+              onPress: () => {
+                resolve();
+              },
+            },
+          ]);
+        });
+        
+        refetch();
+      } catch (updateErr: any) {
+        const errorMsg = updateErr.response?.data?.error || updateErr.response?.data?.detail || 'No se pudo procesar';
+        Alert.alert('Error', errorMsg);
+        // Restaurar el switch si hay error
+        setActivo(true);
+      }
+    }
+  };
+
+  const handleDesactivarSubcategoria = async () => {
+    if (!editingSubId) return;
+
+    // Primero mostrar confirmación
+    const confirmar = await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        'Confirmar',
+        '¿Desea eliminar esta subcategoría? Si tiene productos asociados, solo se desactivará.',
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+            onPress: () => resolve(false),
+          },
+          {
+            text: 'Eliminar',
+            style: 'destructive',
+            onPress: () => resolve(true),
+          },
+        ]
+      );
+    });
+
+    // Si el usuario canceló, restaurar el switch a activo
+    if (!confirmar) {
+      setActivo(true);
+      return;
+    }
+
+    try {
+      // Intentar hacer DELETE (el backend maneja soft/hard delete automáticamente)
+      const response = await productosAPI.deleteSubcategoria(editingSubId);
+      
+      // Si tiene productos, el backend hace soft delete (retorna 200 con mensaje)
+      // Si no tiene productos, el backend hace hard delete (retorna 204 sin body)
+      const message = response && response.message 
+        ? response.message 
+        : 'Subcategoría eliminada correctamente';
+      
+      // Esperar a que el usuario presione OK antes de cerrar y refrescar
+      await new Promise<void>((resolve) => {
+        Alert.alert('Éxito', message, [
+          {
+            text: 'OK',
+            onPress: () => {
+              resolve();
+            },
+          },
+        ]);
+      });
+      
+      setSubDialogVisible(false);
+      refetchSubcategorias();
+    } catch (err: any) {
+      // Si hay error, solo desactivar (fallback)
+      try {
+        await productosAPI.updateSubcategoria(editingSubId, { activo: false });
+        setActivo(false);
+        
+        // Esperar a que el usuario presione OK antes de refrescar
+        await new Promise<void>((resolve) => {
+          Alert.alert('Subcategoría desactivada', 'La subcategoría fue desactivada.', [
+            {
+              text: 'OK',
+              onPress: () => {
+                resolve();
+              },
+            },
+          ]);
+        });
+        
+        refetchSubcategorias();
+      } catch (updateErr: any) {
+        const errorMsg = updateErr.response?.data?.error || updateErr.response?.data?.detail || 'No se pudo procesar';
+        Alert.alert('Error', errorMsg);
+        // Restaurar el switch si hay error
+        setActivo(true);
+      }
+    }
+  };
+
   const getSubcategoriasByCategoria = (categoriaId: number) => {
-    return subcategorias.filter((sub: any) => sub.categoria === categoriaId);
+    return subcategorias.filter((sub: Subcategoria) => sub.categoria === categoriaId);
   };
 
   return (
@@ -296,7 +463,7 @@ const CategoriasListScreen = () => {
 
                 {isExpanded && subs.length > 0 && (
                   <View style={styles.subcategoriesContainer}>
-                    {subs.map((sub: any) => (
+                    {subs.map((sub: Subcategoria) => (
                       <Card key={sub.id} style={styles.subCard}>
                         <Card.Title
                           title={sub.nombre}
@@ -347,6 +514,21 @@ const CategoriasListScreen = () => {
               multiline 
               numberOfLines={2}
             />
+            <View style={styles.switchRow}>
+              <Text variant="bodyLarge">Activa</Text>
+              <Switch
+                value={activo}
+                onValueChange={async (newValue) => {
+                  if (!newValue) {
+                    // Al desactivar, intentar hacer soft delete primero
+                    await handleDesactivarCategoria();
+                  } else {
+                    // Al activar, solo actualizar el estado
+                    setActivo(newValue);
+                  }
+                }}
+              />
+            </View>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setDialogVisible(false)}>Cancelar</Button>
@@ -367,6 +549,21 @@ const CategoriasListScreen = () => {
               multiline 
               numberOfLines={2}
             />
+            <View style={styles.switchRow}>
+              <Text variant="bodyLarge">Activa</Text>
+              <Switch
+                value={activo}
+                onValueChange={async (newValue) => {
+                  if (!newValue) {
+                    // Al desactivar, intentar hacer soft delete primero
+                    await handleDesactivarSubcategoria();
+                  } else {
+                    // Al activar, solo actualizar el estado
+                    setActivo(newValue);
+                  }
+                }}
+              />
+            </View>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setSubDialogVisible(false)}>Cancelar</Button>
@@ -399,6 +596,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     alignItems: 'center',
     marginBottom: spacing.sm 
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
   },
   subcategoriesContainer: { 
     marginTop: spacing.md,
