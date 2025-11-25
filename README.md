@@ -7,7 +7,8 @@ Sistema de punto de venta desarrollado con Django REST Framework y React Native 
 - Serra Facundo
 - Espamer Martin
   
-  ##Video Muestra youtube: "https://youtu.be/2tnhd32hF-U"
+
+Video Muestra youtube: "https://youtu.be/2tnhd32hF-U"
 ---
 
 ## 🏗️ Arquitectura
