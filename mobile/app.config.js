@@ -24,7 +24,9 @@ module.exports = {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff"
       },
-      package: "com.eltetu.app"
+      package: "com.eltetu.app",
+      // Asegura que las capturas/grabaciones de pantalla NO estén bloqueadas
+      blockScreenshots: false
     },
     web: {
       favicon: "./assets/favicon.png"
