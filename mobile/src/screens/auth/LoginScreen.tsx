@@ -1,13 +1,9 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, TextInput, Button, Surface, HelperText } from 'react-native-paper';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '@/navigation/AuthStack';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { login } from '@/store/slices/authSlice';
 import { colors, spacing, borderRadius, shadows } from '@/theme';
-
-type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 /**
  * LoginScreen
@@ -16,9 +12,10 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
  * - Colores púrpura corporativos
  * - Validación de formulario
  * - Manejo de errores
- * - Navegación a registro
+ * 
+ * Nota: Los usuarios solo se crean desde el panel de administración.
  */
-const LoginScreen = ({ navigation }: Props) => {
+const LoginScreen = () => {
   const dispatch = useAppDispatch();
   const { loading, error } = useAppSelector((state) => state.auth);
 
@@ -126,17 +123,11 @@ const LoginScreen = ({ navigation }: Props) => {
           </View>
         </Surface>
 
-        {/* Link a registro */}
-        <View style={styles.registerContainer}>
-          <Text style={styles.registerText}>¿No tienes cuenta?</Text>
-          <Button
-            mode="text"
-            onPress={() => navigation.navigate('Register')}
-            labelStyle={styles.registerButton}
-            compact
-          >
-            Regístrate aquí
-          </Button>
+        {/* Mensaje informativo */}
+        <View style={styles.infoContainer}>
+          <Text style={styles.infoText}>
+            Para obtener acceso, contacta con el administrador.
+          </Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -221,19 +212,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  registerContainer: {
-    flexDirection: 'row',
+  infoContainer: {
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
-  registerText: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 14,
-  },
-  registerButton: {
-    color: colors.white,
-    fontWeight: '600',
+  infoText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 13,
+    textAlign: 'center',
   },
 });
 

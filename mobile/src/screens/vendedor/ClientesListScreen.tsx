@@ -82,17 +82,25 @@ const ClientesListScreen = ({ navigation }: Props) => {
         />
         <Card.Content>
           <View style={styles.infoRow}>
+            {item.zona_nombre && (
+              <Chip icon="map-marker-radius" compact style={styles.zonaChip} textStyle={styles.zonaChipText}>
+                {item.zona_nombre}
+              </Chip>
+            )}
             {item.telefono && (
               <Chip icon="phone" compact style={styles.infoChip} textStyle={styles.chipText}>
                 {item.telefono}
               </Chip>
             )}
-            {item.direccion && (
-              <Chip icon="map-marker" compact style={styles.infoChip} textStyle={styles.chipText}>
-                {item.direccion.length > 30 ? `${item.direccion.substring(0, 30)}...` : item.direccion}
-              </Chip>
-            )}
           </View>
+          {item.calle && (
+            <View style={styles.direccionRow}>
+              <Icon name="map-marker" size={14} color={colors.textSecondary} />
+              <Text style={styles.direccionText} numberOfLines={1}>
+                {item.calle} {item.numero}{item.entre_calles ? ` (${item.entre_calles})` : ''}
+              </Text>
+            </View>
+          )}
           <View style={styles.statusRow}>
             <Chip
               icon={item.is_active ? 'check-circle' : 'close-circle'}
@@ -181,8 +189,26 @@ const styles = StyleSheet.create({
   infoChip: {
     backgroundColor: colors.primarySurface,
   },
+  zonaChip: {
+    backgroundColor: colors.tertiary,
+  },
+  zonaChipText: {
+    fontSize: 11,
+    color: colors.white,
+  },
   chipText: {
     fontSize: 11,
+  },
+  direccionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+    gap: spacing.xs,
+  },
+  direccionText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    flex: 1,
   },
   statusRow: {
     marginTop: spacing.sm,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Button, Surface } from 'react-native-paper';
+import { Text, Button, Surface, Divider } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ClienteTabParamList } from '@/navigation/ClienteStack';
 import { useAppDispatch, useAppSelector } from '@/store';
@@ -10,12 +10,15 @@ import { colors, spacing, borderRadius, shadows } from '@/theme';
 
 type Props = NativeStackScreenProps<ClienteTabParamList, 'Perfil'>;
 
+const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
 /**
  * PerfilScreen
  * 
  * Pantalla de perfil del usuario con:
  * - Datos personales
- * - Opción de editar teléfono y dirección
+ * - Información de ubicación y horarios (para clientes)
+ * - Opción de editar teléfono
  * - Cerrar sesión
  */
 const PerfilScreen = ({ navigation }: Props) => {
@@ -26,7 +29,6 @@ const PerfilScreen = ({ navigation }: Props) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     telefono: user?.telefono || '',
-    direccion: user?.direccion || '',
   });
 
   const handleSave = async () => {
@@ -68,6 +70,15 @@ const PerfilScreen = ({ navigation }: Props) => {
     }
   };
 
+  // Construir dirección completa
+  const getDireccionCompleta = () => {
+    const parts = [];
+    if (user.calle) parts.push(user.calle);
+    if (user.numero) parts.push(user.numero);
+    if (user.entre_calles) parts.push(`(entre ${user.entre_calles})`);
+    return parts.join(' ') || 'No especificada';
+  };
+
   return (
     <ScreenContainer>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -84,6 +95,7 @@ const PerfilScreen = ({ navigation }: Props) => {
           </View>
         </View>
 
+        {/* Información Personal */}
         <Surface style={styles.surface}>
           <Text style={styles.sectionTitle}>Información Personal</Text>
 
@@ -92,6 +104,13 @@ const PerfilScreen = ({ navigation }: Props) => {
             <Text style={styles.value}>{user.email}</Text>
           </View>
 
+          {user.cuit_dni && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>CUIT/DNI</Text>
+              <Text style={styles.value}>{user.cuit_dni}</Text>
+            </View>
+          )}
+
           {editing ? (
             <>
               <InputField
@@ -99,14 +118,6 @@ const PerfilScreen = ({ navigation }: Props) => {
                 value={formData.telefono}
                 onChangeText={(text) => setFormData({ ...formData, telefono: text })}
                 keyboardType="phone-pad"
-              />
-
-              <InputField
-                label="Dirección"
-                value={formData.direccion}
-                onChangeText={(text) => setFormData({ ...formData, direccion: text })}
-                multiline
-                numberOfLines={2}
               />
 
               <View style={styles.buttonRow}>
@@ -135,22 +146,81 @@ const PerfilScreen = ({ navigation }: Props) => {
                 <Text style={styles.value}>{user.telefono || 'No especificado'}</Text>
               </View>
 
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Dirección</Text>
-                <Text style={styles.value}>{user.direccion || 'No especificada'}</Text>
-              </View>
-
               <Button
                 mode="outlined"
                 icon="pencil"
                 onPress={() => setEditing(true)}
                 style={styles.editButton}
               >
-                Editar Datos
+                Editar Teléfono
               </Button>
             </>
           )}
         </Surface>
+
+        {/* Información de Ubicación (solo cliente) */}
+        {user.rol === 'cliente' && (
+          <Surface style={styles.surface}>
+            <Text style={styles.sectionTitle}>Ubicación</Text>
+
+            {user.zona_nombre && (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Zona</Text>
+                <Text style={styles.value}>{user.zona_nombre}</Text>
+              </View>
+            )}
+
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Dirección</Text>
+              <Text style={styles.value}>{getDireccionCompleta()}</Text>
+            </View>
+
+            {user.descripcion_ubicacion && (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Descripción</Text>
+                <Text style={styles.value}>{user.descripcion_ubicacion}</Text>
+              </View>
+            )}
+
+            <Text style={styles.infoNote}>
+              Para modificar tu ubicación, contacta con el administrador.
+            </Text>
+          </Surface>
+        )}
+
+        {/* Horarios de Atención (solo cliente) */}
+        {user.rol === 'cliente' && user.horarios && user.horarios.length > 0 && (
+          <Surface style={styles.surface}>
+            <Text style={styles.sectionTitle}>Horarios de Atención</Text>
+
+            {user.horarios.map((horario, index) => (
+              <View key={index} style={styles.horarioRow}>
+                <Text style={styles.diaText}>{DIAS_SEMANA[horario.dia_semana]}</Text>
+                <Text style={styles.horarioText}>
+                  {horario.cerrado 
+                    ? 'Cerrado' 
+                    : `${horario.horario_apertura} - ${horario.horario_cierre}`
+                  }
+                </Text>
+              </View>
+            ))}
+
+            <Text style={styles.infoNote}>
+              Para modificar tus horarios, contacta con el administrador.
+            </Text>
+          </Surface>
+        )}
+
+        {/* Lista de Precios asignada */}
+        {user.lista_precio_nombre && (
+          <Surface style={styles.surface}>
+            <Text style={styles.sectionTitle}>Configuración Comercial</Text>
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Lista de Precios</Text>
+              <Text style={styles.value}>{user.lista_precio_nombre}</Text>
+            </View>
+          </Surface>
+        )}
 
         <Button
           mode="contained"
@@ -172,6 +242,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.md,
+    paddingBottom: spacing.xxl,
   },
   avatarSection: {
     alignItems: 'center',
@@ -214,6 +285,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: borderRadius.md,
     backgroundColor: colors.white,
+    marginBottom: spacing.md,
     ...shadows.sm,
   },
   sectionTitle: {
@@ -248,8 +320,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   logoutButton: {
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
     borderRadius: borderRadius.md,
+  },
+  horarioRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  diaText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  horarioText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  infoNote: {
+    fontSize: 12,
+    color: colors.textTertiary,
+    fontStyle: 'italic',
+    marginTop: spacing.md,
+    textAlign: 'center',
   },
 });
 

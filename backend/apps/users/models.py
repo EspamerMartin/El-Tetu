@@ -4,6 +4,23 @@ from django.contrib.auth.hashers import make_password
 from apps.core.models import SoftDeleteMixin
 
 
+class Zona(models.Model):
+    """Modelo para las zonas de reparto/entrega."""
+    
+    nombre = models.CharField(max_length=100, unique=True, verbose_name='Nombre')
+    descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
+    activo = models.BooleanField(default=True, verbose_name='Activo')
+    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de creación')
+    
+    class Meta:
+        verbose_name = 'Zona'
+        verbose_name_plural = 'Zonas'
+        ordering = ['nombre']
+    
+    def __str__(self):
+        return self.nombre
+
+
 class CustomUserManager(BaseUserManager):
     """Manager personalizado para el modelo CustomUser."""
     
@@ -47,6 +64,23 @@ class CustomUser(AbstractBaseUser, PermissionsMixin, SoftDeleteMixin):
     rol = models.CharField(max_length=20, choices=ROLES, default='cliente', verbose_name='Rol')
     telefono = models.CharField(max_length=20, blank=True, null=True, verbose_name='Teléfono')
     direccion = models.TextField(blank=True, null=True, verbose_name='Dirección')
+    
+    # Campo compartido para vendedor y cliente
+    cuit_dni = models.CharField(max_length=20, blank=True, null=True, verbose_name='CUIT/DNI')
+    
+    # Campos específicos para CLIENTE
+    zona = models.ForeignKey(
+        Zona,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='clientes_zona',
+        verbose_name='Zona'
+    )
+    calle = models.CharField(max_length=200, blank=True, null=True, verbose_name='Calle')
+    entre_calles = models.CharField(max_length=200, blank=True, null=True, verbose_name='Entre calles')
+    numero = models.CharField(max_length=20, blank=True, null=True, verbose_name='Número')
+    descripcion_ubicacion = models.TextField(blank=True, null=True, verbose_name='Descripción de ubicación')
     
     # Lista de precios asignada (null = usa lista base)
     lista_precio = models.ForeignKey(
@@ -92,3 +126,39 @@ class CustomUser(AbstractBaseUser, PermissionsMixin, SoftDeleteMixin):
     def is_cliente(self):
         """Verifica si el usuario es cliente."""
         return self.rol == 'cliente'
+
+
+class HorarioCliente(models.Model):
+    """Horarios de apertura y cierre por día de la semana para clientes."""
+    
+    DIAS_SEMANA = (
+        (0, 'Lunes'),
+        (1, 'Martes'),
+        (2, 'Miércoles'),
+        (3, 'Jueves'),
+        (4, 'Viernes'),
+        (5, 'Sábado'),
+        (6, 'Domingo'),
+    )
+    
+    cliente = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='horarios',
+        verbose_name='Cliente'
+    )
+    dia_semana = models.IntegerField(choices=DIAS_SEMANA, verbose_name='Día de la semana')
+    horario_apertura = models.TimeField(verbose_name='Horario de apertura')
+    horario_cierre = models.TimeField(verbose_name='Horario de cierre')
+    cerrado = models.BooleanField(default=False, verbose_name='Cerrado')
+    
+    class Meta:
+        verbose_name = 'Horario de Cliente'
+        verbose_name_plural = 'Horarios de Clientes'
+        ordering = ['cliente', 'dia_semana']
+        unique_together = ['cliente', 'dia_semana']
+    
+    def __str__(self):
+        if self.cerrado:
+            return f"{self.cliente.email} - {self.get_dia_semana_display()}: Cerrado"
+        return f"{self.cliente.email} - {self.get_dia_semana_display()}: {self.horario_apertura} - {self.horario_cierre}"

@@ -1,9 +1,10 @@
 import api from './client';
 import {
   LoginCredentials,
-  RegisterData,
   AuthResponse,
   User,
+  UserCreateData,
+  Zona,
   Producto,
   PaginatedResponse,
   Categoria,
@@ -19,11 +20,6 @@ import {
 export const authAPI = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     const response = await api.post('/auth/login/', credentials);
-    return response.data;
-  },
-
-  register: async (data: RegisterData): Promise<AuthResponse> => {
-    const response = await api.post('/auth/register/', data);
     return response.data;
   },
 
@@ -49,6 +45,36 @@ export const authAPI = {
   }): Promise<{ message: string }> => {
     const response = await api.post('/auth/change-password/', data);
     return response.data;
+  },
+};
+
+// ========== Zonas API ==========
+
+export const zonasAPI = {
+  getAll: async (params?: {
+    activo?: boolean;
+  }): Promise<Zona[]> => {
+    const response = await api.get('/auth/zonas/', { params });
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<Zona> => {
+    const response = await api.get(`/auth/zonas/${id}/`);
+    return response.data;
+  },
+
+  create: async (data: Partial<Zona>): Promise<Zona> => {
+    const response = await api.post('/auth/zonas/', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: Partial<Zona>): Promise<Zona> => {
+    const response = await api.put(`/auth/zonas/${id}/`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/auth/zonas/${id}/`);
   },
 };
 
@@ -222,6 +248,7 @@ export const clientesAPI = {
     page?: number;
     rol?: 'admin' | 'vendedor' | 'cliente';
     is_active?: boolean;
+    zona?: number;
   }): Promise<PaginatedResponse<User>> => {
     const response = await api.get('/auth/users/', { params });
     return response.data;
@@ -232,7 +259,7 @@ export const clientesAPI = {
     return response.data;
   },
 
-  create: async (data: RegisterData): Promise<User> => {
+  create: async (data: UserCreateData): Promise<User> => {
     const response = await api.post('/auth/users/', data);
     return response.data;
   },
@@ -281,6 +308,7 @@ export const listasAPI = {
 // Export todo junto
 export default {
   auth: authAPI,
+  zonas: zonasAPI,
   productos: productosAPI,
   pedidos: pedidosAPI,
   clientes: clientesAPI,

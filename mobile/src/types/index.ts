@@ -2,6 +2,25 @@
 
 export type UserRole = 'admin' | 'vendedor' | 'cliente';
 
+export type DiaSemana = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export interface Zona {
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  activo: boolean;
+  fecha_creacion: string;
+}
+
+export interface HorarioCliente {
+  id?: number;
+  dia_semana: DiaSemana;
+  dia_semana_display?: string;
+  horario_apertura: string; // Formato HH:MM
+  horario_cierre: string;   // Formato HH:MM
+  cerrado: boolean;
+}
+
 export interface User {
   id: number;
   email: string;
@@ -11,6 +30,16 @@ export interface User {
   rol: UserRole;
   telefono?: string;
   direccion?: string;
+  cuit_dni?: string;
+  // Campos específicos de cliente
+  zona?: number;
+  zona_nombre?: string;
+  calle?: string;
+  entre_calles?: string;
+  numero?: string;
+  descripcion_ubicacion?: string;
+  horarios?: HorarioCliente[];
+  // Lista de precios
   lista_precio?: number;
   lista_precio_nombre?: string;
   is_active: boolean;
@@ -22,15 +51,23 @@ export interface LoginCredentials {
   password: string;
 }
 
-export interface RegisterData {
+export interface UserCreateData {
   email: string;
   password: string;
-  password_confirm: string;
   nombre: string;
   apellido: string;
-  rol?: UserRole;
+  rol: UserRole;
   telefono?: string;
   direccion?: string;
+  cuit_dni?: string;
+  // Campos específicos de cliente
+  zona?: number;
+  calle?: string;
+  entre_calles?: string;
+  numero?: string;
+  descripcion_ubicacion?: string;
+  horarios?: Omit<HorarioCliente, 'id' | 'dia_semana_display'>[];
+  is_active?: boolean;
 }
 
 export interface AuthResponse {

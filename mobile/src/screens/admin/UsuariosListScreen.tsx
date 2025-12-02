@@ -116,6 +116,16 @@ const UsuariosListScreen = ({ navigation }: { navigation: NavigationProp }) => {
                   >
                     {getRolLabel(item.rol)}
                   </Chip>
+                  {item.zona_nombre && (
+                    <Chip 
+                      icon="map-marker-radius"
+                      compact 
+                      style={styles.zonaChip}
+                      textStyle={styles.zonaText}
+                    >
+                      {item.zona_nombre}
+                    </Chip>
+                  )}
                 </View>
               </Card.Content>
             </Card>
@@ -142,6 +152,8 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row' },
   chipsRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
   chipSpacing: { marginRight: spacing.xs },
+  zonaChip: { backgroundColor: colors.tertiary },
+  zonaText: { color: colors.white, fontSize: 11 },
   empty: { alignItems: 'center', padding: spacing.xxl },
   fab: { position: 'absolute', bottom: spacing.lg, right: spacing.lg },
 });

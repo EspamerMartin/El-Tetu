@@ -3,11 +3,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 // Screens
 import LoginScreen from '@/screens/auth/LoginScreen';
-import RegisterScreen from '@/screens/auth/RegisterScreen';
 
 export type AuthStackParamList = {
   Login: undefined;
-  Register: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -17,7 +15,8 @@ const Stack = createNativeStackNavigator<AuthStackParamList>();
  * 
  * Stack de autenticación con:
  * - LoginScreen: Login con email/password
- * - RegisterScreen: Registro de nuevos usuarios
+ * 
+ * Nota: Los usuarios solo se crean desde el panel de administración.
  */
 const AuthStack = () => {
   return (
@@ -27,7 +26,6 @@ const AuthStack = () => {
       }}
     >
       <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Register" component={RegisterScreen} />
     </Stack.Navigator>
   );
 };

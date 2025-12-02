@@ -7,13 +7,15 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password, check_password
 import logging
 
-from .models import CustomUser
+from .models import CustomUser, Zona, HorarioCliente
 from .serializers import (
     UserSerializer,
     UserCreateSerializer,
-    UserRegistrationSerializer,
+    UserUpdateSerializer,
     UserLoginSerializer,
-    ChangePasswordSerializer
+    ChangePasswordSerializer,
+    ZonaSerializer,
+    HorarioClienteSerializer
 )
 from .permissions import IsAdmin
 from apps.core.mixins import SoftDeleteMixin
@@ -21,29 +23,59 @@ from apps.core.mixins import SoftDeleteMixin
 logger = logging.getLogger('eltetu')
 
 
-class RegisterView(generics.CreateAPIView):
-    """
-    Vista para registro de nuevos usuarios.
-    POST /api/auth/register
-    """
-    queryset = CustomUser.objects.all()
-    serializer_class = UserRegistrationSerializer
-    permission_classes = [AllowAny]
-    
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        
-        # Generar tokens JWT
-        refresh = RefreshToken.for_user(user)
-        
-        return Response({
-            'user': UserSerializer(user).data,
-            'access': str(refresh.access_token),
-            'refresh': str(refresh),
-        }, status=status.HTTP_201_CREATED)
+# ========== Zonas Views ==========
 
+class ZonaListCreateView(generics.ListCreateAPIView):
+    """
+    Vista para listar y crear zonas.
+    GET: Cualquier usuario autenticado puede ver zonas activas.
+    POST: Solo admin puede crear zonas.
+    """
+    serializer_class = ZonaSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filtra zonas según el usuario."""
+        user = self.request.user
+        queryset = Zona.objects.all()
+        
+        # Solo admin puede ver zonas inactivas
+        if not user.is_admin():
+            queryset = queryset.filter(activo=True)
+        else:
+            # Admin puede filtrar por activo
+            activo = self.request.query_params.get('activo', None)
+            if activo is not None:
+                activo_bool = activo.lower() in ('true', '1', 'yes')
+                queryset = queryset.filter(activo=activo_bool)
+        
+        return queryset
+    
+    def get_permissions(self):
+        """Solo admin puede crear zonas."""
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsAdmin()]
+        return [IsAuthenticated()]
+
+
+class ZonaDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Vista para obtener, actualizar y eliminar zona.
+    GET: Cualquier usuario autenticado.
+    PUT/DELETE: Solo admin.
+    """
+    queryset = Zona.objects.all()
+    serializer_class = ZonaSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        """Solo admin puede modificar zonas."""
+        if self.request.method in ['PUT', 'PATCH', 'DELETE']:
+            return [IsAuthenticated(), IsAdmin()]
+        return [IsAuthenticated()]
+
+
+# ========== Auth Views ==========
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -208,6 +240,7 @@ class UserListCreateView(generics.ListCreateAPIView):
         Parámetros de query:
         - rol: Filtrar por rol ('admin', 'vendedor', 'cliente')
         - is_active: Filtrar por estado activo (true/false)
+        - zona: Filtrar por zona (id)
         
         Permisos:
         - Admin: Puede ver todos los usuarios y usar cualquier filtro
@@ -219,11 +252,17 @@ class UserListCreateView(generics.ListCreateAPIView):
         # Si es vendedor, solo puede ver clientes activos
         if user.is_vendedor():
             queryset = queryset.filter(rol='cliente', is_active=True, fecha_eliminacion__isnull=True)
+            
+            # Vendedor puede filtrar por zona
+            zona = self.request.query_params.get('zona', None)
+            if zona:
+                queryset = queryset.filter(zona_id=zona)
         # Si es admin, puede ver todos pero respetar filtros de query
         elif user.is_admin():
             # Aplicar filtros de query si existen
             rol = self.request.query_params.get('rol', None)
             is_active = self.request.query_params.get('is_active', None)
+            zona = self.request.query_params.get('zona', None)
             
             if rol:
                 # Validar que el rol sea válido
@@ -236,6 +275,9 @@ class UserListCreateView(generics.ListCreateAPIView):
                 is_active_bool = is_active.lower() in ('true', '1', 'yes')
                 queryset = queryset.filter(is_active=is_active_bool)
             
+            if zona:
+                queryset = queryset.filter(zona_id=zona)
+            
             # Ordenar: primero activos y no eliminados, luego por nombre
             queryset = queryset.order_by('-is_active', 'fecha_eliminacion', 'nombre', 'apellido')
         else:
@@ -243,6 +285,18 @@ class UserListCreateView(generics.ListCreateAPIView):
             return CustomUser.objects.none()
         
         return queryset
+    
+    def create(self, request, *args, **kwargs):
+        """Crea un nuevo usuario y devuelve con UserSerializer completo."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        
+        # Devolver con el serializer de lectura para incluir todos los campos
+        return Response(
+            UserSerializer(user).data, 
+            status=status.HTTP_201_CREATED
+        )
 
 
 class UserDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView):
@@ -252,8 +306,13 @@ class UserDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView):
     PUT/DELETE: Solo admin puede modificar/eliminar.
     """
     queryset = CustomUser.objects.all()
-    serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        """Usa UserUpdateSerializer para PUT/PATCH, UserSerializer para GET."""
+        if self.request.method in ['PUT', 'PATCH']:
+            return UserUpdateSerializer
+        return UserSerializer
     
     def get_permissions(self):
         """Vendedores pueden ver, solo admin puede modificar."""
@@ -268,3 +327,14 @@ class UserDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView):
         return [
             (instance.pedidos, 'pedidos'),
         ]
+    
+    def update(self, request, *args, **kwargs):
+        """Actualiza usuario y devuelve con UserSerializer completo."""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        
+        # Devolver con el serializer de lectura para incluir todos los campos
+        return Response(UserSerializer(user).data)

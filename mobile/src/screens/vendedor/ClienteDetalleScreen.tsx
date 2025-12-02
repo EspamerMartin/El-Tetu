@@ -11,10 +11,16 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type Props = NativeStackScreenProps<VendedorStackParamList, 'ClienteDetalle'>;
 
+const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
 /**
  * ClienteDetalleScreen
  * 
- * Muestra información detallada de un cliente
+ * Muestra información detallada de un cliente incluyendo:
+ * - Datos personales
+ * - Ubicación y zona
+ * - Horarios de atención
+ * - Historial de pedidos
  */
 const ClienteDetalleScreen = ({ route, navigation }: Props) => {
   const { clienteId } = route.params;
@@ -49,6 +55,17 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
   const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`;
   const iniciales = `${cliente.nombre.charAt(0)}${cliente.apellido.charAt(0)}`;
 
+  // Construir dirección completa
+  const getDireccionCompleta = () => {
+    const parts = [];
+    if (cliente.calle) parts.push(cliente.calle);
+    if (cliente.numero) parts.push(cliente.numero);
+    if (cliente.entre_calles) parts.push(`(entre ${cliente.entre_calles})`);
+    return parts.join(' ') || null;
+  };
+
+  const direccionCompleta = getDireccionCompleta();
+
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -57,6 +74,11 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
         <Text variant="headlineSmall" style={styles.nombre}>
           {nombreCompleto}
         </Text>
+        {cliente.zona_nombre && (
+          <Chip icon="map-marker" style={styles.zonaChip}>
+            {cliente.zona_nombre}
+          </Chip>
+        )}
         <Chip
           icon={cliente.is_active ? 'check-circle' : 'close-circle'}
           style={[
@@ -69,9 +91,9 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
         </Chip>
       </Surface>
 
-      {/* Información Personal */}
+      {/* Información de Contacto */}
       <Surface style={styles.section} elevation={1}>
-        <Text style={styles.sectionTitle}>Información Personal</Text>
+        <Text style={styles.sectionTitle}>Información de Contacto</Text>
         <Divider style={styles.divider} />
         
         <List.Item
@@ -90,16 +112,86 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
             descriptionStyle={styles.listDescription}
           />
         )}
-        {cliente.direccion && (
+        {cliente.cuit_dni && (
           <List.Item
-            title="Dirección"
-            description={cliente.direccion}
-            left={(props) => <List.Icon {...props} icon="map-marker" color={colors.primary} />}
+            title="CUIT/DNI"
+            description={cliente.cuit_dni}
+            left={(props) => <List.Icon {...props} icon="card-account-details" color={colors.primary} />}
             titleStyle={styles.listTitle}
             descriptionStyle={styles.listDescription}
           />
         )}
       </Surface>
+
+      {/* Ubicación */}
+      <Surface style={styles.section} elevation={1}>
+        <Text style={styles.sectionTitle}>Ubicación</Text>
+        <Divider style={styles.divider} />
+        
+        {direccionCompleta && (
+          <List.Item
+            title="Dirección"
+            description={direccionCompleta}
+            left={(props) => <List.Icon {...props} icon="map-marker" color={colors.primary} />}
+            titleStyle={styles.listTitle}
+            descriptionStyle={styles.listDescription}
+          />
+        )}
+        {cliente.descripcion_ubicacion && (
+          <List.Item
+            title="Descripción"
+            description={cliente.descripcion_ubicacion}
+            left={(props) => <List.Icon {...props} icon="information" color={colors.primary} />}
+            titleStyle={styles.listTitle}
+            descriptionStyle={styles.listDescription}
+            descriptionNumberOfLines={3}
+          />
+        )}
+        {!direccionCompleta && !cliente.descripcion_ubicacion && (
+          <Text style={styles.emptyFieldText}>Sin información de ubicación</Text>
+        )}
+      </Surface>
+
+      {/* Horarios de Atención */}
+      {cliente.horarios && cliente.horarios.length > 0 && (
+        <Surface style={styles.section} elevation={1}>
+          <Text style={styles.sectionTitle}>Horarios de Atención</Text>
+          <Divider style={styles.divider} />
+          
+          <View style={styles.horariosContainer}>
+            {cliente.horarios.map((horario, index) => (
+              <View key={index} style={styles.horarioRow}>
+                <Text style={styles.diaText}>{DIAS_SEMANA[horario.dia_semana]}</Text>
+                <Text style={[
+                  styles.horarioText,
+                  horario.cerrado && styles.cerradoText
+                ]}>
+                  {horario.cerrado 
+                    ? 'Cerrado' 
+                    : `${horario.horario_apertura} - ${horario.horario_cierre}`
+                  }
+                </Text>
+              </View>
+            ))}
+          </View>
+        </Surface>
+      )}
+
+      {/* Lista de Precios */}
+      {cliente.lista_precio_nombre && (
+        <Surface style={styles.section} elevation={1}>
+          <Text style={styles.sectionTitle}>Configuración Comercial</Text>
+          <Divider style={styles.divider} />
+          
+          <List.Item
+            title="Lista de Precios"
+            description={cliente.lista_precio_nombre}
+            left={(props) => <List.Icon {...props} icon="tag" color={colors.primary} />}
+            titleStyle={styles.listTitle}
+            descriptionStyle={styles.listDescription}
+          />
+        </Surface>
+      )}
 
       {/* Estadísticas */}
       <Surface style={styles.section} elevation={1}>
@@ -183,11 +275,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
   },
+  zonaChip: {
+    marginBottom: spacing.xs,
+    backgroundColor: colors.primarySurface,
+  },
   statusChip: {
     marginTop: spacing.xs,
   },
   section: {
     margin: spacing.md,
+    marginTop: 0,
     padding: spacing.md,
     borderRadius: borderRadius.md,
     backgroundColor: colors.white,
@@ -211,6 +308,29 @@ const styles = StyleSheet.create({
   listDescription: {
     fontSize: 14,
     color: colors.text,
+  },
+  horariosContainer: {
+    marginTop: spacing.xs,
+  },
+  horarioRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  diaText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  horarioText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  cerradoText: {
+    color: colors.error,
+    fontStyle: 'italic',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -239,6 +359,12 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: spacing.sm,
     color: colors.textSecondary,
+  },
+  emptyFieldText: {
+    color: colors.textTertiary,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: spacing.md,
   },
   pedidosList: {
     marginTop: spacing.sm,

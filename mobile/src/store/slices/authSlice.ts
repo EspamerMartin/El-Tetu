@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authAPI } from '@/services/api';
-import { User, LoginCredentials, RegisterData, AuthResponse } from '@/types';
+import { User, LoginCredentials } from '@/types';
 
 interface AuthState {
   user: User | null;
@@ -37,24 +37,6 @@ export const login = createAsyncThunk(
       return data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.error || 'Error al iniciar sesión');
-    }
-  }
-);
-
-export const register = createAsyncThunk(
-  'auth/register',
-  async (data: RegisterData, { rejectWithValue }) => {
-    try {
-      const response = await authAPI.register(data);
-      
-      // Guardar en AsyncStorage
-      await AsyncStorage.setItem('access_token', response.access);
-      await AsyncStorage.setItem('refresh_token', response.refresh);
-      await AsyncStorage.setItem('user', JSON.stringify(response.user));
-      
-      return response;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data || 'Error al registrarse');
     }
   }
 );
@@ -143,23 +125,6 @@ const authSlice = createSlice({
       state.refresh_token = action.payload.refresh;
     });
     builder.addCase(login.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload as string;
-    });
-
-    // Register
-    builder.addCase(register.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    });
-    builder.addCase(register.fulfilled, (state, action) => {
-      state.loading = false;
-      state.isAuthenticated = true;
-      state.user = action.payload.user;
-      state.access_token = action.payload.access;
-      state.refresh_token = action.payload.refresh;
-    });
-    builder.addCase(register.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload as string;
     });

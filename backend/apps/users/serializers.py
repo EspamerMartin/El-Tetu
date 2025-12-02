@@ -1,19 +1,60 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import CustomUser
+from .models import CustomUser, Zona, HorarioCliente
 
+
+# ========== Zona Serializers ==========
+
+class ZonaSerializer(serializers.ModelSerializer):
+    """Serializer para el modelo Zona."""
+    
+    class Meta:
+        model = Zona
+        fields = ['id', 'nombre', 'descripcion', 'activo', 'fecha_creacion']
+        read_only_fields = ['id', 'fecha_creacion']
+
+
+# ========== Horario Serializers ==========
+
+class HorarioClienteSerializer(serializers.ModelSerializer):
+    """Serializer para horarios de cliente."""
+    
+    dia_semana_display = serializers.CharField(source='get_dia_semana_display', read_only=True)
+    
+    class Meta:
+        model = HorarioCliente
+        fields = ['id', 'dia_semana', 'dia_semana_display', 'horario_apertura', 'horario_cierre', 'cerrado']
+        read_only_fields = ['id']
+
+
+class HorarioClienteCreateSerializer(serializers.ModelSerializer):
+    """Serializer para crear/actualizar horarios de cliente."""
+    
+    class Meta:
+        model = HorarioCliente
+        fields = ['dia_semana', 'horario_apertura', 'horario_cierre', 'cerrado']
+
+
+# ========== User Serializers ==========
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer para el modelo CustomUser (lectura y para admin)."""
     
     full_name = serializers.ReadOnlyField()
     lista_precio_nombre = serializers.CharField(source='lista_precio.nombre', read_only=True, allow_null=True)
+    zona_nombre = serializers.CharField(source='zona.nombre', read_only=True, allow_null=True)
+    horarios = HorarioClienteSerializer(many=True, read_only=True)
     
     class Meta:
         model = CustomUser
         fields = [
             'id', 'email', 'nombre', 'apellido', 'full_name',
-            'rol', 'telefono', 'direccion', 'lista_precio', 'lista_precio_nombre',
+            'rol', 'telefono', 'direccion', 'cuit_dni',
+            # Campos específicos de cliente
+            'zona', 'zona_nombre', 'calle', 'entre_calles', 'numero', 'descripcion_ubicacion',
+            'horarios',
+            # Lista de precios
+            'lista_precio', 'lista_precio_nombre',
             'is_active', 'date_joined'
         ]
         read_only_fields = ['id', 'date_joined']
@@ -45,64 +86,137 @@ class UserCreateSerializer(serializers.ModelSerializer):
     """Serializer para crear usuarios (solo admin, permite cualquier rol)."""
     
     password = serializers.CharField(write_only=True, min_length=6)
+    horarios = HorarioClienteCreateSerializer(many=True, required=False)
     
     class Meta:
         model = CustomUser
         fields = [
             'email', 'password', 'nombre', 'apellido',
-            'rol', 'telefono', 'direccion', 'is_active'
-        ]
-    
-    def create(self, validated_data):
-        """Crea un nuevo usuario con la contraseña hasheada."""
-        password = validated_data.pop('password')
-        user = CustomUser(**validated_data)
-        user.password = make_password(password)
-        user.save()
-        return user
-
-
-class UserRegistrationSerializer(serializers.ModelSerializer):
-    """Serializer para registro de nuevos usuarios."""
-    
-    password = serializers.CharField(write_only=True, min_length=6)
-    password_confirm = serializers.CharField(write_only=True, min_length=6)
-    
-    class Meta:
-        model = CustomUser
-        fields = [
-            'email', 'password', 'password_confirm',
-            'nombre', 'apellido', 'rol', 'telefono', 'direccion'
+            'rol', 'telefono', 'direccion', 'cuit_dni',
+            # Campos específicos de cliente
+            'zona', 'calle', 'entre_calles', 'numero', 'descripcion_ubicacion',
+            'horarios',
+            'is_active'
         ]
     
     def validate(self, data):
-        """Valida que las contraseñas coincidan."""
-        if data['password'] != data['password_confirm']:
-            raise serializers.ValidationError({
-                'password': 'Las contraseñas no coinciden.'
-            })
+        """Valida campos obligatorios según el rol."""
+        rol = data.get('rol', 'cliente')
         
-        # Prevenir que usuarios se registren como admin o vendedor
-        if 'rol' in data and data.get('rol') in ['admin', 'vendedor']:
-            raise serializers.ValidationError({
-                'rol': 'No se puede registrar con este rol. Solo se permite el rol de cliente.'
-            })
+        # Validaciones para CLIENTE
+        if rol == 'cliente':
+            required_cliente = ['zona', 'calle', 'numero', 'telefono', 'cuit_dni']
+            missing = [f for f in required_cliente if not data.get(f)]
+            if missing:
+                raise serializers.ValidationError({
+                    f: 'Este campo es obligatorio para clientes.'
+                    for f in missing
+                })
+        
+        # Validaciones para VENDEDOR
+        if rol == 'vendedor':
+            required_vendedor = ['telefono', 'cuit_dni']
+            missing = [f for f in required_vendedor if not data.get(f)]
+            if missing:
+                raise serializers.ValidationError({
+                    f: 'Este campo es obligatorio para vendedores.'
+                    for f in missing
+                })
         
         return data
     
     def create(self, validated_data):
-        """Crea un nuevo usuario con la contraseña hasheada."""
-        validated_data.pop('password_confirm')
+        """Crea un nuevo usuario con la contraseña hasheada y horarios."""
+        horarios_data = validated_data.pop('horarios', [])
         password = validated_data.pop('password')
-        
-        # Forzar rol de cliente para registros públicos
-        validated_data['rol'] = 'cliente'
         
         user = CustomUser(**validated_data)
         user.password = make_password(password)
         user.save()
         
+        # Crear horarios si es cliente
+        if validated_data.get('rol') == 'cliente' and horarios_data:
+            for horario_data in horarios_data:
+                HorarioCliente.objects.create(cliente=user, **horario_data)
+        
         return user
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    """Serializer para actualizar usuarios (admin)."""
+    
+    horarios = HorarioClienteCreateSerializer(many=True, required=False)
+    
+    class Meta:
+        model = CustomUser
+        fields = [
+            'nombre', 'apellido', 'rol', 'telefono', 'direccion', 'cuit_dni',
+            # Campos específicos de cliente
+            'zona', 'calle', 'entre_calles', 'numero', 'descripcion_ubicacion',
+            'horarios',
+            'lista_precio', 'is_active'
+        ]
+    
+    def validate(self, data):
+        """Valida campos obligatorios según el rol."""
+        instance = self.instance
+        rol = data.get('rol', instance.rol if instance else 'cliente')
+        
+        # Merge con datos existentes para validación parcial
+        def get_value(field):
+            if field in data:
+                return data.get(field)
+            return getattr(instance, field, None) if instance else None
+        
+        # Validaciones para CLIENTE
+        if rol == 'cliente':
+            required_cliente = ['zona', 'calle', 'numero', 'telefono', 'cuit_dni']
+            missing = [f for f in required_cliente if not get_value(f)]
+            if missing:
+                raise serializers.ValidationError({
+                    f: 'Este campo es obligatorio para clientes.'
+                    for f in missing
+                })
+        
+        # Validaciones para VENDEDOR
+        if rol == 'vendedor':
+            required_vendedor = ['telefono', 'cuit_dni']
+            missing = [f for f in required_vendedor if not get_value(f)]
+            if missing:
+                raise serializers.ValidationError({
+                    f: 'Este campo es obligatorio para vendedores.'
+                    for f in missing
+                })
+        
+        return data
+    
+    def update(self, instance, validated_data):
+        """Actualiza usuario y sus horarios."""
+        horarios_data = validated_data.pop('horarios', None)
+        
+        # Detectar si se está reactivando un usuario eliminado
+        is_activating = validated_data.get('is_active', None) is True
+        was_deleted = instance.is_deleted if hasattr(instance, 'is_deleted') else False
+        
+        if is_activating and was_deleted:
+            instance.restore()
+            for attr, value in validated_data.items():
+                if attr != 'is_active':
+                    setattr(instance, attr, value)
+            instance.save()
+        else:
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.save()
+        
+        # Actualizar horarios si se proporcionaron
+        if horarios_data is not None and instance.rol == 'cliente':
+            # Eliminar horarios existentes y crear nuevos
+            instance.horarios.all().delete()
+            for horario_data in horarios_data:
+                HorarioCliente.objects.create(cliente=instance, **horario_data)
+        
+        return instance
 
 
 class UserLoginSerializer(serializers.Serializer):
