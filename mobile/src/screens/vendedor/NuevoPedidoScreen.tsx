@@ -166,11 +166,11 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
   // Separar productos con stock y sin stock (memoizado para optimización)
   const productosConStock = useMemo(() => 
-    productosFiltrados.filter(p => p.stock > 0), 
+    productosFiltrados.filter(p => p.tiene_stock), 
     [productosFiltrados]
   );
   const productosSinStock = useMemo(() => 
-    productosFiltrados.filter(p => p.stock === 0), 
+    productosFiltrados.filter(p => !p.tiene_stock), 
     [productosFiltrados]
   );
 
@@ -182,25 +182,21 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   };
 
   const handleAddProducto = (producto: Producto) => {
+    // Validar que el producto tenga stock disponible
+    if (!producto.tiene_stock) {
+      Alert.alert('Sin stock', 'Este producto no tiene stock disponible');
+      return;
+    }
+
     const existente = items.find(i => i.producto.id === producto.id);
     
     if (existente) {
-      // Validar que no exceda el stock
-      if (existente.cantidad + 1 > producto.stock) {
-        Alert.alert('Stock insuficiente', `Solo hay ${producto.stock} unidades disponibles`);
-        return;
-      }
       setItems(items.map(i => 
         i.producto.id === producto.id 
           ? { ...i, cantidad: i.cantidad + 1 }
           : i
       ));
     } else {
-      // Validar que haya stock
-      if (producto.stock < 1) {
-        Alert.alert('Sin stock', 'Este producto no tiene stock disponible');
-        return;
-      }
       setItems([...items, { producto, cantidad: 1 }]);
     }
   };
@@ -215,12 +211,6 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
       return;
     }
     
-    const item = items.find(i => i.producto.id === productoId);
-    if (item && cantidad > item.producto.stock) {
-      Alert.alert('Stock insuficiente', `Solo hay ${item.producto.stock} unidades disponibles`);
-      return;
-    }
-    
     setItems(items.map(i => 
       i.producto.id === productoId 
         ? { ...i, cantidad }
@@ -232,7 +222,6 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   const renderProductoConStock = useCallback(({ item: producto }: { item: Producto }) => {
     const itemEnCarrito = items.find(i => i.producto.id === producto.id);
     const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
-    const puedeAgregar = producto.stock > cantidadEnCarrito;
     
     return (
       <View style={styles.productWrapper}>
@@ -262,13 +251,12 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
                   size={18}
                   iconColor={colors.primary}
                   onPress={() => handleAddProducto(producto)}
-                  disabled={!puedeAgregar}
                   style={styles.cantidadButtonOverlay}
                 />
               </View>
             </View>
           )}
-          {cantidadEnCarrito === 0 && producto.stock > 0 && (
+          {cantidadEnCarrito === 0 && producto.tiene_stock && (
             <View style={styles.addButtonOverlay}>
               <Button
                 mode="contained"
@@ -586,7 +574,6 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
               const precioBase = parseFloat(item.producto.precio);
               const precioUnitario = calcularPrecioConDescuento(precioBase);
               const subtotal = precioUnitario * item.cantidad;
-              const puedeIncrementar = item.cantidad < item.producto.stock;
               
               return (
                 <View key={index} style={styles.itemRow}>
@@ -620,7 +607,6 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
                         size={22}
                         iconColor={colors.primary}
                         onPress={() => handleUpdateCantidad(item.producto.id, item.cantidad + 1)}
-                        disabled={!puedeIncrementar}
                         style={styles.cantidadButtonConfirm}
                       />
                     </View>

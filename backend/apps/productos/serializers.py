@@ -49,8 +49,6 @@ class ProductoListSerializer(serializers.ModelSerializer):
     marca_nombre = serializers.CharField(source='marca.nombre', read_only=True)
     categoria_nombre = serializers.CharField(source='categoria.nombre', read_only=True)
     subcategoria_nombre = serializers.CharField(source='subcategoria.nombre', read_only=True)
-    tiene_stock = serializers.ReadOnlyField()
-    stock_bajo = serializers.ReadOnlyField()
     unidad_tamaño_display = serializers.CharField(source='get_unidad_tamaño_display', read_only=True)
     
     # Precio calculado según lista del usuario actual
@@ -62,7 +60,7 @@ class ProductoListSerializer(serializers.ModelSerializer):
             'id', 'codigo_barra', 'nombre', 'marca', 'marca_nombre',
             'categoria', 'categoria_nombre', 'subcategoria', 'subcategoria_nombre',
             'tamaño', 'unidad_tamaño', 'unidad_tamaño_display', 'unidades_caja',
-            'precio_base', 'precio', 'stock', 'tiene_stock', 'stock_bajo',
+            'precio_base', 'precio', 'tiene_stock',
             'activo', 'url_imagen'
         ]
     
@@ -81,8 +79,6 @@ class ProductoDetailSerializer(serializers.ModelSerializer):
     marca_nombre = serializers.CharField(source='marca.nombre', read_only=True)
     categoria_nombre = serializers.CharField(source='categoria.nombre', read_only=True)
     subcategoria_nombre = serializers.CharField(source='subcategoria.nombre', read_only=True)
-    tiene_stock = serializers.ReadOnlyField()
-    stock_bajo = serializers.ReadOnlyField()
     unidad_tamaño_display = serializers.CharField(source='get_unidad_tamaño_display', read_only=True)
     
     # Precio calculado según lista del usuario actual
@@ -97,7 +93,7 @@ class ProductoDetailSerializer(serializers.ModelSerializer):
             'subcategoria', 'subcategoria_nombre',
             'tamaño', 'unidad_tamaño', 'unidad_tamaño_display', 'unidades_caja',
             'precio_base', 'precio',
-            'stock', 'stock_minimo', 'tiene_stock', 'stock_bajo',
+            'tiene_stock',
             'url_imagen', 'activo',
             'fecha_creacion', 'fecha_actualizacion'
         ]
@@ -122,7 +118,7 @@ class ProductoCreateUpdateSerializer(serializers.ModelSerializer):
             'marca', 'categoria', 'subcategoria',
             'tamaño', 'unidad_tamaño', 'unidades_caja',
             'precio_base',
-            'stock', 'stock_minimo',
+            'tiene_stock',
             'url_imagen', 'activo'
         ]
     

@@ -22,7 +22,7 @@ type Props = CompositeScreenProps<
 interface DashboardStats {
   totalPedidos: number;
   ventasDelDia: number;
-  productosConBajoStock: number;
+  productosSinStock: number;
 }
 
 /**
@@ -41,8 +41,8 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
     () => pedidosAPI.getAll({ fecha_pedido__gte: new Date().toISOString().split('T')[0] })
   );
 
-  const { data: productosBajoStock, loading: loadingProductos, refetch: refetchProductos } = useFetch(
-    () => productosAPI.getAll({ stock__lt: 10, activo: true })
+  const { data: productosSinStock, loading: loadingProductos, refetch: refetchProductos } = useFetch(
+    () => productosAPI.getAll({ tiene_stock: false, activo: true })
   );
 
   useFocusEffect(
@@ -57,13 +57,9 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
 
   const pedidosArray = Array.isArray(pedidos) ? pedidos : (pedidos?.results || []);
   const ventasHoyArray = Array.isArray(ventasHoy) ? ventasHoy : (ventasHoy?.results || []);
-  const productosBajoStockArray = Array.isArray(productosBajoStock) 
-    ? productosBajoStock 
-    : (productosBajoStock?.results || []);
-
-  const productosBajoStockFiltrados = productosBajoStockArray.filter(
-    (p: any) => p.stock < 10
-  );
+  const productosSinStockArray = Array.isArray(productosSinStock) 
+    ? productosSinStock 
+    : (productosSinStock?.results || []);
 
   const stats: DashboardStats = {
     totalPedidos: pedidosArray.length,
@@ -71,7 +67,7 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
       const total = parseFloat(p.total);
       return acc + (isNaN(total) ? 0 : total);
     }, 0),
-    productosConBajoStock: productosBajoStockFiltrados.length,
+    productosSinStock: productosSinStockArray.length,
   };
 
   const iniciales = user ? `${user.nombre.charAt(0)}${user.apellido.charAt(0)}` : 'VE';
@@ -119,18 +115,18 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
 
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => navigation.getParent()?.navigate('ProductosBajoStock')}
+            onPress={() => navigation.getParent()?.navigate('ProductosSinStock')}
           >
             <Surface style={[styles.kpiCard, styles.kpiCardError]} elevation={2}>
               <View style={styles.kpiHeader}>
                 <Icon name="alert-circle-outline" size={32} color={colors.error} />
                 <Text variant="headlineSmall" style={[styles.kpiValue, { color: colors.error }]}>
-                  {stats.productosConBajoStock}
+                  {stats.productosSinStock}
                 </Text>
               </View>
-              <Text variant="bodyMedium" style={styles.kpiLabel}>Stock Bajo</Text>
+              <Text variant="bodyMedium" style={styles.kpiLabel}>Sin Stock</Text>
               <Text variant="bodySmall" style={styles.kpiDescription}>
-                Productos con menos de 10 unidades
+                Productos sin disponibilidad
               </Text>
             </Surface>
           </TouchableOpacity>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
-import { Text, Searchbar, Card, Chip, IconButton } from 'react-native-paper';
+import { Text, Searchbar, Card, Chip } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { VendedorStackParamList } from '@/navigation/VendedorStack';
@@ -9,22 +9,21 @@ import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
 import { Producto } from '@/types';
 import { LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
-import { colors, spacing, borderRadius } from '@/theme';
+import { colors, spacing } from '@/theme';
 import { formatPrice } from '@/utils';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-type Props = NativeStackScreenProps<VendedorStackParamList | AdminStackParamList, 'ProductosBajoStock'>;
+type Props = NativeStackScreenProps<VendedorStackParamList | AdminStackParamList, 'ProductosSinStock'>;
 
 /**
- * ProductosBajoStockScreen
+ * ProductosSinStockScreen
  * 
- * Lista de productos con stock bajo (< 10 unidades)
+ * Lista de productos sin stock disponible (tiene_stock = false)
  */
-const ProductosBajoStockScreen = ({ navigation }: Props) => {
+const ProductosSinStockScreen = ({ navigation }: Props) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: productosData, loading, refetch } = useFetch(
-    () => productosAPI.getAll({ stock__lt: 10, activo: true })
+    () => productosAPI.getAll({ tiene_stock: false, activo: true })
   );
 
   useFocusEffect(
@@ -36,30 +35,12 @@ const ProductosBajoStockScreen = ({ navigation }: Props) => {
   // Asegurar que siempre tengamos un array, incluso si la respuesta es directa
   const productos = Array.isArray(productosData) ? productosData : (productosData?.results || []);
   
-  // Filtrar productos con stock < 10 (doble verificación)
-  const productosBajoStock = productos.filter((p: Producto) => p.stock < 10);
-  
   const productosFiltrados = searchQuery
-    ? productosBajoStock.filter((p: Producto) => 
+    ? productos.filter((p: Producto) => 
         p.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.codigo.toLowerCase().includes(searchQuery.toLowerCase())
+        p.codigo_barra.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : productosBajoStock;
-
-  // Ordenar por stock (menor a mayor)
-  const productosOrdenados = [...productosFiltrados].sort((a, b) => a.stock - b.stock);
-
-  const getStockColor = (stock: number) => {
-    if (stock === 0) return colors.error;
-    if (stock < 5) return colors.error;
-    return colors.secondary;
-  };
-
-  const getStockLabel = (stock: number) => {
-    if (stock === 0) return 'Sin stock';
-    if (stock < 5) return 'Crítico';
-    return 'Bajo';
-  };
+    : productos;
 
   const renderProducto = ({ item }: { item: Producto }) => (
     <Card style={styles.card} mode="elevated">
@@ -70,7 +51,7 @@ const ProductosBajoStockScreen = ({ navigation }: Props) => {
               {item.nombre}
             </Text>
             <Text variant="bodySmall" style={styles.productoCodigo}>
-              Código: {item.codigo}
+              Código: {item.codigo_barra}
             </Text>
             {item.categoria_nombre && (
               <Chip 
@@ -85,24 +66,12 @@ const ProductosBajoStockScreen = ({ navigation }: Props) => {
           </View>
           <View style={styles.stockInfo}>
             <Chip
-              icon={item.stock === 0 ? 'alert-circle' : 'alert'}
-              style={[
-                styles.stockChip,
-                { backgroundColor: getStockColor(item.stock) + '20' }
-              ]}
-              textStyle={[
-                styles.stockChipText,
-                { color: getStockColor(item.stock) }
-              ]}
+              icon="alert-circle"
+              style={styles.stockChip}
+              textStyle={styles.stockChipText}
             >
-              {getStockLabel(item.stock)}
+              Sin stock
             </Chip>
-            <Text variant="headlineSmall" style={[styles.stockNumber, { color: getStockColor(item.stock) }]}>
-              {item.stock}
-            </Text>
-            <Text variant="bodySmall" style={styles.stockLabel}>
-              unidades
-            </Text>
           </View>
         </View>
         <View style={styles.precioContainer}>
@@ -131,15 +100,15 @@ const ProductosBajoStockScreen = ({ navigation }: Props) => {
         <LoadingOverlay visible message="Cargando productos..." />
       ) : (
         <FlatList
-          data={productosOrdenados}
+          data={productosFiltrados}
           renderItem={renderProducto}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <EmptyState
               icon="package-variant"
-              title="No hay productos con stock bajo"
-              message="Todos los productos tienen stock suficiente"
+              title="No hay productos sin stock"
+              message="Todos los productos tienen stock disponible"
             />
           }
         />
@@ -191,18 +160,11 @@ const styles = StyleSheet.create({
     minWidth: 100,
   },
   stockChip: {
-    marginBottom: spacing.xs,
+    backgroundColor: colors.error + '20',
   },
   stockChipText: {
+    color: colors.error,
     fontWeight: '600',
-    fontSize: 11,
-  },
-  stockNumber: {
-    fontWeight: 'bold',
-    marginVertical: spacing.xs,
-  },
-  stockLabel: {
-    color: colors.onSurfaceVariant,
     fontSize: 11,
   },
   precioContainer: {
@@ -223,5 +185,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ProductosBajoStockScreen;
+export default ProductosSinStockScreen;
 

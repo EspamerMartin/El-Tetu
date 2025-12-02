@@ -31,8 +31,8 @@ const AdminHomeScreen = ({ navigation }: Props) => {
   const { data: usuarios, loading: loadingUsuarios, refetch: refetchUsuarios } = useFetch(() => clientesAPI.getAll());
   const { data: productos, loading: loadingProductos, refetch: refetchProductos } = useFetch(() => productosAPI.getAll());
   const { data: pedidos, loading: loadingPedidos, refetch: refetchPedidos } = useFetch(() => pedidosAPI.getAll());
-  const { data: productosBajoStock, loading: loadingBajoStock, refetch: refetchBajoStock } = useFetch(
-    () => productosAPI.getAll({ stock__lt: 10, activo: true })
+  const { data: productosSinStock, loading: loadingSinStock, refetch: refetchSinStock } = useFetch(
+    () => productosAPI.getAll({ tiene_stock: false, activo: true })
   );
 
   useFocusEffect(
@@ -40,20 +40,20 @@ const AdminHomeScreen = ({ navigation }: Props) => {
       refetchUsuarios();
       refetchProductos();
       refetchPedidos();
-      refetchBajoStock();
+      refetchSinStock();
     }, [])
   );
 
-  const loading = loadingUsuarios || loadingProductos || loadingPedidos || loadingBajoStock;
+  const loading = loadingUsuarios || loadingProductos || loadingPedidos || loadingSinStock;
 
   const hoy = new Date();
   
   // Asegurar que siempre tengamos arrays, incluso si la respuesta es directa
   const pedidosArray = Array.isArray(pedidos) ? pedidos : (pedidos?.results || []);
   const productosArray = Array.isArray(productos) ? productos : (productos?.results || []);
-  const productosBajoStockArray = Array.isArray(productosBajoStock) 
-    ? productosBajoStock 
-    : (productosBajoStock?.results || []);
+  const productosSinStockArray = Array.isArray(productosSinStock) 
+    ? productosSinStock 
+    : (productosSinStock?.results || []);
 
   // Pedidos del mes (todos los estados)
   const pedidosMes = pedidosArray.filter((p: any) => {
@@ -67,11 +67,6 @@ const AdminHomeScreen = ({ navigation }: Props) => {
     p.estado === 'CONFIRMADO'
   );
 
-  // Filtrar productos con stock < 10 (doble verificación)
-  const productosBajoStockFiltrados = productosBajoStockArray.filter(
-    (p: any) => p.stock < 10
-  );
-
   const stats = {
     totalUsuarios: Array.isArray(usuarios) ? usuarios.length : (usuarios?.count || 0),
     productosActivos: productosArray.filter((p: any) => p.activo).length,
@@ -80,7 +75,7 @@ const AdminHomeScreen = ({ navigation }: Props) => {
       const total = parseFloat(p.total);
       return acc + (isNaN(total) ? 0 : total);
     }, 0),
-    productosConBajoStock: productosBajoStockFiltrados.length,
+    productosSinStock: productosSinStockArray.length,
   };
 
   const iniciales = user ? `${user.nombre.charAt(0)}${user.apellido.charAt(0)}` : 'AD';
@@ -131,10 +126,10 @@ const AdminHomeScreen = ({ navigation }: Props) => {
             <Text variant="bodyMedium" style={styles.kpiLabel}>Ventas del Mes</Text>
           </Surface>
 
-          {/* Productos con Bajo Stock */}
+          {/* Productos sin Stock */}
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => navigation.getParent()?.navigate('ProductosBajoStock')}
+            onPress={() => navigation.getParent()?.navigate('ProductosSinStock')}
             style={styles.kpiCardTouchableFull}
           >
             <Surface 
@@ -144,16 +139,16 @@ const AdminHomeScreen = ({ navigation }: Props) => {
               <View style={styles.kpiHeader}>
                 <Icon name="alert-circle-outline" size={32} color={colors.error} />
                 <Text variant="headlineSmall" style={[styles.kpiValue, { color: colors.error }]}>
-                  {stats.productosConBajoStock}
+                  {stats.productosSinStock}
                 </Text>
               </View>
-              <Text variant="bodyMedium" style={styles.kpiLabel}>Stock Bajo</Text>
+              <Text variant="bodyMedium" style={styles.kpiLabel}>Sin Stock</Text>
               <Text variant="bodySmall" style={styles.kpiDescription}>
-                {stats.productosConBajoStock === 0 
-                  ? 'Todos los productos tienen stock suficiente'
-                  : stats.productosConBajoStock === 1
-                  ? '1 producto con menos de 10 unidades'
-                  : `${stats.productosConBajoStock} productos con menos de 10 unidades`}
+                {stats.productosSinStock === 0 
+                  ? 'Todos los productos tienen stock disponible'
+                  : stats.productosSinStock === 1
+                  ? '1 producto sin stock disponible'
+                  : `${stats.productosSinStock} productos sin stock disponible`}
               </Text>
             </Surface>
           </TouchableOpacity>

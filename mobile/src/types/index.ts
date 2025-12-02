@@ -89,10 +89,7 @@ export interface Producto {
   unidades_caja: number;
   precio_base: string;
   precio: string; // Precio calculado según la lista del usuario
-  stock: number;
-  stock_minimo: number;
-  tiene_stock: boolean;
-  stock_bajo: boolean;
+  tiene_stock: boolean; // Indica si el producto tiene stock disponible
   url_imagen?: string;
   activo: boolean;
   fecha_creacion: string;

@@ -92,16 +92,13 @@ class PedidoItemCreateSerializer(serializers.ModelSerializer):
                 'producto': f'El producto "{producto.nombre}" ya no está disponible.'
             })
         
-        # Validar stock disponible
-        if producto.stock < cantidad:
+        # Validar que el producto tenga stock disponible
+        if not producto.tiene_stock:
             logger.warning(
-                f'Stock insuficiente: {producto.nombre} - Solicitado: {cantidad}, Disponible: {producto.stock}'
+                f'Producto sin stock: {producto.nombre} (ID: {producto.id})'
             )
             raise serializers.ValidationError({
-                'cantidad': (
-                    f'Stock insuficiente para "{producto.nombre}". '
-                    f'Disponible: {producto.stock}, Solicitado: {cantidad}'
-                )
+                'producto': f'El producto "{producto.nombre}" no tiene stock disponible.'
             })
         
         return data
@@ -199,17 +196,13 @@ class PedidoCreateSerializer(serializers.ModelSerializer):
                     'items': f'El producto "{producto.nombre}" no está disponible.'
                 })
             
-            # Verificar stock disponible (validación adicional para evitar race conditions)
-            if producto.stock < cantidad:
+            # Verificar que el producto tenga stock disponible
+            if not producto.tiene_stock:
                 logger.error(
-                    f'Error al crear pedido: Stock insuficiente para {producto.nombre} '
-                    f'(Solicitado: {cantidad}, Disponible: {producto.stock})'
+                    f'Error al crear pedido: Producto sin stock - {producto.nombre}'
                 )
                 raise serializers.ValidationError({
-                    'items': (
-                        f'Stock insuficiente para "{producto.nombre}". '
-                        f'Disponible: {producto.stock}, Solicitado: {cantidad}'
-                    )
+                    'items': f'El producto "{producto.nombre}" no tiene stock disponible.'
                 })
             
             # Asegurar que item_data tenga el objeto Producto para uso posterior

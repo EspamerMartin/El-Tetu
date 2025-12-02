@@ -50,9 +50,9 @@ class ProductoAdmin(admin.ModelAdmin):
     
     list_display = [
         'codigo_barra', 'nombre', 'marca', 'categoria', 'subcategoria',
-        'tamaño', 'unidad_tamaño', 'precio_base', 'stock', 'activo'
+        'tamaño', 'unidad_tamaño', 'precio_base', 'tiene_stock', 'activo'
     ]
-    list_filter = ['marca', 'categoria', 'subcategoria', 'unidad_tamaño', 'activo', 'fecha_creacion']
+    list_filter = ['marca', 'categoria', 'subcategoria', 'unidad_tamaño', 'tiene_stock', 'activo', 'fecha_creacion']
     search_fields = ['codigo_barra', 'nombre', 'descripcion', 'marca__nombre']
     ordering = ['nombre']
     
@@ -70,14 +70,12 @@ class ProductoAdmin(admin.ModelAdmin):
             'fields': ('precio_base',),
             'description': 'El precio base es el precio sin descuentos. Los descuentos se aplican por lista de precios.'
         }),
-        ('Inventario', {
-            'fields': ('stock', 'stock_minimo')
+        ('Disponibilidad', {
+            'fields': ('tiene_stock', 'activo'),
+            'description': 'tiene_stock indica si hay stock disponible. activo indica si el producto está habilitado en el catálogo.'
         }),
         ('Media', {
             'fields': ('url_imagen',)
-        }),
-        ('Estado', {
-            'fields': ('activo',)
         }),
     )
     

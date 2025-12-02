@@ -160,15 +160,15 @@ class ProductoListCreateView(generics.ListCreateAPIView):
     - marca: ID de marca
     - categoria: ID de categoría
     - subcategoria: ID de subcategoría
-    - stock: mínimo stock disponible
+    - tiene_stock: filtrar por disponibilidad (true/false)
     - search: búsqueda por nombre o código de barra
     """
     queryset = Producto.objects.select_related('marca', 'categoria', 'subcategoria')
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['marca', 'categoria', 'subcategoria', 'activo']
+    filterset_fields = ['marca', 'categoria', 'subcategoria', 'activo', 'tiene_stock']
     search_fields = ['nombre', 'codigo_barra', 'descripcion'] 
-    ordering_fields = ['nombre', 'codigo_barra', 'stock'] 
+    ordering_fields = ['nombre', 'codigo_barra', 'tiene_stock'] 
     ordering = ['-activo', 'fecha_eliminacion', 'nombre']
     
     def paginate_queryset(self, queryset):
@@ -204,15 +204,10 @@ class ProductoListCreateView(generics.ListCreateAPIView):
         if not self.request.user.is_admin():
             queryset = queryset.filter(activo=True, fecha_eliminacion__isnull=True)
         
-        # Filtro por stock mínimo
-        stock_min = self.request.query_params.get('stock_min', None)
-        if stock_min:
-            queryset = queryset.filter(stock__gte=stock_min)
-        
-        # Filtro por disponibilidad
+        # Filtro por disponibilidad (legacy - usa tiene_stock)
         disponible = self.request.query_params.get('disponible', None)
         if disponible and disponible.lower() == 'true':
-            queryset = queryset.filter(stock__gt=0)
+            queryset = queryset.filter(tiene_stock=True)
         
         # El ordenamiento por defecto ya está configurado en 'ordering' para priorizar activos
         # Si hay un ordenamiento personalizado, se aplicará pero siempre respetando primero activo

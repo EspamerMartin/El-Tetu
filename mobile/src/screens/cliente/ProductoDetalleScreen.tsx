@@ -66,7 +66,8 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
   };
 
   const handleIncrement = () => {
-    if (producto && cantidad < Math.min(10, producto.stock)) {
+    // Límite máximo de 99 unidades por pedido
+    if (producto && cantidad < 99) {
       setCantidad(cantidad + 1);
     }
   };
@@ -105,7 +106,7 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
     );
   }
 
-  const maxCantidad = Math.min(10, producto.stock);
+  const maxCantidad = 99; // Límite máximo por pedido
 
   return (
     <ScreenContainer>
@@ -180,19 +181,14 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Stock Disponible</Text>
+            <Text style={styles.sectionTitle}>Disponibilidad</Text>
             {producto.tiene_stock ? (
               <Chip
                 icon="check-circle"
-                style={[
-                  styles.stockChip,
-                  producto.stock_bajo ? styles.chipWarning : styles.chipSuccess,
-                ]}
+                style={[styles.stockChip, styles.chipSuccess]}
                 textStyle={styles.stockChipText}
               >
-                {producto.stock_bajo
-                  ? `Stock bajo: ${producto.stock} unidades`
-                  : `${producto.stock} unidades disponibles`}
+                Disponible
               </Chip>
             ) : (
               <Chip icon="alert-circle" style={[styles.stockChip, styles.chipError]} textStyle={styles.stockChipText}>

@@ -40,7 +40,7 @@ const ProductoFormScreen = ({ route, navigation }: Props) => {
 
   // Paso 3: Detalles
   const [unidadesCaja, setUnidadesCaja] = useState('1');
-  const [stock, setStock] = useState('0');
+  const [tieneStock, setTieneStock] = useState(true);
   const [precioBase, setPrecioBase] = useState('');
   const [urlImagen, setUrlImagen] = useState('');
   const [activo, setActivo] = useState(true);
@@ -108,7 +108,7 @@ const ProductoFormScreen = ({ route, navigation }: Props) => {
       setTamaño(producto.tamaño || '');
       setUnidadTamaño(producto.unidad_tamaño || 'ud');
       setUnidadesCaja(producto.unidades_caja?.toString() || '1');
-      setStock(producto.stock.toString());
+      setTieneStock(producto.tiene_stock);
       setPrecioBase(producto.precio_base || '');
       setUrlImagen(producto.url_imagen || '');
       setActivo(producto.activo);
@@ -246,11 +246,6 @@ const ProductoFormScreen = ({ route, navigation }: Props) => {
       Alert.alert('Error', 'Las unidades por caja deben ser un número válido mayor a 0');
       return false;
     }
-    const stockNum = parseInt(stock);
-    if (isNaN(stockNum) || stockNum < 0) {
-      Alert.alert('Error', 'El stock debe ser un número válido mayor o igual a 0');
-      return false;
-    }
     if (!precioBase || !precioBase.trim()) {
       Alert.alert('Error', 'El precio base es obligatorio');
       return false;
@@ -293,8 +288,7 @@ const ProductoFormScreen = ({ route, navigation }: Props) => {
         tamaño: parseFloat(tamaño).toString(),
         unidad_tamaño: unidadTamaño,
         unidades_caja: parseInt(unidadesCaja),
-        stock: parseInt(stock),
-        stock_minimo: 0,
+        tiene_stock: tieneStock,
         precio_base: parseFloat(precioBase).toString(),
         url_imagen: urlImagen.trim() || undefined,
         activo,
@@ -581,14 +575,6 @@ const ProductoFormScreen = ({ route, navigation }: Props) => {
           />
           
           <InputField 
-            label="Stock" 
-            value={stock} 
-            onChangeText={setStock} 
-            keyboardType="numeric"
-            placeholder="Cantidad en stock"
-          />
-          
-          <InputField 
             label="Precio Base *" 
             value={precioBase} 
             onChangeText={setPrecioBase} 
@@ -604,7 +590,22 @@ const ProductoFormScreen = ({ route, navigation }: Props) => {
           />
 
           <View style={styles.switchRow}>
-            <Text variant="bodyLarge">Producto activo</Text>
+            <View>
+              <Text variant="bodyLarge">Tiene stock disponible</Text>
+              <Text variant="bodySmall" style={styles.switchHint}>
+                Desactiva si el producto no tiene stock
+              </Text>
+            </View>
+            <Switch value={tieneStock} onValueChange={setTieneStock} />
+          </View>
+
+          <View style={styles.switchRow}>
+            <View>
+              <Text variant="bodyLarge">Producto activo</Text>
+              <Text variant="bodySmall" style={styles.switchHint}>
+                Desactiva para ocultar del catálogo
+              </Text>
+            </View>
             <Switch value={activo} onValueChange={setActivo} />
           </View>
 
@@ -735,6 +736,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginVertical: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surfaceVariant,
+    borderRadius: borderRadius.sm,
+  },
+  switchHint: {
+    color: colors.onSurfaceVariant,
+    marginTop: spacing.xs,
   },
   actions: {
     flexDirection: 'row',

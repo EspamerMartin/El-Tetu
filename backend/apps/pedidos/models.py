@@ -1,4 +1,4 @@
-from django.db import models, transaction
+from django.db import models
 from django.conf import settings
 from apps.productos.models import Producto
 
@@ -104,32 +104,27 @@ class Pedido(models.Model):
         
         self.save()
     
-    @transaction.atomic
     def confirmar(self):
         """
-        Confirma el pedido y descuenta stock de forma atómica.
+        Confirma el pedido.
         
-        Usa select_for_update() para bloquear los productos durante la transacción,
-        evitando condiciones de carrera cuando múltiples pedidos se confirman simultáneamente.
+        Verifica que los productos estén activos y con stock disponible.
         """
         from django.utils import timezone
         
         if self.estado != 'PENDIENTE':
             raise ValueError('Solo se pueden confirmar pedidos pendientes.')
         
-        # Obtener IDs de productos únicos para bloquearlos
+        # Verificar que el pedido tenga productos válidos
         producto_ids = list(self.items.values_list('producto_id', flat=True).distinct())
         producto_ids = [pid for pid in producto_ids if pid is not None]
         
         if not producto_ids:
             raise ValueError('El pedido no tiene productos válidos.')
         
-        # Bloquear productos con select_for_update() para evitar race conditions
-        # Esto asegura que solo un pedido puede confirmar estos productos a la vez
-        productos_bloqueados = Producto.objects.select_for_update().filter(id__in=producto_ids)
-        
-        # Verificar stock con los productos bloqueados (valores actualizados)
-        productos_dict = {p.id: p for p in productos_bloqueados}
+        # Verificar disponibilidad de productos
+        productos = Producto.objects.filter(id__in=producto_ids)
+        productos_dict = {p.id: p for p in productos}
         
         for item in self.items.all():
             if not item.producto_id:
@@ -139,55 +134,24 @@ class Pedido(models.Model):
             if not producto:
                 raise ValueError(f'El producto del item {item.id} no existe o fue eliminado.')
             
-            # Verificar stock con el producto bloqueado (valor actualizado)
-            if producto.stock < item.cantidad:
-                raise ValueError(
-                    f'Stock insuficiente para "{producto.nombre}". '
-                    f'Disponible: {producto.stock}, Solicitado: {item.cantidad}'
-                )
-        
-        # Descontar stock de forma atómica
-        for item in self.items.all():
-            producto = productos_dict.get(item.producto_id)
-            if producto:
-                # Usar F() expression para actualización atómica en la BD
-                from django.db.models import F
-                Producto.objects.filter(id=producto.id).update(stock=F('stock') - item.cantidad)
-                # Refrescar el objeto para tener el valor actualizado
-                producto.refresh_from_db()
+            # Verificar que el producto esté activo y tenga stock
+            if not producto.activo:
+                raise ValueError(f'El producto "{producto.nombre}" no está disponible.')
+            
+            if not producto.tiene_stock:
+                raise ValueError(f'El producto "{producto.nombre}" no tiene stock disponible.')
         
         # Actualizar estado del pedido
         self.estado = 'CONFIRMADO'
         self.fecha_confirmacion = timezone.now()
         self.save()
     
-    @transaction.atomic
     def cancelar(self):
         """
-        Cancela el pedido y restaura stock si fue confirmado.
-        
-        Usa transacciones atómicas para asegurar consistencia.
+        Cancela el pedido.
         """
         if self.estado == 'CANCELADO':
             raise ValueError('El pedido ya está cancelado.')
-        
-        # Si estaba confirmado, restaurar stock de forma atómica
-        if self.estado == 'CONFIRMADO':
-            from django.db.models import F
-            producto_ids = list(self.items.values_list('producto_id', flat=True).distinct())
-            producto_ids = [pid for pid in producto_ids if pid is not None]
-            
-            if producto_ids:
-                # Bloquear productos para evitar race conditions
-                productos_bloqueados = Producto.objects.select_for_update().filter(id__in=producto_ids)
-                productos_dict = {p.id: p for p in productos_bloqueados}
-                
-                for item in self.items.all():
-                    if item.producto_id:
-                        producto = productos_dict.get(item.producto_id)
-                        if producto:
-                            # Usar F() expression para actualización atómica
-                            Producto.objects.filter(id=producto.id).update(stock=F('stock') + item.cantidad)
         
         self.estado = 'CANCELADO'
         self.save()

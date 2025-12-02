@@ -133,10 +133,10 @@ const CatalogoScreen = () => {
   }, [navigation]);
 
   const handleAddProducto = useCallback((producto: Producto) => {
+    if (!producto.tiene_stock) return;
+
     const itemEnCarrito = cartItems.find(i => i.producto.id === producto.id);
     const cantidadActual = itemEnCarrito?.cantidad || 0;
-    
-    if (cantidadActual >= producto.stock) return;
 
     if (itemEnCarrito) {
       dispatch(updateQuantity({ productoId: producto.id, cantidad: cantidadActual + 1 }));
@@ -184,7 +184,6 @@ const CatalogoScreen = () => {
   const renderProducto = useCallback(({ item }: { item: Producto }) => {
     const itemEnCarrito = cartItems.find(i => i.producto.id === item.id);
     const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
-    const puedeAgregar = item.stock > cantidadEnCarrito;
     
     return (
       <View style={styles.productWrapper}>
@@ -194,7 +193,7 @@ const CatalogoScreen = () => {
             onPress={() => handleProductPress(item)}
             showAddButton={false}
           />
-          {cantidadEnCarrito > 0 && (
+          {cantidadEnCarrito > 0 && item.tiene_stock && (
             <View style={styles.cantidadOverlay}>
               <View style={styles.cantidadControlsOverlay}>
                 <IconButton
@@ -214,7 +213,6 @@ const CatalogoScreen = () => {
                   size={18}
                   iconColor={colors.primary}
                   onPress={() => handleAddProducto(item)}
-                  disabled={!puedeAgregar}
                   style={styles.cantidadButtonOverlay}
                 />
               </View>

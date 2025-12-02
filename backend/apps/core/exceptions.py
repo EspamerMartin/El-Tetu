@@ -4,17 +4,12 @@ Centraliza los mensajes de error y facilita el manejo consistente.
 """
 
 
-class InsufficientStockError(Exception):
-    """Excepción cuando no hay stock suficiente para un producto."""
+class NoStockError(Exception):
+    """Excepción cuando un producto no tiene stock disponible."""
     
-    def __init__(self, producto_nombre: str, cantidad_solicitada: int, stock_disponible: int):
+    def __init__(self, producto_nombre: str):
         self.producto_nombre = producto_nombre
-        self.cantidad_solicitada = cantidad_solicitada
-        self.stock_disponible = stock_disponible
-        message = (
-            f'Stock insuficiente para {producto_nombre}. '
-            f'Solicitado: {cantidad_solicitada}, Disponible: {stock_disponible}'
-        )
+        message = f'El producto "{producto_nombre}" no tiene stock disponible.'
         super().__init__(message)
 
 

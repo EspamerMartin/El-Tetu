@@ -37,8 +37,9 @@ const CarritoScreen = ({ navigation }: Props) => {
 
   const total = subtotal;
 
-  const handleIncrement = (productoId: number, currentQty: number, stock: number) => {
-    if (currentQty < stock) {
+  const handleIncrement = (productoId: number, currentQty: number) => {
+    // Límite máximo de 99 unidades
+    if (currentQty < 99) {
       dispatch(updateQuantity({ productoId, cantidad: currentQty + 1 }));
     }
   };
@@ -156,8 +157,8 @@ const CarritoScreen = ({ navigation }: Props) => {
               <IconButton
                 icon="plus"
                 size={20}
-                onPress={() => handleIncrement(item.producto.id, item.cantidad, item.producto.stock)}
-                disabled={item.cantidad >= item.producto.stock}
+                onPress={() => handleIncrement(item.producto.id, item.cantidad)}
+                disabled={item.cantidad >= 99}
                 iconColor={colors.primary}
                 style={styles.quantityButton}
               />

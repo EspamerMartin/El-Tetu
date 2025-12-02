@@ -25,10 +25,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
     if (!producto.tiene_stock) {
       return { badge: styles.stockBadgeError, text: 'Sin stock' };
     }
-    if (producto.stock_bajo) {
-      return { badge: styles.stockBadgeWarning, text: `Stock: ${producto.stock}` };
-    }
-    return { badge: styles.stockBadgeSuccess, text: `Stock: ${producto.stock}` };
+    return { badge: styles.stockBadgeSuccess, text: 'Disponible' };
   };
 
   const stockInfo = getStockStyles();

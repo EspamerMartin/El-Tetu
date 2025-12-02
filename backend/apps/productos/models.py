@@ -165,8 +165,11 @@ class Producto(SoftDeleteMixin, TimestampMixin):
         help_text='Precio sin descuentos'
     )
     
-    stock = models.IntegerField(default=0, verbose_name='Stock')
-    stock_minimo = models.IntegerField(default=0, verbose_name='Stock Mínimo')
+    tiene_stock = models.BooleanField(
+        default=True,
+        verbose_name='Tiene Stock',
+        help_text='Indica si el producto tiene stock disponible'
+    )
     
     url_imagen = models.URLField(
         blank=True,
@@ -193,26 +196,3 @@ class Producto(SoftDeleteMixin, TimestampMixin):
         if lista_precio and lista_precio.activo:
             return lista_precio.calcular_precio(self.precio_base)
         return self.precio_base
-    
-    @property
-    def tiene_stock(self):
-        """Verifica si el producto tiene stock disponible."""
-        return self.stock > 0
-    
-    @property
-    def stock_bajo(self):
-        """Verifica si el stock está por debajo del mínimo."""
-        return self.stock <= self.stock_minimo
-    
-    def descontar_stock(self, cantidad):
-        """Descuenta stock del producto."""
-        if self.stock >= cantidad:
-            self.stock -= cantidad
-            self.save()
-            return True
-        return False
-    
-    def aumentar_stock(self, cantidad):
-        """Aumenta stock del producto."""
-        self.stock += cantidad
-        self.save()

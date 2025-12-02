@@ -105,7 +105,7 @@ const ProductosListScreen = ({ navigation }: { navigation: NavigationProp }) => 
             <Card style={styles.card}>
               <Card.Title
                 title={item.nombre}
-                subtitle={`Stock: ${item.stock}`}
+                subtitle={item.tiene_stock ? 'Con stock' : 'Sin stock'}
                 right={(props) => (
                   <View style={styles.actions}>
                     <IconButton {...props} icon="pencil" onPress={() => navigation.navigate('ProductoForm', { productoId: item.id })} />
@@ -115,9 +115,18 @@ const ProductosListScreen = ({ navigation }: { navigation: NavigationProp }) => 
               />
               <Card.Content>
                 <Text variant="bodyLarge">{formatPrice(item.precio_base)}</Text>
-                <Chip icon={item.activo ? 'check' : 'close'} compact style={styles.chip}>
-                  {item.activo ? 'Activo' : 'Inactivo'}
-                </Chip>
+                <View style={styles.chipsContainer}>
+                  <Chip icon={item.activo ? 'check' : 'close'} compact style={styles.chip}>
+                    {item.activo ? 'Activo' : 'Inactivo'}
+                  </Chip>
+                  <Chip 
+                    icon={item.tiene_stock ? 'package-variant' : 'package-variant-closed'} 
+                    compact 
+                    style={[styles.chip, !item.tiene_stock && styles.chipError]}
+                  >
+                    {item.tiene_stock ? 'Disponible' : 'Sin stock'}
+                  </Chip>
+                </View>
               </Card.Content>
             </Card>
           )}
@@ -151,7 +160,9 @@ const styles = StyleSheet.create({
   list: { padding: spacing.md },
   card: { marginBottom: spacing.md },
   actions: { flexDirection: 'row' },
-  chip: { marginTop: spacing.sm },
+  chipsContainer: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  chip: { },
+  chipError: { backgroundColor: colors.errorLight },
   fab: { position: 'absolute', bottom: spacing.lg, right: spacing.lg },
 });
 

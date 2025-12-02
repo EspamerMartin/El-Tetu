@@ -61,6 +61,7 @@ export const productosAPI = {
     subcategoria?: number;
     search?: string;
     disponible?: boolean;
+    tiene_stock?: boolean;
     activo?: boolean;
     page?: number;
   }): Promise<PaginatedResponse<Producto>> => {

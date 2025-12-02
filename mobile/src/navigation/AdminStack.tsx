@@ -18,7 +18,7 @@ import ListaPrecioFormScreen from '@/screens/admin/ListaPrecioFormScreen';
 import AsignarListasClientesScreen from '@/screens/admin/AsignarListasClientesScreen';
 import PerfilAdminScreen from '@/screens/admin/PerfilAdminScreen';
 import NuevoPedidoScreen from '@/screens/vendedor/NuevoPedidoScreen';
-import ProductosBajoStockScreen from '@/screens/vendedor/ProductosBajoStockScreen';
+import ProductosSinStockScreen from '@/screens/vendedor/ProductosSinStockScreen';
 
 export type AdminDrawerParamList = {
   AdminHome: undefined;
@@ -39,7 +39,7 @@ export type AdminStackParamList = {
   AsignarListasClientes: undefined;
   PedidoAdminDetalle: { pedidoId: number };
   NuevoPedido: { clienteId?: number };
-  ProductosBajoStock: undefined;
+  ProductosSinStock: undefined;
 };
 
 const Drawer = createDrawerNavigator<AdminDrawerParamList>();
@@ -201,9 +201,9 @@ const AdminStack = () => {
         options={{ title: 'Nuevo Pedido' }}
       />
       <Stack.Screen
-        name="ProductosBajoStock"
-        component={ProductosBajoStockScreen}
-        options={{ title: 'Productos con Bajo Stock' }}
+        name="ProductosSinStock"
+        component={ProductosSinStockScreen}
+        options={{ title: 'Productos sin Stock' }}
       />
     </Stack.Navigator>
   );
