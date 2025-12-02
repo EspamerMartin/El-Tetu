@@ -6,7 +6,7 @@ import { ClienteTabParamList } from '@/navigation/ClienteStack';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { logout, updateProfile } from '@/store/slices/authSlice';
 import { InputField, ScreenContainer } from '@/components';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius, shadows } from '@/theme';
 
 type Props = NativeStackScreenProps<ClienteTabParamList, 'Perfil'>;
 
@@ -15,7 +15,7 @@ type Props = NativeStackScreenProps<ClienteTabParamList, 'Perfil'>;
  * 
  * Pantalla de perfil del usuario con:
  * - Datos personales
- * - Opción de cambiar contraseña
+ * - Opción de editar teléfono y dirección
  * - Cerrar sesión
  */
 const PerfilScreen = ({ navigation }: Props) => {
@@ -59,110 +59,108 @@ const PerfilScreen = ({ navigation }: Props) => {
 
   if (!user) return null;
 
+  const getRolLabel = (rol: string) => {
+    switch (rol) {
+      case 'cliente': return 'Cliente';
+      case 'vendedor': return 'Vendedor';
+      case 'admin': return 'Administrador';
+      default: return rol;
+    }
+  };
+
   return (
     <ScreenContainer>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* Avatar y nombre */}
+        <View style={styles.avatarSection}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {user.nombre.charAt(0)}{user.apellido.charAt(0)}
+            </Text>
+          </View>
+          <Text style={styles.fullName}>{user.full_name}</Text>
+          <View style={styles.rolBadge}>
+            <Text style={styles.rolText}>{getRolLabel(user.rol)}</Text>
+          </View>
+        </View>
+
         <Surface style={styles.surface}>
-        <Text variant="headlineSmall" style={styles.title}>
-          Mi Perfil
-        </Text>
+          <Text style={styles.sectionTitle}>Información Personal</Text>
 
-        <View style={styles.section}>
-          <Text variant="labelLarge" style={styles.label}>
-            Nombre Completo
-          </Text>
-          <Text variant="bodyLarge">{user.full_name}</Text>
-        </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Email</Text>
+            <Text style={styles.value}>{user.email}</Text>
+          </View>
 
-        <View style={styles.section}>
-          <Text variant="labelLarge" style={styles.label}>
-            Email
-          </Text>
-          <Text variant="bodyLarge">{user.email}</Text>
-        </View>
+          {editing ? (
+            <>
+              <InputField
+                label="Teléfono"
+                value={formData.telefono}
+                onChangeText={(text) => setFormData({ ...formData, telefono: text })}
+                keyboardType="phone-pad"
+              />
 
-        <View style={styles.section}>
-          <Text variant="labelLarge" style={styles.label}>
-            Rol
-          </Text>
-          <Text variant="bodyLarge" style={styles.roleText}>
-            {user.rol === 'cliente' ? 'Cliente' : user.rol === 'vendedor' ? 'Vendedor' : 'Administrador'}
-          </Text>
-        </View>
+              <InputField
+                label="Dirección"
+                value={formData.direccion}
+                onChangeText={(text) => setFormData({ ...formData, direccion: text })}
+                multiline
+                numberOfLines={2}
+              />
 
-        {editing ? (
-          <>
-            <InputField
-              label="Teléfono"
-              value={formData.telefono}
-              onChangeText={(text) => setFormData({ ...formData, telefono: text })}
-              keyboardType="phone-pad"
-            />
+              <View style={styles.buttonRow}>
+                <Button
+                  mode="outlined"
+                  onPress={() => setEditing(false)}
+                  style={styles.halfButton}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={handleSave}
+                  loading={loading}
+                  disabled={loading}
+                  style={styles.halfButton}
+                >
+                  Guardar
+                </Button>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Teléfono</Text>
+                <Text style={styles.value}>{user.telefono || 'No especificado'}</Text>
+              </View>
 
-            <InputField
-              label="Dirección"
-              value={formData.direccion}
-              onChangeText={(text) => setFormData({ ...formData, direccion: text })}
-              multiline
-              numberOfLines={2}
-            />
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Dirección</Text>
+                <Text style={styles.value}>{user.direccion || 'No especificada'}</Text>
+              </View>
 
-            <View style={styles.buttonRow}>
               <Button
                 mode="outlined"
-                onPress={() => setEditing(false)}
-                style={styles.halfButton}
+                icon="pencil"
+                onPress={() => setEditing(true)}
+                style={styles.editButton}
               >
-                Cancelar
+                Editar Datos
               </Button>
-              <Button
-                mode="contained"
-                onPress={handleSave}
-                loading={loading}
-                disabled={loading}
-                style={styles.halfButton}
-              >
-                Guardar
-              </Button>
-            </View>
-          </>
-        ) : (
-          <>
-            <View style={styles.section}>
-              <Text variant="labelLarge" style={styles.label}>
-                Teléfono
-              </Text>
-              <Text variant="bodyLarge">{user.telefono || 'No especificado'}</Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text variant="labelLarge" style={styles.label}>
-                Dirección
-              </Text>
-              <Text variant="bodyLarge">{user.direccion || 'No especificada'}</Text>
-            </View>
-
-            <Button
-              mode="outlined"
-              icon="pencil"
-              onPress={() => setEditing(true)}
-              style={styles.button}
-            >
-              Editar Datos
-            </Button>
-          </>
-        )}
+            </>
+          )}
+        </Surface>
 
         <Button
           mode="contained"
           icon="logout"
           onPress={handleLogout}
-          style={[styles.button, styles.logoutButton]}
-          buttonColor={theme.colors.error}
+          style={styles.logoutButton}
+          buttonColor={colors.error}
         >
           Cerrar Sesión
         </Button>
-      </Surface>
       </ScrollView>
     </ScreenContainer>
   );
@@ -175,29 +173,71 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing.md,
   },
+  avatarSection: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    paddingVertical: spacing.lg,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    ...shadows.md,
+  },
+  avatarText: {
+    color: colors.white,
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  fullName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  rolBadge: {
+    backgroundColor: colors.primarySurface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+  },
+  rolText: {
+    color: colors.primary,
+    fontWeight: '600',
+    fontSize: 12,
+  },
   surface: {
     padding: spacing.lg,
-    borderRadius: 12,
-    elevation: 2,
-    backgroundColor: theme.colors.surface,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.white,
+    ...shadows.sm,
   },
-  title: {
-    fontWeight: 'bold',
-    marginBottom: spacing.lg,
-    color: theme.colors.primary,
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+    marginBottom: spacing.md,
   },
-  section: {
+  infoRow: {
     marginBottom: spacing.md,
   },
   label: {
-    color: theme.colors.onSurfaceVariant,
+    fontSize: 12,
+    color: colors.textTertiary,
     marginBottom: spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  roleText: {
-    textTransform: 'capitalize',
+  value: {
+    fontSize: 16,
+    color: colors.text,
   },
-  button: {
-    marginTop: spacing.md,
+  editButton: {
+    marginTop: spacing.sm,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -209,6 +249,7 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     marginTop: spacing.xl,
+    borderRadius: borderRadius.md,
   },
 });
 

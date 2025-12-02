@@ -6,7 +6,7 @@ import { useAppSelector } from '@/store';
 import { useFetch } from '@/hooks';
 import { pedidosAPI } from '@/services/api';
 import { PedidoCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius } from '@/theme';
 import { Pedido } from '@/types';
 
 type EstadoFilter = 'TODOS' | 'PENDIENTE' | 'CONFIRMADO' | 'CANCELADO';
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     margin: spacing.md,
   },
   filtersContainer: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     elevation: 2,
     paddingVertical: spacing.md,
   },

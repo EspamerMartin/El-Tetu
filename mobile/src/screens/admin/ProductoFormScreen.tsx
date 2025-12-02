@@ -6,7 +6,7 @@ import { AdminStackParamList } from '@/navigation/AdminStack';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
 import { InputField, LoadingOverlay, ScreenContainer } from '@/components';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius } from '@/theme';
 import { Categoria, Subcategoria, Producto, Marca, UnidadTamaño } from '@/types';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'ProductoForm'>;
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     elevation: 2,
   },
   step: {
@@ -635,13 +635,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.sm,
     borderRadius: 8,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: colors.surfaceVariant,
   },
   stepActive: {
-    backgroundColor: theme.colors.primaryContainer,
+    backgroundColor: colors.primaryContainer,
   },
   stepTextActive: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: 'bold',
   },
   stepDivider: {
@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   errorText: {
-    color: theme.colors.error,
+    color: colors.error,
     marginBottom: spacing.sm,
   },
   menuContainer: {
@@ -677,11 +677,11 @@ const styles = StyleSheet.create({
   infoContainer: {
     marginVertical: spacing.sm,
     padding: spacing.md,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: colors.surfaceVariant,
     borderRadius: 8,
   },
   infoText: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontStyle: 'italic',
   },
   unidadSection: {
@@ -691,9 +691,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: spacing.md,
     marginTop: spacing.xs,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.outline + '20',
+    borderColor: colors.outline + '20',
   },
   unidadSelector: {
     paddingVertical: spacing.xs,

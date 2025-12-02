@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { Text, TextInput, Button, Surface, HelperText } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '@/navigation/AuthStack';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { login } from '@/store/slices/authSlice';
-import { theme } from '@/theme';
+import { colors, spacing, borderRadius, shadows } from '@/theme';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 /**
  * LoginScreen
  * 
- * Pantalla de inicio de sesión con:
- * - Email y contraseña
+ * Pantalla de inicio de sesión con diseño de marca El Tetu:
+ * - Colores púrpura corporativos
  * - Validación de formulario
  * - Manejo de errores
  * - Navegación a registro
@@ -33,34 +33,35 @@ const LoginScreen = ({ navigation }: Props) => {
 
     try {
       await dispatch(login({ email, password })).unwrap();
-      // Navigation automática al stack correspondiente (RootNavigator lo maneja)
-    } catch (err) {
+    } catch {
       // Error mostrado desde el estado de Redux
     }
   };
 
-  const hasErrors = () => {
-    return !email.includes('@');
-  };
+  const isEmailValid = email.length === 0 || email.includes('@');
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Surface style={styles.surface}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text variant="displaySmall" style={styles.title}>
-              El-Tetu
-            </Text>
-            <Text variant="titleMedium" style={styles.subtitle}>
-              Inicia sesión en tu cuenta
-            </Text>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header con branding */}
+        <View style={styles.header}>
+          <View style={styles.logoContainer}>
+            <Text style={styles.logoText}>🛒</Text>
           </View>
+          <Text style={styles.title}>El Tetu</Text>
+          <Text style={styles.subtitle}>Tu distribuidora de confianza</Text>
+        </View>
 
-          {/* Form */}
+        {/* Formulario */}
+        <Surface style={styles.formCard}>
+          <Text style={styles.formTitle}>Iniciar Sesión</Text>
+          
           <View style={styles.form}>
             <TextInput
               label="Email"
@@ -71,11 +72,16 @@ const LoginScreen = ({ navigation }: Props) => {
               autoComplete="email"
               mode="outlined"
               style={styles.input}
-              error={email.length > 0 && hasErrors()}
+              error={!isEmailValid}
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
+              left={<TextInput.Icon icon="email-outline" color={colors.textSecondary} />}
             />
-            <HelperText type="error" visible={email.length > 0 && hasErrors()}>
-              Email inválido
-            </HelperText>
+            {!isEmailValid && (
+              <HelperText type="error" visible>
+                Ingresa un email válido
+              </HelperText>
+            )}
 
             <TextInput
               label="Contraseña"
@@ -86,39 +92,52 @@ const LoginScreen = ({ navigation }: Props) => {
               autoComplete="password"
               mode="outlined"
               style={styles.input}
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
+              left={<TextInput.Icon icon="lock-outline" color={colors.textSecondary} />}
               right={
                 <TextInput.Icon
                   icon={showPassword ? 'eye-off' : 'eye'}
                   onPress={() => setShowPassword(!showPassword)}
+                  color={colors.textSecondary}
                 />
               }
             />
 
             {error && (
-              <HelperText type="error" visible>
-                {typeof error === 'string' ? error : 'Error al iniciar sesión'}
-              </HelperText>
+              <View style={styles.errorContainer}>
+                <HelperText type="error" visible style={styles.errorText}>
+                  {typeof error === 'string' ? error : 'Error al iniciar sesión'}
+                </HelperText>
+              </View>
             )}
 
             <Button
               mode="contained"
               onPress={handleLogin}
               loading={loading}
-              disabled={loading || !email || !password || hasErrors()}
-              style={styles.button}
+              disabled={loading || !email || !password || !isEmailValid}
+              style={styles.loginButton}
+              contentStyle={styles.loginButtonContent}
+              labelStyle={styles.loginButtonLabel}
             >
               Iniciar Sesión
             </Button>
-
-            <Button
-              mode="text"
-              onPress={() => navigation.navigate('Register')}
-              style={styles.button}
-            >
-              ¿No tienes cuenta? Regístrate
-            </Button>
           </View>
         </Surface>
+
+        {/* Link a registro */}
+        <View style={styles.registerContainer}>
+          <Text style={styles.registerText}>¿No tienes cuenta?</Text>
+          <Button
+            mode="text"
+            onPress={() => navigation.navigate('Register')}
+            labelStyle={styles.registerButton}
+            compact
+          >
+            Regístrate aquí
+          </Button>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -127,38 +146,94 @@ const LoginScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.primary,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: theme.spacing.md,
-  },
-  surface: {
-    padding: theme.spacing.lg,
-    borderRadius: 12,
-    elevation: 4,
+    padding: spacing.lg,
+    paddingTop: spacing.xxl,
   },
   header: {
     alignItems: 'center',
-    marginBottom: theme.spacing.xl,
+    marginBottom: spacing.xl,
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    ...shadows.lg,
+  },
+  logoText: {
+    fontSize: 40,
   },
   title: {
-    color: theme.colors.primary,
+    fontSize: 32,
     fontWeight: 'bold',
-    marginBottom: theme.spacing.xs,
+    color: colors.white,
+    marginBottom: spacing.xs,
   },
   subtitle: {
-    color: theme.colors.onSurfaceVariant,
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  formCard: {
+    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.white,
+    ...shadows.lg,
+  },
+  formTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
   },
   form: {
     width: '100%',
   },
   input: {
-    marginBottom: theme.spacing.xs,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.white,
   },
-  button: {
-    marginTop: theme.spacing.md,
+  errorContainer: {
+    backgroundColor: colors.errorLight,
+    borderRadius: borderRadius.sm,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  errorText: {
+    color: colors.error,
+  },
+  loginButton: {
+    marginTop: spacing.md,
+    borderRadius: borderRadius.md,
+  },
+  loginButtonContent: {
+    paddingVertical: spacing.sm,
+  },
+  loginButtonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  registerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing.lg,
+  },
+  registerText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
+  },
+  registerButton: {
+    color: colors.white,
+    fontWeight: '600',
   },
 });
 

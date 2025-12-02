@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Text, Surface, useTheme, Avatar } from 'react-native-paper';
+import { Text, Surface, Avatar } from 'react-native-paper';
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { useFocusEffect } from '@react-navigation/native';
 import { VendedorDrawerParamList, VendedorStackParamList } from '@/navigation/VendedorStack';
@@ -10,7 +10,7 @@ import { useFetch } from '@/hooks';
 import { pedidosAPI, productosAPI } from '@/services/api';
 import { LoadingOverlay, ScreenContainer } from '@/components';
 import { useAppSelector } from '@/store';
-import { spacing } from '@/theme';
+import { colors, spacing, borderRadius, shadows } from '@/theme';
 import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -28,26 +28,19 @@ interface DashboardStats {
 /**
  * VendedorHomeScreen
  * 
- * Dashboard del vendedor con KPIs principales:
- * - Total de pedidos activos
- * - Ventas del día
- * - Productos con bajo stock
+ * Dashboard del vendedor con KPIs principales
  */
 const VendedorHomeScreen = ({ navigation }: Props) => {
-  const { colors } = useTheme();
   const { user } = useAppSelector((state) => state.auth);
 
-  // Fetch pedidos activos (no cancelados)
   const { data: pedidos, loading: loadingPedidos, refetch: refetchPedidos } = useFetch(
     () => pedidosAPI.getAll({ estado__in: 'PENDIENTE,CONFIRMADO' })
   );
 
-  // Fetch ventas del día (pedidos confirmados de hoy)
   const { data: ventasHoy, loading: loadingVentas, refetch: refetchVentas } = useFetch(
     () => pedidosAPI.getAll({ fecha_pedido__gte: new Date().toISOString().split('T')[0] })
   );
 
-  // Fetch productos con stock bajo (< 10)
   const { data: productosBajoStock, loading: loadingProductos, refetch: refetchProductos } = useFetch(
     () => productosAPI.getAll({ stock__lt: 10, activo: true })
   );
@@ -62,14 +55,12 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
 
   const loading = loadingPedidos || loadingVentas || loadingProductos;
 
-  // Asegurar que siempre tengamos arrays, incluso si la respuesta es directa
   const pedidosArray = Array.isArray(pedidos) ? pedidos : (pedidos?.results || []);
   const ventasHoyArray = Array.isArray(ventasHoy) ? ventasHoy : (ventasHoy?.results || []);
   const productosBajoStockArray = Array.isArray(productosBajoStock) 
     ? productosBajoStock 
     : (productosBajoStock?.results || []);
 
-  // Filtrar productos con stock < 10 (doble verificación)
   const productosBajoStockFiltrados = productosBajoStockArray.filter(
     (p: any) => p.stock < 10
   );
@@ -95,13 +86,12 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
             <Text variant="headlineMedium" style={styles.title}>Dashboard</Text>
             <Text variant="bodyMedium" style={styles.subtitle}>Hola, {user?.nombre}</Text>
           </View>
-          <Avatar.Text size={48} label={iniciales} style={{ backgroundColor: colors.tertiary }} />
+          <Avatar.Text size={48} label={iniciales} style={styles.avatar} />
         </View>
 
         {/* KPI Cards */}
         <View style={styles.kpiContainer}>
-          {/* Total Pedidos Activos */}
-          <Surface style={[styles.kpiCard, { backgroundColor: colors.primaryContainer }]} elevation={2}>
+          <Surface style={[styles.kpiCard, styles.kpiCardPrimary]} elevation={2}>
             <View style={styles.kpiHeader}>
               <Icon name="package-variant" size={32} color={colors.primary} />
               <Text variant="headlineSmall" style={[styles.kpiValue, { color: colors.primary }]}>
@@ -110,15 +100,14 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
             </View>
             <Text variant="bodyMedium" style={styles.kpiLabel}>Pedidos Activos</Text>
             <Text variant="bodySmall" style={styles.kpiDescription}>
-              Pendientes, confirmados y en camino
+              Pendientes y confirmados
             </Text>
           </Surface>
 
-          {/* Ventas del Día */}
-          <Surface style={[styles.kpiCard, { backgroundColor: colors.secondaryContainer }]} elevation={2}>
+          <Surface style={[styles.kpiCard, styles.kpiCardSecondary]} elevation={2}>
             <View style={styles.kpiHeader}>
-              <Icon name="cash-multiple" size={32} color={colors.secondary} />
-              <Text variant="headlineSmall" style={[styles.kpiValue, { color: colors.secondary }]}>
+              <Icon name="cash-multiple" size={32} color={colors.accent} />
+              <Text variant="headlineSmall" style={[styles.kpiValue, { color: colors.accent }]}>
                 {formatPrice(stats.ventasDelDia)}
               </Text>
             </View>
@@ -128,25 +117,21 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
             </Text>
           </Surface>
 
-          {/* Productos con Bajo Stock */}
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => navigation.getParent()?.navigate('ProductosBajoStock')}
           >
-            <Surface 
-              style={[styles.kpiCard, { backgroundColor: colors.errorContainer }]} 
-              elevation={2}
-            >
-            <View style={styles.kpiHeader}>
-              <Icon name="alert-circle-outline" size={32} color={colors.error} />
-              <Text variant="headlineSmall" style={[styles.kpiValue, { color: colors.error }]}>
-                {stats.productosConBajoStock}
+            <Surface style={[styles.kpiCard, styles.kpiCardError]} elevation={2}>
+              <View style={styles.kpiHeader}>
+                <Icon name="alert-circle-outline" size={32} color={colors.error} />
+                <Text variant="headlineSmall" style={[styles.kpiValue, { color: colors.error }]}>
+                  {stats.productosConBajoStock}
+                </Text>
+              </View>
+              <Text variant="bodyMedium" style={styles.kpiLabel}>Stock Bajo</Text>
+              <Text variant="bodySmall" style={styles.kpiDescription}>
+                Productos con menos de 10 unidades
               </Text>
-            </View>
-            <Text variant="bodyMedium" style={styles.kpiLabel}>Stock Bajo</Text>
-            <Text variant="bodySmall" style={styles.kpiDescription}>
-              Productos con menos de 10 unidades
-            </Text>
             </Surface>
           </TouchableOpacity>
         </View>
@@ -158,6 +143,7 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => navigation.navigate('Clientes')}
+            style={styles.actionTouchable}
           >
             <Surface style={styles.actionCard} elevation={1}>
               <Icon name="account-group" size={40} color={colors.primary} />
@@ -171,6 +157,7 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => navigation.navigate('Pedidos')}
+            style={styles.actionTouchable}
           >
             <Surface style={styles.actionCard} elevation={1}>
               <Icon name="clipboard-list" size={40} color={colors.primary} />
@@ -187,7 +174,7 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
             style={styles.nuevoPedidoButton}
           >
             <Surface style={styles.actionCardFull} elevation={1}>
-              <Icon name="plus-circle" size={40} color={colors.secondary} />
+              <Icon name="plus-circle" size={40} color={colors.accent} />
               <Text variant="titleMedium" style={styles.actionTitle}>Nuevo Pedido</Text>
               <Text variant="bodySmall" style={styles.actionDescription}>
                 Crear pedido manual
@@ -212,10 +199,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: 'bold',
+    color: colors.text,
   },
   subtitle: {
-    opacity: 0.7,
+    color: colors.textSecondary,
     marginTop: spacing.xs,
+  },
+  avatar: {
+    backgroundColor: colors.primary,
   },
   kpiContainer: {
     gap: spacing.md,
@@ -223,7 +214,16 @@ const styles = StyleSheet.create({
   },
   kpiCard: {
     padding: spacing.lg,
-    borderRadius: 12,
+    borderRadius: borderRadius.md,
+  },
+  kpiCardPrimary: {
+    backgroundColor: colors.primarySurface,
+  },
+  kpiCardSecondary: {
+    backgroundColor: colors.accentLight + '30',
+  },
+  kpiCardError: {
+    backgroundColor: colors.errorLight,
   },
   kpiHeader: {
     flexDirection: 'row',
@@ -237,25 +237,30 @@ const styles = StyleSheet.create({
   kpiLabel: {
     fontWeight: '600',
     marginBottom: spacing.xs,
+    color: colors.text,
   },
   kpiDescription: {
-    opacity: 0.7,
+    color: colors.textSecondary,
   },
   sectionTitle: {
     marginBottom: spacing.md,
     fontWeight: '600',
+    color: colors.text,
   },
   quickActionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.md,
   },
-  actionCard: {
+  actionTouchable: {
     flex: 1,
     minWidth: '45%',
+  },
+  actionCard: {
     padding: spacing.lg,
-    borderRadius: 12,
+    borderRadius: borderRadius.md,
     alignItems: 'center',
+    backgroundColor: colors.white,
   },
   nuevoPedidoButton: {
     width: '100%',
@@ -264,17 +269,19 @@ const styles = StyleSheet.create({
   actionCardFull: {
     width: '100%',
     padding: spacing.lg,
-    borderRadius: 12,
+    borderRadius: borderRadius.md,
     alignItems: 'center',
+    backgroundColor: colors.white,
   },
   actionTitle: {
     marginTop: spacing.sm,
     marginBottom: spacing.xs,
     fontWeight: '600',
+    color: colors.text,
   },
   actionDescription: {
     textAlign: 'center',
-    opacity: 0.7,
+    color: colors.textSecondary,
   },
 });
 

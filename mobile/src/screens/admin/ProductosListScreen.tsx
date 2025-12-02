@@ -7,7 +7,7 @@ import { AdminDrawerParamList } from '@/navigation/AdminStack';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
 import { ProductCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius } from '@/theme';
 import { formatPrice } from '@/utils';
 import { Producto } from '@/types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -138,7 +138,7 @@ const ProductosListScreen = ({ navigation }: { navigation: NavigationProp }) => 
 
 const styles = StyleSheet.create({
   filtersContainer: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     elevation: 2,
     paddingVertical: spacing.md,
   },

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Card, Text, Chip, Divider } from 'react-native-paper';
 import { Pedido } from '@/types';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius, shadows } from '@/theme';
 import { formatPrice, formatDate } from '@/utils';
 
 interface PedidoCardProps {
@@ -12,108 +12,103 @@ interface PedidoCardProps {
 
 /**
  * PedidoCard
- * Tarjeta reutilizable para mostrar pedidos
+ * Tarjeta reutilizable para mostrar pedidos con diseño de marca
  */
 const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onPress }) => {
 
-  const getEstadoColor = (estado: string) => {
+  const getEstadoConfig = (estado: string) => {
     switch (estado) {
       case 'PENDIENTE':
-        return theme.colors.secondary;
+        return { 
+          color: colors.warning, 
+          bgColor: colors.warningLight,
+          label: 'Pendiente',
+          icon: '⏳'
+        };
       case 'CONFIRMADO':
-        return '#2196F3';
+        return { 
+          color: colors.success, 
+          bgColor: colors.successLight,
+          label: 'Confirmado',
+          icon: '✓'
+        };
       case 'CANCELADO':
-        return theme.colors.error;
+        return { 
+          color: colors.error, 
+          bgColor: colors.errorLight,
+          label: 'Cancelado',
+          icon: '✕'
+        };
       default:
-        return theme.colors.onSurfaceVariant;
+        return { 
+          color: colors.textSecondary, 
+          bgColor: colors.borderLight,
+          label: estado,
+          icon: '?'
+        };
     }
   };
 
-  const getEstadoLabel = (estado: string) => {
-    switch (estado) {
-      case 'PENDIENTE':
-        return 'Pendiente';
-      case 'CONFIRMADO':
-        return 'Confirmado';
-      case 'CANCELADO':
-        return 'Cancelado';
-      default:
-        return estado;
-    }
-  };
+  const estadoConfig = getEstadoConfig(pedido.estado);
 
   return (
-    <Card style={styles.card} onPress={onPress}>
+    <Card style={styles.card} onPress={onPress} mode="elevated">
       <Card.Content>
+        {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text variant="titleMedium" style={styles.id}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.id}>
               Pedido #{pedido.id}
             </Text>
-            <Text variant="bodySmall" style={styles.date}>
+            <Text style={styles.date}>
               {formatDate(pedido.fecha_creacion, 'short')}
             </Text>
           </View>
           <Chip
-            style={[
-              styles.estadoChip,
-              { backgroundColor: getEstadoColor(pedido.estado) + '20' },
-            ]}
-            textStyle={[
-              styles.estadoText,
-              { color: getEstadoColor(pedido.estado) },
-            ]}
+            style={[styles.estadoChip, { backgroundColor: estadoConfig.bgColor }]}
+            textStyle={[styles.estadoText, { color: estadoConfig.color }]}
+            compact
           >
-            {getEstadoLabel(pedido.estado)}
+            {estadoConfig.label}
           </Chip>
         </View>
 
         <Divider style={styles.divider} />
 
+        {/* Detalles */}
         <View style={styles.details}>
           <View style={styles.row}>
-            <Text variant="bodyMedium" style={styles.label}>
-              Items:
-            </Text>
-            <Text variant="bodyMedium">{pedido.items.length}</Text>
+            <Text style={styles.label}>Items</Text>
+            <Text style={styles.value}>{pedido.items.length} producto{pedido.items.length !== 1 ? 's' : ''}</Text>
           </View>
 
           <View style={styles.row}>
-            <Text variant="bodyMedium" style={styles.label}>
-              Subtotal:
-            </Text>
-            <Text variant="bodyMedium">{formatPrice(pedido.subtotal)}</Text>
+            <Text style={styles.label}>Subtotal</Text>
+            <Text style={styles.value}>{formatPrice(pedido.subtotal)}</Text>
           </View>
 
           {parseFloat(pedido.descuento_total) > 0 && (
             <View style={styles.row}>
-              <Text variant="bodyMedium" style={[styles.label, styles.discount]}>
-                Descuento:
-              </Text>
-              <Text variant="bodyMedium" style={styles.discount}>
+              <Text style={[styles.label, styles.discountLabel]}>Descuento</Text>
+              <Text style={styles.discountValue}>
                 -{formatPrice(pedido.descuento_total)}
               </Text>
             </View>
           )}
 
-          <Divider style={styles.divider} />
-
-          <View style={styles.row}>
-            <Text variant="titleMedium" style={styles.totalLabel}>
-              Total:
-            </Text>
-            <Text variant="titleLarge" style={styles.total}>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalValue}>
               {formatPrice(pedido.total)}
             </Text>
           </View>
         </View>
 
+        {/* Notas */}
         {pedido.notas && (
-          <View style={styles.notes}>
-            <Text variant="bodySmall" style={styles.notesLabel}>
-              Notas:
-            </Text>
-            <Text variant="bodySmall" numberOfLines={2}>
+          <View style={styles.notesContainer}>
+            <Text style={styles.notesLabel}>📝 Notas:</Text>
+            <Text style={styles.notesText} numberOfLines={2}>
               {pedido.notas}
             </Text>
           </View>
@@ -126,63 +121,102 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onPress }) => {
 const styles = StyleSheet.create({
   card: {
     marginBottom: spacing.md,
-    elevation: 2,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.white,
+    ...shadows.sm,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: spacing.sm,
   },
+  headerLeft: {
+    flex: 1,
+  },
   id: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   date: {
-    color: theme.colors.onSurfaceVariant,
-    marginTop: spacing.xs,
+    fontSize: 12,
+    color: colors.textTertiary,
+    marginTop: 2,
   },
   estadoChip: {
-    height: 32,
+    height: 28,
+    borderRadius: borderRadius.lg,
   },
   estadoText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   divider: {
     marginVertical: spacing.sm,
+    backgroundColor: colors.borderLight,
   },
   details: {
-    marginBottom: spacing.xs,
+    gap: spacing.xs,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    paddingVertical: 2,
   },
   label: {
-    color: theme.colors.onSurfaceVariant,
+    fontSize: 14,
+    color: colors.textSecondary,
   },
-  discount: {
-    color: theme.colors.tertiary,
+  value: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  discountLabel: {
+    color: colors.success,
+  },
+  discountValue: {
+    fontSize: 14,
+    color: colors.success,
+    fontWeight: '600',
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
   },
   totalLabel: {
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
   },
-  total: {
+  totalValue: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
-  notes: {
+  notesContainer: {
     marginTop: spacing.sm,
     padding: spacing.sm,
-    backgroundColor: theme.colors.surfaceVariant,
-    borderRadius: 8,
+    backgroundColor: colors.primarySurface,
+    borderRadius: borderRadius.sm,
   },
   notesLabel: {
+    fontSize: 12,
     fontWeight: '600',
+    color: colors.primary,
     marginBottom: spacing.xs,
+  },
+  notesText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
 });
 

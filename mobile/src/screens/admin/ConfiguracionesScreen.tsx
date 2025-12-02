@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, List, Switch, Divider } from 'react-native-paper';
 import { InputField } from '@/components';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius } from '@/theme';
 
 /**
  * ConfiguracionesScreen - Configuraciones globales del comercio
@@ -50,7 +50,7 @@ const ConfiguracionesScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md },
   title: { marginBottom: spacing.lg, fontWeight: 'bold' },
   sectionTitle: { marginTop: spacing.lg, marginBottom: spacing.md, fontWeight: '600' },

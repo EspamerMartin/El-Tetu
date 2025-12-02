@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
 // Obtener API URL de las variables de entorno (configuradas en app.config.js)
-// Manejo seguro de Constants.expoConfig que puede ser undefined en algunos builds
 let API_URL = 'http://localhost:8000/api';
 
 try {
@@ -13,16 +12,17 @@ try {
     // Fallback para builds legacy
     API_URL = Constants.manifest.extra.apiUrl;
   }
-} catch (error) {
-  console.warn('⚠️ Error al obtener API_URL de config, usando fallback:', error);
+} catch {
+  // Usar fallback silenciosamente
 }
 
-console.log('🔧 API_URL configurada:', API_URL);
+// Solo logear en desarrollo
+const isDev = __DEV__;
 
 // Crear instancia de axios
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -31,11 +31,9 @@ const api = axios.create({
 // Interceptor para agregar token a las peticiones
 api.interceptors.request.use(
   async (config) => {
-    console.log('🚀 REQUEST:', {
-      method: config.method?.toUpperCase(),
-      url: config.url,
-      baseURL: config.baseURL,
-    });
+    if (isDev) {
+      console.log('🚀 REQUEST:', config.method?.toUpperCase(), config.url);
+    }
     
     const token = await AsyncStorage.getItem('access_token');
     if (token) {
@@ -44,7 +42,9 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.log('❌ REQUEST ERROR:', error);
+    if (isDev) {
+      console.log('❌ REQUEST ERROR:', error.message);
+    }
     return Promise.reject(error);
   }
 );
@@ -52,18 +52,15 @@ api.interceptors.request.use(
 // Interceptor para manejar refresh token
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ RESPONSE:', {
-      status: response.status,
-      url: response.config.url,
-    });
+    if (isDev) {
+      console.log('✅ RESPONSE:', response.status, response.config.url);
+    }
     return response;
   },
   async (error) => {
-    console.log('❌ RESPONSE ERROR:', {
-      message: error.message,
-      status: error.response?.status,
-      url: error.config?.url,
-    });
+    if (isDev) {
+      console.log('❌ RESPONSE ERROR:', error.response?.status, error.config?.url);
+    }
     
     const originalRequest = error.config;
 
@@ -91,10 +88,10 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${access}`;
           return api(originalRequest);
         }
-      } catch (refreshError) {
-        // Si falla el refresh, limpiar storage y redirigir a login
+      } catch {
+        // Si falla el refresh, limpiar storage
         await AsyncStorage.multiRemove(['access_token', 'refresh_token', 'user']);
-        return Promise.reject(refreshError);
+        return Promise.reject(error);
       }
     }
 

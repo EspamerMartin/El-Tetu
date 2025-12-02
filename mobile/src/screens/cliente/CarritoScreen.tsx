@@ -8,7 +8,7 @@ import { removeFromCart, updateQuantity, clearCart } from '@/store/slices/cartSl
 import { pedidosAPI } from '@/services/api';
 import { CartItem } from '@/types';
 import { LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius, shadows } from '@/theme';
 import { formatPrice } from '@/utils';
 
 type Props = NativeStackScreenProps<ClienteTabParamList, 'Carrito'>;
@@ -29,12 +29,9 @@ const CarritoScreen = ({ navigation }: Props) => {
   
   const [loading, setLoading] = useState(false);
 
-  // Calcular subtotal y total
   const subtotal = items.reduce((acc, item) => {
     const precio = parseFloat(item.producto.precio);
-    if (isNaN(precio)) {
-      return acc;
-    }
+    if (isNaN(precio)) return acc;
     return acc + (precio * item.cantidad);
   }, 0);
 
@@ -81,21 +78,16 @@ const CarritoScreen = ({ navigation }: Props) => {
     try {
       setLoading(true);
       
-      // Si el usuario tiene una lista asignada, usarla. Si no, buscar Lista Base (código 'base')
-      // En el backend, si lista_precio es null, se usa Lista Base automáticamente
       const pedidoData = {
         cliente: user.id,
-        lista_precio: user.lista_precio || 1, // ID 1 es Lista Base por defecto
+        lista_precio: user.lista_precio || 1,
         items: items.map((item) => ({
           producto: item.producto.id,
           cantidad: item.cantidad,
         })),
       };
 
-      console.log('Enviando pedido:', JSON.stringify(pedidoData, null, 2));
       const pedido = await pedidosAPI.create(pedidoData);
-      console.log('Pedido recibido:', JSON.stringify(pedido, null, 2));
-      
       dispatch(clearCart());
       
       Alert.alert(
@@ -109,8 +101,6 @@ const CarritoScreen = ({ navigation }: Props) => {
         ]
       );
     } catch (error: any) {
-      console.error('Error al crear pedido:', error);
-      console.error('Response data:', error.response?.data);
       const errorMessage = error.response?.data?.error 
         || error.response?.data?.message
         || error.response?.data?.detail
@@ -121,16 +111,13 @@ const CarritoScreen = ({ navigation }: Props) => {
     }
   };
 
-
   const renderItem = ({ item }: { item: CartItem }) => {
     const precio = parseFloat(item.producto.precio);
-    if (isNaN(precio)) {
-      return null;
-    }
+    if (isNaN(precio)) return null;
     const subtotalItem = precio * item.cantidad;
 
     return (
-      <Card style={styles.card}>
+      <Card style={styles.card} mode="elevated">
         <Card.Content>
           <View style={styles.itemHeader}>
             <View style={styles.itemInfo}>
@@ -138,7 +125,7 @@ const CarritoScreen = ({ navigation }: Props) => {
                 {item.producto.nombre}
               </Text>
               <Text variant="bodySmall" style={styles.itemCodigo}>
-                Código: {item.producto.codigo}
+                Código: {item.producto.codigo_barra}
               </Text>
               <Text variant="titleMedium" style={styles.itemPrecio}>
                 {formatPrice(precio)} c/u
@@ -147,30 +134,32 @@ const CarritoScreen = ({ navigation }: Props) => {
             <IconButton
               icon="delete"
               size={20}
-              iconColor={theme.colors.error}
+              iconColor={colors.error}
               onPress={() => handleRemove(item.producto.id, item.producto.nombre)}
             />
           </View>
 
           <View style={styles.quantityContainer}>
-            <Text variant="bodyMedium">Cantidad:</Text>
+            <Text variant="bodyMedium" style={styles.quantityLabel}>Cantidad:</Text>
             <View style={styles.quantityControls}>
               <IconButton
                 icon="minus"
                 size={20}
                 onPress={() => handleDecrement(item.producto.id, item.cantidad)}
                 disabled={item.cantidad <= 1}
+                iconColor={colors.error}
+                style={styles.quantityButton}
               />
               <Surface style={styles.quantityBox}>
-                <Text variant="titleMedium">{item.cantidad}</Text>
+                <Text variant="titleMedium" style={styles.quantityText}>{item.cantidad}</Text>
               </Surface>
               <IconButton
                 icon="plus"
                 size={20}
-                onPress={() =>
-                  handleIncrement(item.producto.id, item.cantidad, item.producto.stock)
-                }
+                onPress={() => handleIncrement(item.producto.id, item.cantidad, item.producto.stock)}
                 disabled={item.cantidad >= item.producto.stock}
+                iconColor={colors.primary}
+                style={styles.quantityButton}
               />
             </View>
           </View>
@@ -178,7 +167,7 @@ const CarritoScreen = ({ navigation }: Props) => {
           <Divider style={styles.divider} />
 
           <View style={styles.subtotalRow}>
-            <Text variant="bodyMedium">Subtotal:</Text>
+            <Text variant="bodyMedium" style={styles.subtotalLabel}>Subtotal:</Text>
             <Text variant="titleMedium" style={styles.subtotalPrice}>
               {formatPrice(subtotalItem)}
             </Text>
@@ -216,9 +205,9 @@ const CarritoScreen = ({ navigation }: Props) => {
           contentContainerStyle={styles.list}
         />
 
-        <Surface style={styles.totalsContainer}>
+        <Surface style={styles.totalsContainer} elevation={4}>
           <View style={styles.totalRow}>
-            <Text variant="bodyLarge">Subtotal:</Text>
+            <Text variant="bodyLarge" style={styles.totalRowLabel}>Subtotal:</Text>
             <Text variant="bodyLarge">{formatPrice(subtotal)}</Text>
           </View>
 
@@ -238,6 +227,7 @@ const CarritoScreen = ({ navigation }: Props) => {
             icon="check"
             onPress={handleConfirmOrder}
             style={styles.confirmButton}
+            contentStyle={styles.confirmButtonContent}
           >
             Confirmar Pedido
           </Button>
@@ -257,7 +247,8 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: spacing.md,
-    elevation: 2,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.white,
   },
   itemHeader: {
     flexDirection: 'row',
@@ -266,72 +257,16 @@ const styles = StyleSheet.create({
   itemInfo: {
     flex: 1,
   },
-  itemTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
-  },
   itemNombre: {
     fontWeight: '600',
-    flex: 1,
-  },
-  promoBadgeInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.secondaryContainer,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.xs / 2,
-    borderRadius: 8,
-    gap: spacing.xs / 2,
-  },
-  promoBadgeTextInline: {
-    color: theme.colors.secondary,
-    fontWeight: '600',
-    fontSize: 10,
-  },
-  promoDescuentoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing.xs,
-  },
-  promoDescuentoLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs / 2,
-  },
-  promoDescuentoLabel: {
-    color: theme.colors.onSurfaceVariant,
-  },
-  promoDescuentoValue: {
-    color: theme.colors.secondary,
-    fontWeight: '600',
-  },
-  totalItemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing.xs,
-  },
-  totalItemLabel: {
-    fontWeight: '600',
-  },
-  totalItemValue: {
-    color: theme.colors.primary,
-    fontWeight: '700',
-  },
-  descuentoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
+    color: colors.text,
   },
   itemCodigo: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.textTertiary,
     marginBottom: spacing.xs,
   },
   itemPrecio: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: 'bold',
   },
   quantityContainer: {
@@ -340,51 +275,72 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.sm,
   },
+  quantityLabel: {
+    color: colors.textSecondary,
+  },
   quantityControls: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  quantityButton: {
+    margin: 0,
   },
   quantityBox: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xs,
     marginHorizontal: spacing.xs,
-    borderRadius: 8,
-    elevation: 1,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.primarySurface,
+    ...shadows.sm,
+  },
+  quantityText: {
+    color: colors.primaryDark,
+    fontWeight: '600',
   },
   divider: {
     marginVertical: spacing.sm,
+    backgroundColor: colors.borderLight,
   },
   subtotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  subtotalLabel: {
+    color: colors.textSecondary,
+  },
   subtotalPrice: {
     fontWeight: '600',
+    color: colors.text,
   },
   totalsContainer: {
     padding: spacing.lg,
     paddingBottom: spacing.xl,
-    elevation: 8,
+    backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.outline + '20',
+    borderTopColor: colors.borderLight,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: spacing.sm,
   },
-  discountText: {
-    color: theme.colors.tertiary,
+  totalRowLabel: {
+    color: colors.textSecondary,
   },
   totalLabel: {
     fontWeight: 'bold',
+    color: colors.text,
   },
   totalPrice: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   confirmButton: {
     marginTop: spacing.md,
+    borderRadius: borderRadius.md,
+  },
+  confirmButtonContent: {
+    paddingVertical: spacing.xs,
   },
 });
 

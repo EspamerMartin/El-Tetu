@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Dialog, Portal, Text } from 'react-native-paper';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius } from '@/theme';
 
 interface DateTimePickerFieldProps {
   label: string;
@@ -47,7 +47,6 @@ export const DateTimePickerField: React.FC<DateTimePickerFieldProps> = ({
   };
 
   const handleDateChange = (text: string) => {
-    // Formato automático YYYY-MM-DD
     let cleaned = text.replace(/[^0-9]/g, '');
     if (cleaned.length >= 8) {
       const year = cleaned.slice(0, 4);
@@ -60,7 +59,6 @@ export const DateTimePickerField: React.FC<DateTimePickerFieldProps> = ({
   };
 
   const handleTimeChange = (text: string) => {
-    // Formato automático HH:MM
     let cleaned = text.replace(/[^0-9]/g, '');
     if (cleaned.length >= 4) {
       const hours = cleaned.slice(0, 2);
@@ -87,17 +85,20 @@ export const DateTimePickerField: React.FC<DateTimePickerFieldProps> = ({
         placeholder={placeholder}
         mode="outlined"
         style={styles.input}
+        outlineColor={colors.border}
+        activeOutlineColor={colors.primary}
         right={
           <TextInput.Icon
             icon="calendar"
             onPress={handleOpen}
+            color={colors.primary}
           />
         }
       />
 
       <Portal>
         <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)}>
-          <Dialog.Title>{label}</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>{label}</Dialog.Title>
           <Dialog.Content>
             <Text variant="labelLarge" style={styles.label}>Fecha (YYYY-MM-DD)</Text>
             <TextInput
@@ -107,6 +108,8 @@ export const DateTimePickerField: React.FC<DateTimePickerFieldProps> = ({
               mode="outlined"
               style={styles.inputDialog}
               keyboardType="numeric"
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
             />
 
             <View style={styles.quickButtons}>
@@ -129,6 +132,8 @@ export const DateTimePickerField: React.FC<DateTimePickerFieldProps> = ({
               mode="outlined"
               style={styles.inputDialog}
               keyboardType="numeric"
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
             />
 
             <View style={styles.quickButtons}>
@@ -144,7 +149,9 @@ export const DateTimePickerField: React.FC<DateTimePickerFieldProps> = ({
             </View>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setDialogVisible(false)}>Cancelar</Button>
+            <Button onPress={() => setDialogVisible(false)} textColor={colors.textSecondary}>
+              Cancelar
+            </Button>
             <Button onPress={handleSave}>Aceptar</Button>
           </Dialog.Actions>
         </Dialog>
@@ -158,14 +165,19 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   input: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.white,
+  },
+  dialogTitle: {
+    color: colors.primary,
   },
   inputDialog: {
     marginBottom: spacing.sm,
+    backgroundColor: colors.white,
   },
   label: {
     marginTop: spacing.md,
     marginBottom: spacing.xs,
+    color: colors.text,
   },
   quickButtons: {
     flexDirection: 'row',

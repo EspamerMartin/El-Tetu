@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, Modal } from 'react-native';
 import { ActivityIndicator, Text, Surface } from 'react-native-paper';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius } from '@/theme';
 
 interface LoadingOverlayProps {
   visible: boolean;
@@ -20,11 +20,12 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
     <Modal transparent visible={visible} animationType="fade">
       <View style={styles.container}>
         <Surface style={styles.surface}>
-          <ActivityIndicator
-            size="large"
-            color={theme.colors.primary}
-            style={styles.spinner}
-          />
+          <View style={styles.spinnerContainer}>
+            <ActivityIndicator
+              size="large"
+              color={colors.primary}
+            />
+          </View>
           <Text variant="bodyMedium" style={styles.message}>
             {message}
           </Text>
@@ -43,17 +44,18 @@ const styles = StyleSheet.create({
   },
   surface: {
     padding: spacing.xl,
-    borderRadius: 12,
+    borderRadius: borderRadius.md,
     minWidth: 200,
     alignItems: 'center',
     elevation: 8,
+    backgroundColor: colors.white,
   },
-  spinner: {
+  spinnerContainer: {
     marginBottom: spacing.md,
   },
   message: {
     textAlign: 'center',
-    color: theme.colors.onSurface,
+    color: colors.text,
   },
 });
 

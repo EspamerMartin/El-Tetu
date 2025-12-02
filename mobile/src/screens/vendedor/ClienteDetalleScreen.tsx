@@ -6,7 +6,7 @@ import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { useFetch } from '@/hooks';
 import { clientesAPI, pedidosAPI } from '@/services/api';
 import { LoadingOverlay, PedidoCard } from '@/components';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius, shadows } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type Props = NativeStackScreenProps<VendedorStackParamList, 'ClienteDetalle'>;
@@ -14,9 +14,7 @@ type Props = NativeStackScreenProps<VendedorStackParamList, 'ClienteDetalle'>;
 /**
  * ClienteDetalleScreen
  * 
- * Muestra información detallada de un cliente:
- * - Datos personales
- * - Historial de pedidos
+ * Muestra información detallada de un cliente
  */
 const ClienteDetalleScreen = ({ route, navigation }: Props) => {
   const { clienteId } = route.params;
@@ -35,11 +33,11 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
   if (errorCliente) {
     return (
       <View style={styles.errorContainer}>
-        <Icon name="alert-circle" size={64} color={theme.colors.error} />
+        <Icon name="alert-circle" size={64} color={colors.error} />
         <Text variant="titleMedium" style={styles.errorText}>
           Error al cargar el cliente
         </Text>
-        <Text variant="bodySmall">{errorCliente}</Text>
+        <Text variant="bodySmall" style={styles.errorSubtext}>{errorCliente}</Text>
       </View>
     );
   }
@@ -53,9 +51,9 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Header con Avatar */}
+      {/* Header */}
       <Surface style={styles.header} elevation={2}>
-        <Avatar.Text label={iniciales} size={80} />
+        <Avatar.Text label={iniciales} size={80} style={styles.avatar} />
         <Text variant="headlineSmall" style={styles.nombre}>
           {nombreCompleto}
         </Text>
@@ -63,8 +61,9 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
           icon={cliente.is_active ? 'check-circle' : 'close-circle'}
           style={[
             styles.statusChip,
-            { backgroundColor: cliente.is_active ? theme.colors.tertiaryContainer : theme.colors.errorContainer },
+            { backgroundColor: cliente.is_active ? colors.successLight : colors.errorLight },
           ]}
+          textStyle={{ color: cliente.is_active ? colors.success : colors.error }}
         >
           {cliente.is_active ? 'Activo' : 'Inactivo'}
         </Chip>
@@ -72,51 +71,50 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
 
       {/* Información Personal */}
       <Surface style={styles.section} elevation={1}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>Información Personal</Text>
+        <Text style={styles.sectionTitle}>Información Personal</Text>
         <Divider style={styles.divider} />
         
         <List.Item
           title="Email"
           description={cliente.email}
-          left={(props) => <List.Icon {...props} icon="email" />}
+          left={(props) => <List.Icon {...props} icon="email" color={colors.primary} />}
+          titleStyle={styles.listTitle}
+          descriptionStyle={styles.listDescription}
         />
         {cliente.telefono && (
           <List.Item
             title="Teléfono"
             description={cliente.telefono}
-            left={(props) => <List.Icon {...props} icon="phone" />}
+            left={(props) => <List.Icon {...props} icon="phone" color={colors.primary} />}
+            titleStyle={styles.listTitle}
+            descriptionStyle={styles.listDescription}
           />
         )}
         {cliente.direccion && (
           <List.Item
             title="Dirección"
             description={cliente.direccion}
-            left={(props) => <List.Icon {...props} icon="map-marker" />}
-          />
-        )}
-        {cliente.ciudad && (
-          <List.Item
-            title="Ciudad"
-            description={cliente.ciudad}
-            left={(props) => <List.Icon {...props} icon="city" />}
+            left={(props) => <List.Icon {...props} icon="map-marker" color={colors.primary} />}
+            titleStyle={styles.listTitle}
+            descriptionStyle={styles.listDescription}
           />
         )}
       </Surface>
 
       {/* Estadísticas */}
       <Surface style={styles.section} elevation={1}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>Estadísticas</Text>
+        <Text style={styles.sectionTitle}>Estadísticas</Text>
         <Divider style={styles.divider} />
         
         <View style={styles.statsContainer}>
           <View style={styles.statBox}>
-            <Icon name="package-variant" size={32} color={theme.colors.primary} />
-            <Text variant="headlineSmall" style={styles.statValue}>{pedidos.length}</Text>
-            <Text variant="bodySmall" style={styles.statLabel}>Pedidos Totales</Text>
+            <Icon name="package-variant" size={32} color={colors.primary} />
+            <Text style={styles.statValue}>{pedidos.length}</Text>
+            <Text style={styles.statLabel}>Pedidos Totales</Text>
           </View>
           <View style={styles.statBox}>
-            <Icon name="cash-multiple" size={32} color={theme.colors.secondary} />
-            <Text variant="headlineSmall" style={styles.statValue}>
+            <Icon name="cash-multiple" size={32} color={colors.accent} />
+            <Text style={[styles.statValue, { color: colors.accent }]}>
               ${(() => {
                 const total = pedidos.reduce((acc, p) => {
                   const num = parseFloat(p.total);
@@ -125,22 +123,22 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
                 return total.toFixed(2);
               })()}
             </Text>
-            <Text variant="bodySmall" style={styles.statLabel}>Total Gastado</Text>
+            <Text style={styles.statLabel}>Total Gastado</Text>
           </View>
         </View>
       </Surface>
 
       {/* Historial de Pedidos */}
       <Surface style={styles.section} elevation={1}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>
+        <Text style={styles.sectionTitle}>
           Historial de Pedidos ({pedidos.length})
         </Text>
         <Divider style={styles.divider} />
         
         {pedidos.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Icon name="clipboard-off" size={48} color={theme.colors.outline} />
-            <Text variant="bodyMedium" style={styles.emptyText}>
+            <Icon name="clipboard-off" size={48} color={colors.textTertiary} />
+            <Text style={styles.emptyText}>
               Este cliente aún no tiene pedidos
             </Text>
           </View>
@@ -154,7 +152,7 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
               />
             ))}
             {pedidos.length > 5 && (
-              <Text variant="bodySmall" style={styles.moreText}>
+              <Text style={styles.moreText}>
                 Y {pedidos.length - 5} pedido(s) más...
               </Text>
             )}
@@ -168,17 +166,22 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   header: {
     alignItems: 'center',
     padding: spacing.lg,
     marginBottom: spacing.md,
+    backgroundColor: colors.white,
+  },
+  avatar: {
+    backgroundColor: colors.primary,
   },
   nombre: {
     marginTop: spacing.md,
     marginBottom: spacing.sm,
     fontWeight: 'bold',
+    color: colors.text,
   },
   statusChip: {
     marginTop: spacing.xs,
@@ -186,14 +189,28 @@ const styles = StyleSheet.create({
   section: {
     margin: spacing.md,
     padding: spacing.md,
-    borderRadius: 8,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.white,
   },
   sectionTitle: {
+    fontSize: 14,
     fontWeight: '600',
+    color: colors.primary,
     marginBottom: spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   divider: {
     marginBottom: spacing.sm,
+    backgroundColor: colors.borderLight,
+  },
+  listTitle: {
+    fontSize: 12,
+    color: colors.textTertiary,
+  },
+  listDescription: {
+    fontSize: 14,
+    color: colors.text,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -205,12 +222,15 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   statValue: {
+    fontSize: 22,
     fontWeight: 'bold',
     marginTop: spacing.xs,
+    color: colors.primary,
   },
   statLabel: {
     marginTop: spacing.xs,
-    opacity: 0.7,
+    color: colors.textSecondary,
+    fontSize: 12,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -218,7 +238,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     marginTop: spacing.sm,
-    color: theme.colors.onSurfaceVariant,
+    color: colors.textSecondary,
   },
   pedidosList: {
     marginTop: spacing.sm,
@@ -226,7 +246,7 @@ const styles = StyleSheet.create({
   moreText: {
     textAlign: 'center',
     marginTop: spacing.md,
-    color: theme.colors.primary,
+    color: colors.primary,
     fontStyle: 'italic',
   },
   errorContainer: {
@@ -237,7 +257,10 @@ const styles = StyleSheet.create({
   },
   errorText: {
     marginTop: spacing.md,
-    color: theme.colors.error,
+    color: colors.error,
+  },
+  errorSubtext: {
+    color: colors.textSecondary,
   },
 });
 

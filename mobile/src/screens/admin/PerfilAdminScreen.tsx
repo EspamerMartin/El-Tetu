@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { logout, setUser } from '@/store/slices/authSlice';
 import { InputField } from '@/components';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius } from '@/theme';
 import { authAPI } from '@/services/api';
 
 const PerfilAdminScreen = () => {
@@ -167,7 +167,7 @@ const PerfilAdminScreen = () => {
           icon="logout"
           onPress={handleLogout}
           style={styles.logoutButton}
-          buttonColor={theme.colors.error}
+          buttonColor={colors.error}
         >
           Cerrar Sesión
         </Button>
@@ -179,26 +179,26 @@ const PerfilAdminScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   headerSurface: {
     margin: spacing.md,
     padding: spacing.xl,
     borderRadius: 12,
     alignItems: 'center',
-    backgroundColor: theme.colors.primaryContainer,
+    backgroundColor: colors.primaryContainer,
   },
   avatar: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
   },
   userName: {
     fontWeight: 'bold',
     marginTop: spacing.md,
-    color: theme.colors.onPrimaryContainer,
+    color: colors.onPrimaryContainer,
   },
   userRole: {
     marginTop: spacing.xs,
-    color: theme.colors.onPrimaryContainer,
+    color: colors.onPrimaryContainer,
     opacity: 0.8,
   },
   surface: {
@@ -210,13 +210,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontWeight: 'bold',
     marginBottom: spacing.md,
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   section: {
     marginBottom: spacing.md,
   },
   label: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginBottom: spacing.xs,
   },
   button: {

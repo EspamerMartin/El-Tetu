@@ -5,14 +5,14 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '@/navigation/AuthStack';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { register } from '@/store/slices/authSlice';
-import { theme } from '@/theme';
+import { colors, spacing, borderRadius, shadows } from '@/theme';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
 /**
  * RegisterScreen
  * 
- * Pantalla de registro con:
+ * Pantalla de registro con diseño de marca El Tetu:
  * - Formulario completo (nombre, apellido, email, etc.)
  * - Validación de contraseñas
  * - Manejo de errores
@@ -43,8 +43,7 @@ const RegisterScreen = ({ navigation }: Props) => {
 
     try {
       await dispatch(register(formData)).unwrap();
-      // Navigation automática al stack correspondiente
-    } catch (err) {
+    } catch {
       // Error mostrado desde el estado de Redux
     }
   };
@@ -69,37 +68,46 @@ const RegisterScreen = ({ navigation }: Props) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Surface style={styles.surface}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text variant="headlineMedium" style={styles.title}>
-              Crear Cuenta
-            </Text>
-            <Text variant="bodyMedium" style={styles.subtitle}>
-              Completa tus datos para registrarte
-            </Text>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.logoContainer}>
+            <Text style={styles.logoText}>📝</Text>
           </View>
+          <Text style={styles.title}>Crear Cuenta</Text>
+          <Text style={styles.subtitle}>Completa tus datos para registrarte</Text>
+        </View>
 
-          {/* Form */}
+        {/* Formulario */}
+        <Surface style={styles.formCard}>
           <View style={styles.form}>
-            <TextInput
-              label="Nombre *"
-              value={formData.nombre}
-              onChangeText={(text) => updateField('nombre', text)}
-              autoCapitalize="words"
-              mode="outlined"
-              style={styles.input}
-            />
-
-            <TextInput
-              label="Apellido *"
-              value={formData.apellido}
-              onChangeText={(text) => updateField('apellido', text)}
-              autoCapitalize="words"
-              mode="outlined"
-              style={styles.input}
-            />
+            {/* Nombre y Apellido en fila */}
+            <View style={styles.row}>
+              <TextInput
+                label="Nombre *"
+                value={formData.nombre}
+                onChangeText={(text) => updateField('nombre', text)}
+                autoCapitalize="words"
+                mode="outlined"
+                style={[styles.input, styles.halfInput]}
+                outlineColor={colors.border}
+                activeOutlineColor={colors.primary}
+                left={<TextInput.Icon icon="account" color={colors.textSecondary} />}
+              />
+              <TextInput
+                label="Apellido *"
+                value={formData.apellido}
+                onChangeText={(text) => updateField('apellido', text)}
+                autoCapitalize="words"
+                mode="outlined"
+                style={[styles.input, styles.halfInput]}
+                outlineColor={colors.border}
+                activeOutlineColor={colors.primary}
+              />
+            </View>
 
             <TextInput
               label="Email *"
@@ -110,6 +118,9 @@ const RegisterScreen = ({ navigation }: Props) => {
               autoComplete="email"
               mode="outlined"
               style={styles.input}
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
+              left={<TextInput.Icon icon="email-outline" color={colors.textSecondary} />}
             />
 
             <TextInput
@@ -120,6 +131,9 @@ const RegisterScreen = ({ navigation }: Props) => {
               autoComplete="tel"
               mode="outlined"
               style={styles.input}
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
+              left={<TextInput.Icon icon="phone-outline" color={colors.textSecondary} />}
             />
 
             <TextInput
@@ -130,6 +144,9 @@ const RegisterScreen = ({ navigation }: Props) => {
               numberOfLines={2}
               mode="outlined"
               style={styles.input}
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
+              left={<TextInput.Icon icon="map-marker-outline" color={colors.textSecondary} />}
             />
 
             <TextInput
@@ -140,14 +157,18 @@ const RegisterScreen = ({ navigation }: Props) => {
               autoCapitalize="none"
               mode="outlined"
               style={styles.input}
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
+              left={<TextInput.Icon icon="lock-outline" color={colors.textSecondary} />}
               right={
                 <TextInput.Icon
                   icon={showPassword ? 'eye-off' : 'eye'}
                   onPress={() => setShowPassword(!showPassword)}
+                  color={colors.textSecondary}
                 />
               }
             />
-            <HelperText type="info" visible>
+            <HelperText type="info" visible style={styles.helperText}>
               Mínimo 6 caracteres
             </HelperText>
 
@@ -159,16 +180,23 @@ const RegisterScreen = ({ navigation }: Props) => {
               autoCapitalize="none"
               mode="outlined"
               style={styles.input}
+              outlineColor={colors.border}
+              activeOutlineColor={colors.primary}
+              left={<TextInput.Icon icon="lock-check-outline" color={colors.textSecondary} />}
               error={!passwordsMatch()}
             />
-            <HelperText type="error" visible={!passwordsMatch()}>
-              Las contraseñas no coinciden
-            </HelperText>
+            {!passwordsMatch() && (
+              <HelperText type="error" visible>
+                Las contraseñas no coinciden
+              </HelperText>
+            )}
 
             {error && (
-              <HelperText type="error" visible>
-                {typeof error === 'string' ? error : 'Error al registrarse'}
-              </HelperText>
+              <View style={styles.errorContainer}>
+                <HelperText type="error" visible style={styles.errorText}>
+                  {typeof error === 'string' ? error : 'Error al registrarse'}
+                </HelperText>
+              </View>
             )}
 
             <Button
@@ -176,20 +204,27 @@ const RegisterScreen = ({ navigation }: Props) => {
               onPress={handleRegister}
               loading={loading}
               disabled={loading || !isFormValid()}
-              style={styles.button}
+              style={styles.registerButton}
+              contentStyle={styles.registerButtonContent}
+              labelStyle={styles.registerButtonLabel}
             >
-              Registrarse
-            </Button>
-
-            <Button
-              mode="text"
-              onPress={() => navigation.goBack()}
-              style={styles.button}
-            >
-              ¿Ya tienes cuenta? Inicia sesión
+              Crear Cuenta
             </Button>
           </View>
         </Surface>
+
+        {/* Link a login */}
+        <View style={styles.loginContainer}>
+          <Text style={styles.loginText}>¿Ya tienes cuenta?</Text>
+          <Button
+            mode="text"
+            onPress={() => navigation.goBack()}
+            labelStyle={styles.loginButton}
+            compact
+          >
+            Inicia sesión
+          </Button>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -198,37 +233,98 @@ const RegisterScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.primary,
   },
   scrollContent: {
     flexGrow: 1,
-    padding: theme.spacing.md,
-  },
-  surface: {
-    padding: theme.spacing.lg,
-    borderRadius: 12,
-    elevation: 4,
+    padding: spacing.lg,
+    paddingTop: spacing.xl,
   },
   header: {
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  logoContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    ...shadows.lg,
+  },
+  logoText: {
+    fontSize: 32,
   },
   title: {
-    color: theme.colors.primary,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: theme.spacing.xs,
+    color: colors.white,
+    marginBottom: spacing.xs,
   },
   subtitle: {
-    color: theme.colors.onSurfaceVariant,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  formCard: {
+    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.white,
+    ...shadows.lg,
   },
   form: {
     width: '100%',
   },
-  input: {
-    marginBottom: theme.spacing.xs,
+  row: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
-  button: {
-    marginTop: theme.spacing.md,
+  input: {
+    marginBottom: spacing.sm,
+    backgroundColor: colors.white,
+  },
+  halfInput: {
+    flex: 1,
+  },
+  helperText: {
+    marginTop: -spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  errorContainer: {
+    backgroundColor: colors.errorLight,
+    borderRadius: borderRadius.sm,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  errorText: {
+    color: colors.error,
+  },
+  registerButton: {
+    marginTop: spacing.md,
+    borderRadius: borderRadius.md,
+  },
+  registerButtonContent: {
+    paddingVertical: spacing.sm,
+  },
+  registerButtonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  loginContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  loginText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
+  },
+  loginButton: {
+    color: colors.white,
+    fontWeight: '600',
   },
 });
 

@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
 import { InputField, LoadingOverlay } from '@/components';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius } from '@/theme';
 import { Marca } from '@/types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -283,9 +283,9 @@ const MarcasListScreen = () => {
         ListEmptyComponent={
           !loading ? (
             <View style={styles.empty}>
-              <Icon name="tag-heart-outline" size={64} color={theme.colors.outline} />
+              <Icon name="tag-heart-outline" size={64} color={colors.outline} />
               <Text variant="bodyLarge">No hay marcas</Text>
-              {error && <Text variant="bodySmall" style={{ color: theme.colors.error, marginTop: spacing.sm }}>{error}</Text>}
+              {error && <Text variant="bodySmall" style={{ color: colors.error, marginTop: spacing.sm }}>{error}</Text>}
             </View>
           ) : null
         }
@@ -340,10 +340,10 @@ const MarcasListScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: colors.background },
   searchbar: { margin: spacing.md },
   filtersContainer: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     elevation: 2,
     paddingVertical: spacing.md,
   },

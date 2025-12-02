@@ -6,7 +6,7 @@ import { AdminStackParamList } from '@/navigation/AdminStack';
 import { useFetch } from '@/hooks';
 import { clientesAPI, authAPI } from '@/services/api';
 import { InputField, LoadingOverlay } from '@/components';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius } from '@/theme';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'UsuarioForm'>;
 
@@ -156,12 +156,12 @@ const UsuarioFormScreen = ({ route, navigation }: Props) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md },
   title: { marginBottom: spacing.lg, fontWeight: 'bold' },
   section: { marginVertical: spacing.md },
   label: { marginBottom: spacing.sm },
-  errorText: { color: theme.colors.error, marginTop: -spacing.sm, marginBottom: spacing.sm },
+  errorText: { color: colors.error, marginTop: -spacing.sm, marginBottom: spacing.sm },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: spacing.md },
   button: { marginTop: spacing.lg },
 });

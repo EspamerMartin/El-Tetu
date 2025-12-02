@@ -7,7 +7,7 @@ import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { clientesAPI } from '@/services/api';
 import { Cliente } from '@/types';
 import { LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius, shadows } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type Props = NativeStackScreenProps<VendedorStackParamList, 'ClientesList'>;
@@ -15,8 +15,7 @@ type Props = NativeStackScreenProps<VendedorStackParamList, 'ClientesList'>;
 /**
  * ClientesListScreen
  * 
- * Lista de todos los clientes con búsqueda.
- * Permite navegar al detalle de cada cliente.
+ * Lista de todos los clientes con búsqueda
  */
 const ClientesListScreen = ({ navigation }: Props) => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -49,7 +48,6 @@ const ClientesListScreen = ({ navigation }: Props) => {
   const fetchClientes = async () => {
     try {
       setLoading(true);
-      // Filtrar solo clientes desde el backend
       const data = await clientesAPI.getAll({ rol: 'cliente' });
       setClientes(data.results);
       setFilteredClientes(data.results);
@@ -69,26 +67,28 @@ const ClientesListScreen = ({ navigation }: Props) => {
     const iniciales = `${item.nombre.charAt(0)}${item.apellido.charAt(0)}`;
 
     return (
-      <Card style={styles.card} onPress={() => handleClientePress(item)}>
+      <Card style={styles.card} onPress={() => handleClientePress(item)} mode="elevated">
         <Card.Title
           title={nombreCompleto}
+          titleStyle={styles.cardTitle}
           subtitle={item.email}
+          subtitleStyle={styles.cardSubtitle}
           left={(props) => (
-            <Avatar.Text {...props} label={iniciales} size={48} />
+            <Avatar.Text {...props} label={iniciales} size={48} style={styles.avatar} />
           )}
           right={(props) => (
-            <Icon {...props} name="chevron-right" size={24} color={theme.colors.onSurface} />
+            <Icon {...props} name="chevron-right" size={24} color={colors.textTertiary} />
           )}
         />
         <Card.Content>
           <View style={styles.infoRow}>
             {item.telefono && (
-              <Chip icon="phone" compact style={styles.infoChip}>
+              <Chip icon="phone" compact style={styles.infoChip} textStyle={styles.chipText}>
                 {item.telefono}
               </Chip>
             )}
             {item.direccion && (
-              <Chip icon="map-marker" compact style={styles.infoChip}>
+              <Chip icon="map-marker" compact style={styles.infoChip} textStyle={styles.chipText}>
                 {item.direccion.length > 30 ? `${item.direccion.substring(0, 30)}...` : item.direccion}
               </Chip>
             )}
@@ -99,8 +99,9 @@ const ClientesListScreen = ({ navigation }: Props) => {
               compact
               style={[
                 styles.statusChip,
-                { backgroundColor: item.is_active ? theme.colors.tertiaryContainer : theme.colors.errorContainer },
+                { backgroundColor: item.is_active ? colors.successLight : colors.errorLight },
               ]}
+              textStyle={{ color: item.is_active ? colors.success : colors.error }}
             >
               {item.is_active ? 'Activo' : 'Inactivo'}
             </Chip>
@@ -117,6 +118,7 @@ const ClientesListScreen = ({ navigation }: Props) => {
           placeholder="Buscar por nombre, email o teléfono..."
           onChangeText={setSearchQuery}
           value={searchQuery}
+          style={styles.searchbar}
         />
       </View>
 
@@ -144,14 +146,31 @@ const ClientesListScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   searchContainer: {
     padding: spacing.md,
-    backgroundColor: theme.colors.surface,
-    elevation: 2,
+    backgroundColor: colors.white,
+    ...shadows.sm,
+  },
+  searchbar: {
+    backgroundColor: colors.primarySurface,
+    borderRadius: borderRadius.md,
+    elevation: 0,
   },
   list: {
     padding: spacing.md,
   },
   card: {
     marginBottom: spacing.md,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.white,
+  },
+  cardTitle: {
+    fontWeight: '600',
+    color: colors.text,
+  },
+  cardSubtitle: {
+    color: colors.textSecondary,
+  },
+  avatar: {
+    backgroundColor: colors.primary,
   },
   infoRow: {
     flexDirection: 'row',
@@ -160,7 +179,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   infoChip: {
-    marginRight: spacing.xs,
+    backgroundColor: colors.primarySurface,
+  },
+  chipText: {
+    fontSize: 11,
   },
   statusRow: {
     marginTop: spacing.sm,

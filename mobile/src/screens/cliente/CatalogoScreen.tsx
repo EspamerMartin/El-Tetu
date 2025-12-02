@@ -1,15 +1,16 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, ScrollView, TouchableOpacity, Animated, Dimensions } from 'react-native';
-import { Text, Searchbar, Chip, Card, Button, IconButton, Surface, Badge, Divider } from 'react-native-paper';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { View, StyleSheet, FlatList, ScrollView, Animated, Dimensions, ActivityIndicator } from 'react-native';
+import { Text, Searchbar, Chip, Button, IconButton, Surface, Badge, Divider } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ClienteStackParamList } from '@/navigation/ClienteStack';
 import { productosAPI } from '@/services/api';
-import { Producto, Categoria, Subcategoria } from '@/types';
+import { Producto, Categoria, Subcategoria, PaginatedResponse } from '@/types';
 import { ProductCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { addToCart, updateQuantity } from '@/store/slices/cartSlice';
-import { theme, spacing } from '@/theme';
+import { usePaginatedFetch } from '@/hooks';
+import { colors, spacing, borderRadius } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type NavigationProp = NativeStackNavigationProp<ClienteStackParamList>;
@@ -24,26 +25,22 @@ interface FilterState {
 }
 
 /**
- * CatalogoScreen - Versión Mejorada UX/UI
+ * CatalogoScreen - Catálogo de productos con paginación infinita
  * 
- * Catálogo profesional con:
+ * Características:
+ * - Paginación infinita con scroll
  * - Filtros avanzados (categoría, subcategoría, disponibilidad)
- * - Vista de grid responsive
- * - Búsqueda inteligente
+ * - Búsqueda inteligente con debounce
+ * - Pull to refresh
  * - Animaciones suaves
- * - Estadísticas en tiempo real
- * - Chips interactivos con contadores
  */
 const CatalogoScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector(state => state.cart.items);
   
-  const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([]);
-  
-  const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     search: '',
@@ -51,128 +48,140 @@ const CatalogoScreen = () => {
     subcategoria: null,
     disponible: false,
   });
-
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const filterAnimation = useState(new Animated.Value(0))[0];
 
+  // Debounce para búsqueda
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(filters.search);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [filters.search]);
+
+  // Función de fetch con filtros aplicados
+  const fetchProductos = useCallback(async (page: number): Promise<PaginatedResponse<Producto>> => {
+    const params: Record<string, any> = { 
+      activo: true,
+      page,
+    };
+    
+    if (debouncedSearch) params.search = debouncedSearch;
+    if (filters.categoria) params.categoria = filters.categoria;
+    if (filters.subcategoria) params.subcategoria = filters.subcategoria;
+    if (filters.disponible) params.disponible = true;
+    
+    return productosAPI.getAll(params);
+  }, [debouncedSearch, filters.categoria, filters.subcategoria, filters.disponible]);
+
+  // Hook de paginación infinita
+  const {
+    data: productos,
+    loading,
+    loadingMore,
+    refreshing,
+    hasMore,
+    totalCount,
+    loadMore,
+    refresh,
+    reset,
+  } = usePaginatedFetch<Producto>(fetchProductos, {
+    pageSize: 20,
+    autoFetch: true,
+  });
+
+  // Recargar cuando cambien los filtros (excepto search que tiene debounce)
+  useEffect(() => {
+    reset();
+  }, [debouncedSearch, filters.categoria, filters.subcategoria, filters.disponible]);
+
+  // Cargar categorías y subcategorías al montar
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const [categoriasData, subcategoriasData] = await Promise.all([
+          productosAPI.getCategorias(),
+          productosAPI.getSubcategorias(),
+        ]);
+        setCategorias(categoriasData?.results || []);
+        setSubcategorias(subcategoriasData?.results || []);
+      } catch (err) {
+        console.error('Error al cargar datos:', err);
+      }
+    };
     fetchInitialData();
   }, []);
 
-  useEffect(() => {
-    fetchProductos();
-  }, [filters]);
-
+  // Refrescar al volver a la pantalla
   useFocusEffect(
     useCallback(() => {
-      fetchProductos();
-    }, [filters])
+      refresh();
+    }, [refresh])
   );
 
+  // Animación del panel de filtros
   useEffect(() => {
     Animated.timing(filterAnimation, {
       toValue: showFilters ? 1 : 0,
       duration: 300,
       useNativeDriver: false,
     }).start();
-  }, [showFilters]);
+  }, [showFilters, filterAnimation]);
 
-  const fetchInitialData = async () => {
-    try {
-      const [categoriasData, subcategoriasData] = await Promise.all([
-        productosAPI.getCategorias(),
-        productosAPI.getSubcategorias(),
-      ]);
-      setCategorias(categoriasData?.results || []);
-      setSubcategorias(subcategoriasData?.results || []);
-    } catch (err) {
-      console.error('Error al cargar datos:', err);
-    }
-  };
-
-  const fetchProductos = async () => {
-    try {
-      setLoading(true);
-      const params: any = { activo: true };
-      
-      if (filters.search) params.search = filters.search;
-      if (filters.categoria) params.categoria = filters.categoria;
-      if (filters.subcategoria) params.subcategoria = filters.subcategoria;
-      if (filters.disponible) params.disponible = true;
-      
-      const data = await productosAPI.getAll(params);
-      // Asegurar que siempre tengamos un array, incluso si la respuesta es directa
-      const filteredProducts = Array.isArray(data) ? data : (data?.results || []);
-      
-      setProductos(filteredProducts);
-    } catch (err) {
-      console.error('Error al cargar productos:', err);
-      setProductos([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleProductPress = (producto: Producto) => {
+  const handleProductPress = useCallback((producto: Producto) => {
     navigation.navigate('ProductoDetalle', { productoId: producto.id });
-  };
+  }, [navigation]);
 
-  const handleAddProducto = (producto: Producto) => {
+  const handleAddProducto = useCallback((producto: Producto) => {
     const itemEnCarrito = cartItems.find(i => i.producto.id === producto.id);
     const cantidadActual = itemEnCarrito?.cantidad || 0;
     
-    if (cantidadActual >= producto.stock) {
-      return;
-    }
+    if (cantidadActual >= producto.stock) return;
 
     if (itemEnCarrito) {
       dispatch(updateQuantity({ productoId: producto.id, cantidad: cantidadActual + 1 }));
     } else {
       dispatch(addToCart({ producto, cantidad: 1 }));
     }
-  };
+  }, [cartItems, dispatch]);
 
-  const handleUpdateCantidad = (productoId: number, nuevaCantidad: number) => {
-    if (nuevaCantidad <= 0) {
-      dispatch(updateQuantity({ productoId, cantidad: 0 }));
-    } else {
-      dispatch(updateQuantity({ productoId, cantidad: nuevaCantidad }));
-    }
-  };
+  const handleUpdateCantidad = useCallback((productoId: number, nuevaCantidad: number) => {
+    dispatch(updateQuantity({ productoId, cantidad: Math.max(0, nuevaCantidad) }));
+  }, [dispatch]);
 
-  const updateFilter = (key: keyof FilterState, value: any) => {
+  const updateFilter = useCallback((key: keyof FilterState, value: any) => {
     setFilters(prev => {
       const newFilters = { ...prev, [key]: value };
-      // Reset subcategoría si cambia categoría
       if (key === 'categoria') {
         newFilters.subcategoria = null;
       }
       return newFilters;
     });
-  };
+  }, []);
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setFilters({
       search: '',
       categoria: null,
       subcategoria: null,
       disponible: false,
     });
-  };
+  }, []);
 
-  const getActiveFiltersCount = () => {
+  const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (filters.categoria) count++;
     if (filters.subcategoria) count++;
     if (filters.disponible) count++;
     return count;
-  };
+  }, [filters]);
 
-  const getSubcategoriasFiltradas = () => {
+  const subcategoriasFiltradas = useMemo(() => {
     if (!filters.categoria) return [];
     return subcategorias.filter(s => s.categoria === filters.categoria && s.activo);
-  };
+  }, [filters.categoria, subcategorias]);
 
-  const renderProducto = ({ item }: { item: Producto }) => {
+  const renderProducto = useCallback(({ item }: { item: Producto }) => {
     const itemEnCarrito = cartItems.find(i => i.producto.id === item.id);
     const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
     const puedeAgregar = item.stock > cantidadEnCarrito;
@@ -191,7 +200,7 @@ const CatalogoScreen = () => {
                 <IconButton
                   icon="minus"
                   size={18}
-                  iconColor={theme.colors.error}
+                  iconColor={colors.error}
                   onPress={() => handleUpdateCantidad(item.id, cantidadEnCarrito - 1)}
                   style={styles.cantidadButtonOverlay}
                 />
@@ -203,7 +212,7 @@ const CatalogoScreen = () => {
                 <IconButton
                   icon="plus"
                   size={18}
-                  iconColor={theme.colors.primary}
+                  iconColor={colors.primary}
                   onPress={() => handleAddProducto(item)}
                   disabled={!puedeAgregar}
                   style={styles.cantidadButtonOverlay}
@@ -229,11 +238,23 @@ const CatalogoScreen = () => {
         </View>
       </View>
     );
-  };
+  }, [cartItems, handleProductPress, handleAddProducto, handleUpdateCantidad]);
 
+  const renderFooter = useCallback(() => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={colors.primary} />
+        <Text style={styles.footerText}>Cargando más productos...</Text>
+      </View>
+    );
+  }, [loadingMore]);
 
-  const activeFiltersCount = getActiveFiltersCount();
-  const subcategoriasFiltradas = getSubcategoriasFiltradas();
+  const handleEndReached = useCallback(() => {
+    if (hasMore && !loadingMore && !loading) {
+      loadMore();
+    }
+  }, [hasMore, loadingMore, loading, loadMore]);
 
   return (
     <ScreenContainer>
@@ -305,7 +326,7 @@ const CatalogoScreen = () => {
               </View>
             </View>
 
-            {/* Subcategorías (solo si hay categoría seleccionada) */}
+            {/* Subcategorías */}
             {filters.categoria && subcategoriasFiltradas.length > 0 && (
               <View style={styles.filterSection}>
                 <Text variant="titleSmall" style={styles.filterTitle}>
@@ -370,18 +391,23 @@ const CatalogoScreen = () => {
         </Animated.View>
       </Surface>
 
-      {/* Estadísticas */}
+      {/* Barra de estadísticas */}
       <Surface style={styles.statsBar} elevation={0}>
         <View style={styles.statItem}>
-          <Icon name="package-variant" size={18} color={theme.colors.primary} />
+          <Icon name="package-variant" size={18} color={colors.primary} />
           <Text variant="bodySmall" style={styles.statText}>
-            {productos.length} producto{productos.length !== 1 ? 's' : ''}
+            {loading ? 'Cargando...' : `${productos.length} de ${totalCount} producto${totalCount !== 1 ? 's' : ''}`}
           </Text>
         </View>
+        {hasMore && !loading && productos.length > 0 && (
+          <Text variant="labelSmall" style={styles.moreText}>
+            Desliza para ver más
+          </Text>
+        )}
       </Surface>
 
       {/* Lista de productos */}
-      {loading ? (
+      {loading && productos.length === 0 ? (
         <LoadingOverlay visible message="Cargando productos..." />
       ) : productos.length === 0 ? (
         <EmptyState
@@ -399,7 +425,15 @@ const CatalogoScreen = () => {
           numColumns={2}
           contentContainerStyle={styles.productsList}
           showsVerticalScrollIndicator={false}
-          key="two-column-layout"
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          refreshing={refreshing}
+          onRefresh={refresh}
+          ListFooterComponent={renderFooter}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          initialNumToRender={10}
         />
       )}
     </ScreenContainer>
@@ -408,10 +442,10 @@ const CatalogoScreen = () => {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm + 4,
+    paddingBottom: spacing.sm,
   },
   searchRow: {
     flexDirection: 'row',
@@ -421,64 +455,66 @@ const styles = StyleSheet.create({
   searchbar: {
     flex: 1,
     elevation: 0,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.primarySurface,
+    borderRadius: borderRadius.md,
   },
   filterButton: {
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   filterButtonActive: {
-    backgroundColor: theme.colors.primaryContainer,
+    backgroundColor: colors.primarySurface,
   },
   filterBadge: {
     position: 'absolute',
-    right: 8,
-    top: 8,
-    backgroundColor: theme.colors.error,
+    right: spacing.sm,
+    top: spacing.sm,
+    backgroundColor: colors.error,
   },
   filtersPanel: {
-    marginTop: 12,
+    marginTop: spacing.sm + 4,
   },
   filterScroll: {
     maxHeight: 400,
   },
   filterSection: {
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   filterTitle: {
     fontWeight: '600',
-    marginBottom: 8,
-    color: theme.colors.onSurface,
+    marginBottom: spacing.sm,
+    color: colors.text,
   },
   chipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing.sm,
   },
   filterChip: {
-    marginRight: 4,
-    marginBottom: 4,
+    marginRight: spacing.xs,
+    marginBottom: spacing.xs,
   },
   quickFilters: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
   },
   quickFilterChip: {
     flex: 1,
   },
   divider: {
-    marginVertical: 12,
+    marginVertical: spacing.sm + 4,
   },
   clearButton: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   statsBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: 'white',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.borderLight,
   },
   statItem: {
     flexDirection: 'row',
@@ -486,17 +522,16 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   statText: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.textSecondary,
   },
-  statDivider: {
-    width: 1,
-    height: 16,
-    marginHorizontal: 12,
-    backgroundColor: '#e0e0e0',
+  moreText: {
+    color: colors.textTertiary,
+    fontStyle: 'italic',
   },
   productsList: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: spacing.sm + 4,
+    paddingVertical: spacing.sm,
+    paddingBottom: spacing.xxl,
   },
   productWrapper: {
     width: (screenWidth - 48) / 2,
@@ -504,47 +539,15 @@ const styles = StyleSheet.create({
     minHeight: 220,
     position: 'relative',
   },
-  promoIndicator: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: theme.colors.error,
-    borderRadius: 12,
-    padding: 5,
-    elevation: 6,
-    zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  searchContainer: {
-    padding: spacing.md,
-    backgroundColor: theme.colors.surface,
-    elevation: 2,
-  },
-  categoriesContainer: {
-    flexDirection: 'row',
-    padding: spacing.md,
-    gap: spacing.sm,
-    flexWrap: 'wrap',
-  },
-  categoryChip: {
-    marginRight: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  list: {
-    padding: spacing.md,
-  },
   productCardContainer: {
     position: 'relative',
     width: '100%',
   },
   cantidadOverlay: {
     position: 'absolute',
-    bottom: 8,
-    left: 8,
-    right: 8,
+    bottom: spacing.sm,
+    left: spacing.sm,
+    right: spacing.sm,
     zIndex: 10,
   },
   cantidadControlsOverlay: {
@@ -552,9 +555,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 20,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    borderRadius: borderRadius.xl,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -568,27 +571,27 @@ const styles = StyleSheet.create({
   },
   cantidadDisplayOverlay: {
     minWidth: 40,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginHorizontal: 8,
-    borderRadius: 16,
-    backgroundColor: theme.colors.primaryContainer,
+    paddingHorizontal: spacing.sm + 4,
+    paddingVertical: spacing.xs,
+    marginHorizontal: spacing.sm,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.primarySurface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cantidadTextOverlay: {
-    color: theme.colors.onPrimaryContainer,
+    color: colors.primaryDark,
     fontWeight: '700',
   },
   addButtonOverlay: {
     position: 'absolute',
-    bottom: 8,
-    left: 8,
-    right: 8,
+    bottom: spacing.sm,
+    left: spacing.sm,
+    right: spacing.sm,
     zIndex: 10,
   },
   addButtonOverlayStyle: {
-    borderRadius: 20,
+    borderRadius: borderRadius.xl,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -596,12 +599,23 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   addButtonContent: {
-    paddingVertical: 4,
-    paddingHorizontal: 12,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm + 4,
   },
   addButtonLabel: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  footerLoader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+  },
+  footerText: {
+    color: colors.textSecondary,
+    fontSize: 12,
   },
 });
 

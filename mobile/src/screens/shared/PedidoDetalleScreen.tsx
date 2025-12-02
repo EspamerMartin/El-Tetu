@@ -5,7 +5,7 @@ import { useAppSelector } from '@/store';
 import { pedidosAPI } from '@/services/api';
 import { Pedido, PedidoItem } from '@/types';
 import { LoadingOverlay, ScreenContainer } from '@/components';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius } from '@/theme';
 import { formatPrice, formatDateTime, formatDate } from '@/utils';
 
 interface PedidoDetalleScreenProps {
@@ -147,13 +147,13 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
   const getEstadoColor = (estado: string) => {
     switch (estado) {
       case 'PENDIENTE':
-        return theme.colors.secondary;
+        return colors.secondary;
       case 'CONFIRMADO':
         return '#2196F3';
       case 'CANCELADO':
-        return theme.colors.error;
+        return colors.error;
       default:
-        return theme.colors.onSurfaceVariant;
+        return colors.onSurfaceVariant;
     }
   };
 
@@ -301,7 +301,7 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
                       disabled={processing}
                       loading={processing}
                       style={styles.rechazarButton}
-                      buttonColor={theme.colors.error}
+                      buttonColor={colors.error}
                       icon="close-circle"
                     >
                       Rechazar Pedido
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: 12,
     elevation: 2,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
   },
   errorContainer: {
     flex: 1,
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   errorText: {
-    color: theme.colors.error,
+    color: colors.error,
     textAlign: 'center',
     marginBottom: spacing.lg,
   },
@@ -364,11 +364,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
     marginBottom: spacing.xs,
   },
   date: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   estadoChip: {
     marginLeft: spacing.sm,
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
     marginBottom: spacing.md,
   },
   infoRow: {
@@ -395,11 +395,11 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: 'bold',
     width: 80,
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   value: {
     flex: 1,
-    color: theme.colors.onSurface,
+    color: colors.onSurface,
   },
   priceRow: {
     flexDirection: 'row',
@@ -407,34 +407,34 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   discountText: {
-    color: theme.colors.tertiary,
+    color: colors.tertiary,
   },
   totalLabel: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   totalValue: {
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   actionsSection: {
     marginTop: spacing.md,
     gap: spacing.md,
   },
   aprobarButton: {
-    backgroundColor: theme.colors.tertiary,
+    backgroundColor: colors.tertiary,
   },
   rechazarButton: {
     // buttonColor prop se usa en el componente
   },
   estadoInfo: {
     padding: spacing.md,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: colors.surfaceVariant,
     borderRadius: 8,
     alignItems: 'center',
   },
   estadoInfoText: {
-    color: theme.colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     textAlign: 'center',
   },
 });

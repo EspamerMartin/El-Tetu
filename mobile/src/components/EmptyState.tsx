@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Button } from 'react-native-paper';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 interface EmptyStateProps {
@@ -29,7 +29,9 @@ const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <Icon name={icon} size={64} color={theme.colors.outline} />
+      <View style={styles.iconContainer}>
+        <Icon name={icon} size={48} color={colors.primary} />
+      </View>
       <Text variant="titleMedium" style={styles.title}>
         {title}
       </Text>
@@ -59,14 +61,23 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     minHeight: 300,
   },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primarySurface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
   title: {
-    marginTop: spacing.md,
     marginBottom: spacing.xs,
-    color: theme.colors.onSurfaceVariant,
+    color: colors.text,
     textAlign: 'center',
+    fontWeight: '600',
   },
   message: {
-    color: theme.colors.outline,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: spacing.md,
   },
@@ -76,4 +87,3 @@ const styles = StyleSheet.create({
 });
 
 export default EmptyState;
-

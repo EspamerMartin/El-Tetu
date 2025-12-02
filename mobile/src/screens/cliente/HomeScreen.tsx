@@ -8,7 +8,7 @@ import { Producto } from '@/types';
 import { ProductCard, LoadingOverlay } from '@/components';
 import { useAppDispatch } from '@/store';
 import { addToCart } from '@/store/slices/cartSlice';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius, shadows } from '@/theme';
 
 type Props = NativeStackScreenProps<ClienteTabParamList, 'Home'>;
 
@@ -37,7 +37,6 @@ const HomeScreen = ({ navigation }: Props) => {
         params.search = search;
       }
       const data = await productosAPI.getAll(params);
-      // Asegurar que siempre tengamos un array, incluso si la respuesta es directa
       setProductos(Array.isArray(data) ? data : (data?.results || []));
     } catch (err: any) {
       setError('Error al cargar productos');
@@ -106,11 +105,18 @@ const HomeScreen = ({ navigation }: Props) => {
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.list}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={handleRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text variant="bodyLarge">No se encontraron productos</Text>
+              <Text variant="bodyLarge" style={styles.emptyText}>
+                No se encontraron productos
+              </Text>
             </View>
           }
         />
@@ -120,6 +126,7 @@ const HomeScreen = ({ navigation }: Props) => {
         icon="cart"
         style={styles.fab}
         onPress={() => navigation.navigate('Carrito')}
+        color={colors.white}
       />
     </View>
   );
@@ -128,20 +135,22 @@ const HomeScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   header: {
     padding: spacing.md,
-    backgroundColor: theme.colors.surface,
-    elevation: 2,
+    backgroundColor: colors.white,
+    ...shadows.sm,
   },
   title: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: 'bold',
     marginBottom: spacing.sm,
   },
   searchbar: {
     elevation: 0,
+    backgroundColor: colors.primarySurface,
+    borderRadius: borderRadius.md,
   },
   list: {
     padding: spacing.md,
@@ -153,19 +162,23 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   errorText: {
-    color: theme.colors.error,
+    color: colors.error,
     textAlign: 'center',
   },
   emptyContainer: {
     alignItems: 'center',
     padding: spacing.xl,
   },
+  emptyText: {
+    color: colors.textSecondary,
+  },
   fab: {
     position: 'absolute',
-    margin: 16,
+    margin: spacing.md,
     right: 0,
     bottom: 0,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.full,
   },
 });
 

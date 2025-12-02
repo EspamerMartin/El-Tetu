@@ -7,7 +7,7 @@ import { ClienteStackParamList } from '@/navigation/ClienteStack';
 import { pedidosAPI } from '@/services/api';
 import { Pedido } from '@/types';
 import { PedidoCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
-import { theme, spacing } from '@/theme';
+import { colors, spacing } from '@/theme';
 
 type NavigationProp = NativeStackNavigationProp<ClienteStackParamList>;
 
@@ -27,7 +27,6 @@ const MisPedidosScreen = () => {
     fetchPedidos();
   }, []);
 
-  // Recargar pedidos cuando la pantalla recibe foco
   useFocusEffect(
     useCallback(() => {
       fetchPedidos();
@@ -38,7 +37,6 @@ const MisPedidosScreen = () => {
     try {
       setError(null);
       const data = await pedidosAPI.getAll({ mine: true });
-      // Manejar tanto respuestas paginadas como arrays directos
       const pedidosList = Array.isArray(data) ? data : (data.results || []);
       setPedidos(pedidosList);
     } catch (err: any) {
@@ -87,7 +85,12 @@ const MisPedidosScreen = () => {
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
         }
         ListEmptyComponent={
           <EmptyState
@@ -112,7 +115,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   errorText: {
-    color: theme.colors.error,
+    color: colors.error,
     textAlign: 'center',
   },
 });

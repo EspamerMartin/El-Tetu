@@ -7,7 +7,7 @@ import { AdminDrawerParamList } from '@/navigation/AdminStack';
 import { useFetch } from '@/hooks';
 import { clientesAPI } from '@/services/api';
 import { LoadingOverlay } from '@/components';
-import { theme, spacing } from '@/theme';
+import { colors, spacing, borderRadius } from '@/theme';
 import { User } from '@/types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -20,7 +20,7 @@ const getRolLabel = (rol: string) => {
   return roles[rol] || rol;
 };
 
-const getRolColor = (rol: string, colors: typeof theme.colors) => {
+const getRolColor = (rol: string) => {
   const roleColors: Record<string, string> = {
     admin: colors.error,
     vendedor: colors.tertiary,
@@ -111,8 +111,8 @@ const UsuariosListScreen = ({ navigation }: { navigation: NavigationProp }) => {
                   </Chip>
                   <Chip 
                     compact
-                    textStyle={{ color: getRolColor(item.rol, theme.colors) }}
-                    style={[styles.chipSpacing, { borderColor: getRolColor(item.rol, theme.colors) }]}
+                    textStyle={{ color: getRolColor(item.rol) }}
+                    style={[styles.chipSpacing, { borderColor: getRolColor(item.rol) }]}
                   >
                     {getRolLabel(item.rol)}
                   </Chip>
@@ -122,7 +122,7 @@ const UsuariosListScreen = ({ navigation }: { navigation: NavigationProp }) => {
           )}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Icon name="account-off" size={64} color={theme.colors.outline} />
+              <Icon name="account-off" size={64} color={colors.outline} />
               <Text variant="bodyLarge">No hay usuarios</Text>
             </View>
           }
@@ -135,7 +135,7 @@ const UsuariosListScreen = ({ navigation }: { navigation: NavigationProp }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: colors.background },
   searchbar: { margin: spacing.md },
   list: { padding: spacing.md },
   card: { marginBottom: spacing.md },
