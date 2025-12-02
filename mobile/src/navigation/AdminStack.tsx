@@ -7,6 +7,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AdminHomeScreen from '@/screens/admin/AdminHomeScreen';
 import UsuariosListScreen from '@/screens/admin/UsuariosListScreen';
 import UsuarioFormScreen from '@/screens/admin/UsuarioFormScreen';
+import UsuarioDetalleScreen from '@/screens/admin/UsuarioDetalleScreen';
 import ProductosListScreen from '@/screens/admin/ProductosListScreen';
 import ProductoFormScreen from '@/screens/admin/ProductoFormScreen';
 import MarcasListScreen from '@/screens/admin/MarcasListScreen';
@@ -33,6 +34,7 @@ export type AdminDrawerParamList = {
 
 export type AdminStackParamList = {
   AdminDrawer: undefined;
+  UsuarioDetalle: { usuarioId: number };
   UsuarioForm: { usuarioId?: number };
   ProductoForm: { productoId?: number };
   ListaPrecioForm: { listaId?: number };
@@ -163,6 +165,11 @@ const AdminStack = () => {
         name="AdminDrawer"
         component={AdminDrawer}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="UsuarioDetalle"
+        component={UsuarioDetalleScreen}
+        options={{ title: 'Detalle de Usuario' }}
       />
       <Stack.Screen
         name="UsuarioForm"

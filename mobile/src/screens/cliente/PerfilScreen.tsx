@@ -217,17 +217,6 @@ const PerfilScreen = ({ navigation }: Props) => {
           </Surface>
         )}
 
-        {/* Lista de Precios asignada */}
-        {user.lista_precio_nombre && (
-          <Surface style={styles.surface}>
-            <Text style={styles.sectionTitle}>Configuración Comercial</Text>
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Lista de Precios</Text>
-              <Text style={styles.value}>{user.lista_precio_nombre}</Text>
-            </View>
-          </Surface>
-        )}
-
         <Button
           mode="contained"
           icon="logout"

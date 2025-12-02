@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, StyleSheet, FlatList, Alert, TouchableOpacity } from 'react-native';
 import { Text, FAB, Card, Avatar, Chip, IconButton, Searchbar } from 'react-native-paper';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
-import { AdminDrawerParamList } from '@/navigation/AdminStack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AdminDrawerParamList, AdminStackParamList } from '@/navigation/AdminStack';
 import { useFetch } from '@/hooks';
 import { clientesAPI } from '@/services/api';
 import { LoadingOverlay } from '@/components';
@@ -29,9 +30,13 @@ const getRolColor = (rol: string) => {
   return roleColors[rol] || colors.primary;
 };
 
-type NavigationProp = DrawerNavigationProp<AdminDrawerParamList, 'Usuarios'>;
+type NavigationProp = CompositeNavigationProp<
+  DrawerNavigationProp<AdminDrawerParamList, 'Usuarios'>,
+  NativeStackNavigationProp<AdminStackParamList>
+>;
 
-const UsuariosListScreen = ({ navigation }: { navigation: NavigationProp }) => {
+const UsuariosListScreen = () => {
+  const navigation = useNavigation<NavigationProp>();
   const [searchQuery, setSearchQuery] = useState('');
   const { data: usuariosData, loading, refetch } = useFetch(() => clientesAPI.getAll());
 
@@ -88,47 +93,73 @@ const UsuariosListScreen = ({ navigation }: { navigation: NavigationProp }) => {
           keyExtractor={(item: User) => item.id.toString()}
           contentContainerStyle={styles.list}
           renderItem={({ item }: { item: User }) => (
-            <Card style={styles.card}>
-              <Card.Title
-                title={`${item.nombre} ${item.apellido}`}
-                subtitle={item.email}
-                left={(props) => <Avatar.Text {...props} label={item.nombre.charAt(0)} size={40} />}
-                right={(props) => (
-                  <View style={styles.actions}>
-                    <IconButton {...props} icon="pencil" onPress={() => navigation.navigate('UsuarioForm', { usuarioId: item.id })} />
-                    <IconButton {...props} icon="delete" onPress={() => handleDelete(item.id)} />
-                  </View>
-                )}
-              />
-              <Card.Content>
-                <View style={styles.chipsRow}>
-                  <Chip 
-                    icon={item.is_active ? 'check' : 'close'} 
-                    compact 
-                    style={styles.chipSpacing}
-                  >
-                    {item.is_active ? 'Activo' : 'Inactivo'}
-                  </Chip>
-                  <Chip 
-                    compact
-                    textStyle={{ color: getRolColor(item.rol) }}
-                    style={[styles.chipSpacing, { borderColor: getRolColor(item.rol) }]}
-                  >
-                    {getRolLabel(item.rol)}
-                  </Chip>
-                  {item.zona_nombre && (
-                    <Chip 
-                      icon="map-marker-radius"
-                      compact 
-                      style={styles.zonaChip}
-                      textStyle={styles.zonaText}
-                    >
-                      {item.zona_nombre}
-                    </Chip>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('UsuarioDetalle', { usuarioId: item.id })}
+              activeOpacity={0.7}
+            >
+              <Card style={styles.card}>
+                <Card.Title
+                  title={`${item.nombre} ${item.apellido}`}
+                  subtitle={item.email}
+                  left={(props) => (
+                    <Avatar.Text 
+                      {...props} 
+                      label={item.nombre.charAt(0)} 
+                      size={40}
+                      style={{ backgroundColor: getRolColor(item.rol) }}
+                    />
                   )}
-                </View>
-              </Card.Content>
-            </Card>
+                  right={(props) => (
+                    <View style={styles.actions}>
+                      <IconButton 
+                        {...props} 
+                        icon="pencil" 
+                        onPress={(e) => {
+                          e.stopPropagation?.();
+                          navigation.navigate('UsuarioForm', { usuarioId: item.id });
+                        }} 
+                      />
+                      <IconButton 
+                        {...props} 
+                        icon="delete" 
+                        onPress={(e) => {
+                          e.stopPropagation?.();
+                          handleDelete(item.id);
+                        }} 
+                      />
+                    </View>
+                  )}
+                />
+                <Card.Content>
+                  <View style={styles.chipsRow}>
+                    <Chip 
+                      icon={item.is_active ? 'check' : 'close'} 
+                      compact 
+                      style={styles.chipSpacing}
+                    >
+                      {item.is_active ? 'Activo' : 'Inactivo'}
+                    </Chip>
+                    <Chip 
+                      compact
+                      textStyle={{ color: getRolColor(item.rol) }}
+                      style={[styles.chipSpacing, { borderColor: getRolColor(item.rol) }]}
+                    >
+                      {getRolLabel(item.rol)}
+                    </Chip>
+                    {item.zona_nombre && (
+                      <Chip 
+                        icon="map-marker-radius"
+                        compact 
+                        style={styles.zonaChip}
+                        textStyle={styles.zonaText}
+                      >
+                        {item.zona_nombre}
+                      </Chip>
+                    )}
+                  </View>
+                </Card.Content>
+              </Card>
+            </TouchableOpacity>
           )}
           ListEmptyComponent={
             <View style={styles.empty}>
