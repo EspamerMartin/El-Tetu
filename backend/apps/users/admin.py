@@ -17,18 +17,18 @@ class HorarioClienteInline(admin.TabularInline):
     """Inline para horarios de cliente."""
     
     model = HorarioCliente
-    extra = 0
-    max_num = 7
+    extra = 1
+    fields = ['dia_semana', 'hora_desde', 'hora_hasta']
 
 
 @admin.register(HorarioCliente)
 class HorarioClienteAdmin(admin.ModelAdmin):
     """Admin para el modelo HorarioCliente."""
     
-    list_display = ['cliente', 'dia_semana', 'horario_apertura', 'horario_cierre', 'cerrado']
-    list_filter = ['dia_semana', 'cerrado']
+    list_display = ['cliente', 'dia_semana', 'hora_desde', 'hora_hasta']
+    list_filter = ['dia_semana']
     search_fields = ['cliente__email', 'cliente__nombre']
-    ordering = ['cliente', 'dia_semana']
+    ordering = ['cliente', 'dia_semana', 'hora_desde']
 
 
 @admin.register(CustomUser)

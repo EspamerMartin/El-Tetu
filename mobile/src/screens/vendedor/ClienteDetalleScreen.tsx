@@ -159,20 +159,23 @@ const ClienteDetalleScreen = ({ route, navigation }: Props) => {
           <Divider style={styles.divider} />
           
           <View style={styles.horariosContainer}>
-            {cliente.horarios.map((horario, index) => (
-              <View key={index} style={styles.horarioRow}>
-                <Text style={styles.diaText}>{DIAS_SEMANA[horario.dia_semana]}</Text>
-                <Text style={[
-                  styles.horarioText,
-                  horario.cerrado && styles.cerradoText
-                ]}>
-                  {horario.cerrado 
-                    ? 'Cerrado' 
-                    : `${horario.horario_apertura} - ${horario.horario_cierre}`
-                  }
-                </Text>
-              </View>
-            ))}
+            {DIAS_SEMANA.map((dia, index) => {
+              const horariosDia = cliente.horarios?.filter(h => h.dia_semana === index) || [];
+              if (horariosDia.length === 0) return null;
+              
+              return (
+                <View key={index} style={styles.horarioRow}>
+                  <Text style={styles.diaText}>{dia}</Text>
+                  <View>
+                    {horariosDia.map((h, idx) => (
+                      <Text key={idx} style={styles.horarioText}>
+                        {h.hora_desde} - {h.hora_hasta}
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+              );
+            })}
           </View>
         </Surface>
       )}
@@ -327,10 +330,6 @@ const styles = StyleSheet.create({
   horarioText: {
     fontSize: 14,
     color: colors.textSecondary,
-  },
-  cerradoText: {
-    color: colors.error,
-    fontStyle: 'italic',
   },
   statsContainer: {
     flexDirection: 'row',

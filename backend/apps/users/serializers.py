@@ -17,13 +17,13 @@ class ZonaSerializer(serializers.ModelSerializer):
 # ========== Horario Serializers ==========
 
 class HorarioClienteSerializer(serializers.ModelSerializer):
-    """Serializer para horarios de cliente."""
+    """Serializer para horarios de cliente (lectura)."""
     
     dia_semana_display = serializers.CharField(source='get_dia_semana_display', read_only=True)
     
     class Meta:
         model = HorarioCliente
-        fields = ['id', 'dia_semana', 'dia_semana_display', 'horario_apertura', 'horario_cierre', 'cerrado']
+        fields = ['id', 'dia_semana', 'dia_semana_display', 'hora_desde', 'hora_hasta']
         read_only_fields = ['id']
 
 
@@ -32,7 +32,15 @@ class HorarioClienteCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = HorarioCliente
-        fields = ['dia_semana', 'horario_apertura', 'horario_cierre', 'cerrado']
+        fields = ['dia_semana', 'hora_desde', 'hora_hasta']
+    
+    def validate(self, data):
+        if data.get('hora_desde') and data.get('hora_hasta'):
+            if data['hora_desde'] >= data['hora_hasta']:
+                raise serializers.ValidationError({
+                    'hora_hasta': 'La hora de fin debe ser posterior a la hora de inicio.'
+                })
+        return data
 
 
 # ========== User Serializers ==========

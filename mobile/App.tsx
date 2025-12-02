@@ -4,6 +4,7 @@ import { Provider as PaperProvider } from 'react-native-paper';
 import { Provider as ReduxProvider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { store, persistor } from './src/store';
 import RootNavigator from './src/navigation/RootNavigator';
@@ -77,23 +78,25 @@ const styles = StyleSheet.create({
 export default function App() {
   return (
     <ErrorBoundary>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <ReduxProvider store={store}>
-          <PersistGate
-            loading={
-              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" />
-              </View>
-            }
-            persistor={persistor}
-          >
-            <PaperProvider theme={theme}>
-              <RootNavigator />
-              <StatusBar style="auto" />
-            </PaperProvider>
-          </PersistGate>
-        </ReduxProvider>
-      </GestureHandlerRootView>
+      <SafeAreaProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <ReduxProvider store={store}>
+            <PersistGate
+              loading={
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                  <ActivityIndicator size="large" />
+                </View>
+              }
+              persistor={persistor}
+            >
+              <PaperProvider theme={theme}>
+                <RootNavigator />
+                <StatusBar style="auto" />
+              </PaperProvider>
+            </PersistGate>
+          </ReduxProvider>
+        </GestureHandlerRootView>
+      </SafeAreaProvider>
     </ErrorBoundary>
   );
 }

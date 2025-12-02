@@ -16,9 +16,8 @@ export interface HorarioCliente {
   id?: number;
   dia_semana: DiaSemana;
   dia_semana_display?: string;
-  horario_apertura: string; // Formato HH:MM
-  horario_cierre: string;   // Formato HH:MM
-  cerrado: boolean;
+  hora_desde: string;  // Formato HH:MM
+  hora_hasta: string;  // Formato HH:MM
 }
 
 export interface User {
@@ -66,7 +65,7 @@ export interface UserCreateData {
   entre_calles?: string;
   numero?: string;
   descripcion_ubicacion?: string;
-  horarios?: Omit<HorarioCliente, 'id' | 'dia_semana_display'>[];
+  horarios?: Array<{ dia_semana: DiaSemana; hora_desde: string; hora_hasta: string }>;
   is_active?: boolean;
 }
 

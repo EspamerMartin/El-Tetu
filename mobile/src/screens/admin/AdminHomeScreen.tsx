@@ -164,9 +164,9 @@ const AdminHomeScreen = ({ navigation }: Props) => {
           >
             <Surface style={styles.actionCard} elevation={1}>
               <Icon name="account-group" size={40} color={colors.primary} />
-              <Text variant="titleMedium" style={styles.actionTitle}>Clientes</Text>
+              <Text variant="titleMedium" style={styles.actionTitle}>Usuarios</Text>
               <Text variant="bodySmall" style={styles.actionDescription}>
-                Ver listado de clientes
+                Ver listado de usuarios
               </Text>
             </Surface>
           </TouchableOpacity>

@@ -55,7 +55,8 @@ export const zonasAPI = {
     activo?: boolean;
   }): Promise<Zona[]> => {
     const response = await api.get('/auth/zonas/', { params });
-    return response.data;
+    // La API devuelve paginado, extraemos results
+    return response.data.results || response.data;
   },
 
   getById: async (id: number): Promise<Zona> => {

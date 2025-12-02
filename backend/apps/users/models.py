@@ -129,7 +129,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin, SoftDeleteMixin):
 
 
 class HorarioCliente(models.Model):
-    """Horarios de apertura y cierre por día de la semana para clientes."""
+    """
+    Rangos de horarios de atención para clientes.
+    Permite múltiples rangos por día (ej: 8-12 y 14-18).
+    """
     
     DIAS_SEMANA = (
         (0, 'Lunes'),
@@ -148,17 +151,18 @@ class HorarioCliente(models.Model):
         verbose_name='Cliente'
     )
     dia_semana = models.IntegerField(choices=DIAS_SEMANA, verbose_name='Día de la semana')
-    horario_apertura = models.TimeField(verbose_name='Horario de apertura')
-    horario_cierre = models.TimeField(verbose_name='Horario de cierre')
-    cerrado = models.BooleanField(default=False, verbose_name='Cerrado')
+    hora_desde = models.TimeField(verbose_name='Hora desde')
+    hora_hasta = models.TimeField(verbose_name='Hora hasta')
     
     class Meta:
         verbose_name = 'Horario de Cliente'
         verbose_name_plural = 'Horarios de Clientes'
-        ordering = ['cliente', 'dia_semana']
-        unique_together = ['cliente', 'dia_semana']
+        ordering = ['cliente', 'dia_semana', 'hora_desde']
     
     def __str__(self):
-        if self.cerrado:
-            return f"{self.cliente.email} - {self.get_dia_semana_display()}: Cerrado"
-        return f"{self.cliente.email} - {self.get_dia_semana_display()}: {self.horario_apertura} - {self.horario_cierre}"
+        return f"{self.cliente.email} - {self.get_dia_semana_display()}: {self.hora_desde.strftime('%H:%M')} - {self.hora_hasta.strftime('%H:%M')}"
+    
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.hora_desde and self.hora_hasta and self.hora_desde >= self.hora_hasta:
+            raise ValidationError('La hora de inicio debe ser anterior a la hora de fin.')

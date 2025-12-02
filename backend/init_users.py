@@ -1,10 +1,12 @@
 """
-Script para inicializar usuarios de prueba en la base de datos.
-Crea un usuario por cada rol (admin, vendedor, cliente) solo si no existen.
-Las credenciales se obtienen de variables de entorno para mayor seguridad.
+Script para inicializar el usuario administrador en producción.
 
-IMPORTANTE: En producción, TODAS las credenciales deben estar en variables de entorno.
-No se usan defaults en producción para evitar vulnerabilidades.
+USO:
+- En PRODUCCIÓN: Configura ADMIN_EMAIL y ADMIN_PASSWORD en variables de entorno
+- En DESARROLLO: No es necesario, se crean usuarios de prueba automáticamente
+
+Este script se ejecuta automáticamente en cada deploy (entrypoint.sh).
+Solo crea usuarios si no existen.
 """
 import os
 import sys
@@ -24,111 +26,89 @@ User = get_user_model()
 DEBUG = config('DEBUG', default=True, cast=bool)
 IS_PRODUCTION = not DEBUG
 
-# Obtener credenciales de variables de entorno
-# En PRODUCCIÓN: NO hay defaults - deben estar configuradas
-# En DESARROLLO: Usar defaults solo para facilitar desarrollo local
-if IS_PRODUCTION:
-    # En producción, las credenciales son OBLIGATORIAS
-    ADMIN_EMAIL = config('ADMIN_EMAIL')  # Sin default - falla si no existe
-    ADMIN_PASSWORD = config('ADMIN_PASSWORD')  # Sin default - falla si no existe
-    VENDEDOR_EMAIL = config('VENDEDOR_EMAIL', default=None)
-    VENDEDOR_PASSWORD = config('VENDEDOR_PASSWORD', default=None)
-    CLIENTE_EMAIL = config('CLIENTE_EMAIL', default=None)
-    CLIENTE_PASSWORD = config('CLIENTE_PASSWORD', default=None)
-else:
-    # En desarrollo, usar defaults para facilitar testing
-    ADMIN_EMAIL = config('ADMIN_EMAIL', default='admin@mail.com')
-    ADMIN_PASSWORD = config('ADMIN_PASSWORD', default='admin123')
-    VENDEDOR_EMAIL = config('VENDEDOR_EMAIL', default='vendedor@mail.com')
-    VENDEDOR_PASSWORD = config('VENDEDOR_PASSWORD', default='vendedor123')
-    CLIENTE_EMAIL = config('CLIENTE_EMAIL', default='cliente@mail.com')
-    CLIENTE_PASSWORD = config('CLIENTE_PASSWORD', default='cliente123')
 
-# Definir usuarios de prueba
-USUARIOS_INICIALES = [
-    {
-        'email': ADMIN_EMAIL,
-        'password': ADMIN_PASSWORD,
-        'nombre': 'Admin',
-        'apellido': 'Principal',
-        'rol': 'admin',
-        'is_staff': True,
-        'is_superuser': True,
-        'telefono': '+598 99 123 456',
-        'direccion': 'Montevideo, Uruguay'
-    },
-    {
-        'email': VENDEDOR_EMAIL,
-        'password': VENDEDOR_PASSWORD,
-        'nombre': 'Carlos',
-        'apellido': 'Vendedor',
-        'rol': 'vendedor',
-        'is_staff': True,
-        'is_superuser': False,
-        'telefono': '+598 99 234 567',
-        'direccion': 'Montevideo, Uruguay'
-    },
-    {
-        'email': CLIENTE_EMAIL,
-        'password': CLIENTE_PASSWORD,
-        'nombre': 'María',
-        'apellido': 'Cliente',
-        'rol': 'cliente',
-        'is_staff': False,
-        'is_superuser': False,
-        'telefono': '+598 99 345 678',
-        'direccion': 'Montevideo, Uruguay'
-    },
-]
+def crear_admin_produccion():
+    """Crea el usuario administrador en producción usando variables de entorno."""
+    try:
+        admin_email = config('ADMIN_EMAIL')
+        admin_password = config('ADMIN_PASSWORD')
+    except Exception:
+        print("[SKIP] ADMIN_EMAIL o ADMIN_PASSWORD no configurados - saltando creación de admin")
+        return False
+    
+    if User.objects.filter(email=admin_email).exists():
+        print(f"[OK] Admin ya existe: {admin_email}")
+        return False
+    
+    User.objects.create_user(
+        email=admin_email,
+        password=admin_password,
+        nombre='Admin',
+        apellido='Sistema',
+        rol='admin',
+        is_staff=True,
+        is_superuser=True,
+    )
+    print(f"[CREATED] Admin creado: {admin_email}")
+    return True
 
-def crear_usuarios():
-    """Crea usuarios de prueba solo si no existen."""
-    # Validar que en producción al menos ADMIN tenga credenciales
+
+def crear_usuarios_desarrollo():
+    """Crea usuarios de prueba para desarrollo local."""
+    usuarios = [
+        {
+            'email': 'admin@mail.com',
+            'password': 'admin123',
+            'nombre': 'Admin',
+            'apellido': 'Test',
+            'rol': 'admin',
+            'is_staff': True,
+            'is_superuser': True,
+        },
+        {
+            'email': 'vendedor@mail.com',
+            'password': 'vendedor123',
+            'nombre': 'Vendedor',
+            'apellido': 'Test',
+            'rol': 'vendedor',
+            'is_staff': True,
+            'is_superuser': False,
+        },
+        {
+            'email': 'cliente@mail.com',
+            'password': 'cliente123',
+            'nombre': 'Cliente',
+            'apellido': 'Test',
+            'rol': 'cliente',
+            'is_staff': False,
+            'is_superuser': False,
+        },
+    ]
+    
+    creados = 0
+    for user_data in usuarios:
+        email = user_data['email']
+        if not User.objects.filter(email=email).exists():
+            password = user_data.pop('password')
+            User.objects.create_user(password=password, **user_data)
+            print(f"✓ Usuario creado: {email} / {user_data.get('rol')}")
+            creados += 1
+    
+    if creados == 0:
+        print("[OK] Usuarios de desarrollo ya existen")
+    
+    return creados > 0
+
+
+def main():
+    """Punto de entrada principal."""
+    print(f"[ENV] {'PRODUCCIÓN' if IS_PRODUCTION else 'DESARROLLO'}")
+    
     if IS_PRODUCTION:
-        if not ADMIN_EMAIL or not ADMIN_PASSWORD:
-            print("ERROR: ADMIN_EMAIL and ADMIN_PASSWORD must be set in production!")
-            return False
-    
-    usuarios_creados = 0
-    usuarios_existentes = 0
-    
-    for user_data in USUARIOS_INICIALES:
-        email = user_data.get('email')
-        password = user_data.get('password')
-        
-        # Saltar si no hay credenciales (solo en producción para usuarios opcionales)
-        if not email or not password:
-            if IS_PRODUCTION and user_data.get('rol') != 'admin':
-                # En producción, vendedor y cliente son opcionales
-                continue
-            elif IS_PRODUCTION:
-                # Admin es obligatorio en producción
-                print(f"ERROR: Missing credentials for {user_data.get('rol', 'unknown')} user")
-                return False
-        
-        if User.objects.filter(email=email).exists():
-            usuarios_existentes += 1
-        else:
-            # Crear usuario sin exponer password en logs
-            password_value = user_data.pop('password')
-            user = User.objects.create_user(password=password_value, **user_data)
-            usuarios_creados += 1
-            if not IS_PRODUCTION:
-                # Solo en desarrollo mostrar credenciales
-                print(f"✓ Usuario creado: {email} ({user_data.get('rol', 'unknown')})")
-    
-    # Solo mostrar información si se crearon usuarios nuevos
-    if usuarios_creados > 0:
-        if IS_PRODUCTION:
-            print(f"[INFO] {usuarios_creados} usuario(s) inicial(es) creado(s) (credenciales desde variables de entorno)")
-        else:
-            print(f"[INFO] {usuarios_creados} usuario(s) inicial(es) creado(s)")
-    
-    # Si todos los usuarios ya existen, no hacer nada (silencioso)
-    if usuarios_existentes == len([u for u in USUARIOS_INICIALES if u.get('email') and u.get('password')]):
-        return False  # Indica que no se crearon usuarios nuevos
-    
-    return True  # Indica que se crearon usuarios
+        crear_admin_produccion()
+    else:
+        crear_usuarios_desarrollo()
+
 
 if __name__ == '__main__':
-    crear_usuarios()
+    main()

@@ -21,15 +21,35 @@ Video Muestra youtube: "https://youtu.be/2tnhd32hF-U"
 
 ---
 
-## 🔑 Usuarios de Prueba
+## 🔑 Usuarios
 
-Después de ejecutar `init_users.py` o `loaddata initial_data`:
+### En Desarrollo (local)
+
+Se crean automáticamente al ejecutar `python init_users.py`:
 
 | Rol | Email | Password |
 |-----|-------|----------|
 | Admin | admin@mail.com | admin123 |
 | Vendedor | vendedor@mail.com | vendedor123 |
 | Cliente | cliente@mail.com | cliente123 |
+
+### En Producción (Railway)
+
+**⚠️ IMPORTANTE:** Los usuarios de prueba NO se crean en producción.
+
+Debes configurar estas variables de entorno en Railway:
+
+| Variable | Descripción |
+|----------|-------------|
+| `ADMIN_EMAIL` | Email del administrador |
+| `ADMIN_PASSWORD` | Contraseña del administrador |
+
+El admin se crea automáticamente en el deploy si estas variables están configuradas.
+
+**Para acceder al panel de Django Admin:**
+```
+https://tu-app.railway.app/admin/
+```
 
 ---
 
@@ -113,7 +133,6 @@ El-Tetu/
 ## 🔌 Endpoints Principales
 
 ### Autenticación
-- `POST /api/auth/register/` - Registro de usuario
 - `POST /api/auth/login/` - Login (retorna access + refresh tokens)
 - `POST /api/auth/refresh/` - Renovar access token
 - `GET /api/auth/me/` - Obtener usuario autenticado
@@ -137,10 +156,16 @@ El-Tetu/
 - `GET /api/pedidos/{id}/pdf/` - Exportar comprobante PDF
 
 ### Usuarios (Admin/Vendedor)
-- `GET /api/auth/users/` - Listar usuarios (filtros: `rol`, `search`)
+- `GET /api/auth/users/` - Listar usuarios (filtros: `rol`, `search`, `zona`)
 - `POST /api/auth/users/` - Crear usuario (admin)
 - `GET /api/auth/users/{id}/` - Detalle usuario
 - `PUT /api/auth/users/{id}/` - Actualizar usuario (admin)
+
+### Zonas (Admin)
+- `GET /api/auth/zonas/` - Listar zonas
+- `POST /api/auth/zonas/` - Crear zona (admin)
+- `PUT /api/auth/zonas/{id}/` - Actualizar zona (admin)
+- `DELETE /api/auth/zonas/{id}/` - Eliminar zona (admin)
 
 ---
 
@@ -151,13 +176,16 @@ El-Tetu/
 1. Conectar repositorio en Railway
 2. Crear servicio PostgreSQL
 3. Configurar variables de entorno:
-   ```
-   SECRET_KEY=<generar-con-comando-abajo>
-   DEBUG=False
-   ALLOWED_HOSTS=*.railway.app
-   DATABASE_URL=<auto-provisionado>
-   CORS_ALLOWED_ORIGINS=https://tu-app.railway.app
-   ```
+
+| Variable | Valor | Obligatorio |
+|----------|-------|-------------|
+| `SECRET_KEY` | Generar con comando abajo | ✅ |
+| `DEBUG` | `False` | ✅ |
+| `ALLOWED_HOSTS` | `*.railway.app` | ✅ |
+| `DATABASE_URL` | Auto-provisionado por Railway | ✅ |
+| `CORS_ALLOWED_ORIGINS` | `https://tu-app.railway.app` | ✅ |
+| `ADMIN_EMAIL` | Email del admin | ✅ |
+| `ADMIN_PASSWORD` | Contraseña segura | ✅ |
 
 ### 2. Generar SECRET_KEY
 
@@ -167,15 +195,12 @@ python -c "from django.core.management.utils import get_random_secret_key; print
 
 ### 3. Deploy
 
-Railway detectará automáticamente el Dockerfile. Después del deploy:
+Railway detectará automáticamente el Dockerfile. El deploy ejecutará:
+1. Migraciones automáticas
+2. Collectstatic
+3. Creación del usuario admin (si `ADMIN_EMAIL` y `ADMIN_PASSWORD` están configurados)
 
-```bash
-# Ejecutar migraciones
-railway run python manage.py migrate
-
-# Crear superusuario
-railway run python manage.py createsuperuser
-```
+**Panel de administración:** `https://tu-app.railway.app/admin/`
 
 ### 4. Configurar Mobile App
 
