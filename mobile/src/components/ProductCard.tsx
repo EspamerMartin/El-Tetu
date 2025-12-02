@@ -57,13 +57,10 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
         
         {/* Información del producto */}
         <View style={styles.infoContainer}>
-          {/* Marca */}
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Marca: </Text>
-            <Text style={styles.marcaValue} numberOfLines={1}>
-              {producto.marca_nombre}
-            </Text>
-          </View>
+          {/* Nombre del producto */}
+          <Text style={styles.nombre} numberOfLines={2}>
+            {producto.nombre}
+          </Text>
           
           {/* Categoría y Subcategoría */}
           <View style={styles.infoRow}>
@@ -76,11 +73,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
               )}
             </Text>
           </View>
-          
-          {/* Nombre del producto */}
-          <Text style={styles.nombre} numberOfLines={2}>
-            {producto.nombre}
-          </Text>
           
           {/* Precio */}
           <Text style={styles.price}>
@@ -159,22 +151,19 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     padding: spacing.sm + 2,
+    paddingBottom: 50, // Espacio para el botón "Agregar" overlay
+  },
+  nombre: {
+    fontWeight: '600',
+    color: colors.text,
+    fontSize: 13,
+    lineHeight: 17,
+    marginBottom: spacing.xs,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 2,
-  },
-  infoLabel: {
-    color: colors.textTertiary,
-    fontWeight: '600',
-    fontSize: 10,
-  },
-  marcaValue: {
-    color: colors.primary,
-    fontWeight: '600',
-    fontSize: 10,
-    flex: 1,
   },
   categoryValue: {
     color: colors.textSecondary,
@@ -185,13 +174,6 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontWeight: '500',
     fontSize: 10,
-  },
-  nombre: {
-    fontWeight: '600',
-    color: colors.text,
-    fontSize: 12,
-    marginTop: spacing.xs,
-    lineHeight: 16,
   },
   price: {
     color: colors.primary,

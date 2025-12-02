@@ -194,24 +194,22 @@ const CatalogoScreen = () => {
             showAddButton={false}
           />
           {cantidadEnCarrito > 0 && item.tiene_stock && (
-            <View style={styles.cantidadOverlay}>
+            <View style={styles.addButtonOverlay}>
               <View style={styles.cantidadControlsOverlay}>
                 <IconButton
                   icon="minus"
-                  size={18}
-                  iconColor={colors.error}
+                  size={20}
+                  iconColor={colors.white}
                   onPress={() => handleUpdateCantidad(item.id, cantidadEnCarrito - 1)}
                   style={styles.cantidadButtonOverlay}
                 />
-                <Surface style={styles.cantidadDisplayOverlay}>
-                  <Text variant="titleSmall" style={styles.cantidadTextOverlay}>
-                    {cantidadEnCarrito}
-                  </Text>
-                </Surface>
+                <Text style={styles.cantidadTextOverlay}>
+                  {cantidadEnCarrito}
+                </Text>
                 <IconButton
                   icon="plus"
-                  size={18}
-                  iconColor={colors.primary}
+                  size={20}
+                  iconColor={colors.white}
                   onPress={() => handleAddProducto(item)}
                   style={styles.cantidadButtonOverlay}
                 />
@@ -222,12 +220,10 @@ const CatalogoScreen = () => {
             <View style={styles.addButtonOverlay}>
               <Button
                 mode="contained"
-                icon="cart-plus"
+                icon="plus"
                 compact
                 onPress={() => handleAddProducto(item)}
                 style={styles.addButtonOverlayStyle}
-                contentStyle={styles.addButtonContent}
-                labelStyle={styles.addButtonLabel}
               >
                 Agregar
               </Button>
@@ -541,68 +537,35 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
   },
-  cantidadOverlay: {
-    position: 'absolute',
-    bottom: spacing.sm,
-    left: spacing.sm,
-    right: spacing.sm,
-    zIndex: 10,
-  },
   cantidadControlsOverlay: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: borderRadius.xl,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    justifyContent: 'space-between',
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    height: 40,
+    paddingHorizontal: 4,
   },
   cantidadButtonOverlay: {
     margin: 0,
-    width: 32,
-    height: 32,
-  },
-  cantidadDisplayOverlay: {
-    minWidth: 40,
-    paddingHorizontal: spacing.sm + 4,
-    paddingVertical: spacing.xs,
-    marginHorizontal: spacing.sm,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.primarySurface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 40,
+    height: 40,
   },
   cantidadTextOverlay: {
-    color: colors.primaryDark,
+    color: colors.white,
     fontWeight: '700',
+    fontSize: 16,
+    minWidth: 30,
+    textAlign: 'center',
   },
   addButtonOverlay: {
     position: 'absolute',
-    bottom: spacing.sm,
-    left: spacing.sm,
-    right: spacing.sm,
-    zIndex: 10,
+    bottom: 10,
+    left: 10,
+    right: 10,
   },
   addButtonOverlayStyle: {
-    borderRadius: borderRadius.xl,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  addButtonContent: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm + 4,
-  },
-  addButtonLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    borderRadius: 8,
   },
   footerLoader: {
     flexDirection: 'row',
