@@ -66,6 +66,8 @@ export interface UserCreateData {
   numero?: string;
   descripcion_ubicacion?: string;
   horarios?: Array<{ dia_semana: DiaSemana; hora_desde: string; hora_hasta: string }>;
+  // Lista de precios
+  lista_precio?: number;
   is_active?: boolean;
 }
 

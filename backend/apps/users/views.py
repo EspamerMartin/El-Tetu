@@ -213,7 +213,7 @@ class UserListCreateView(generics.ListCreateAPIView):
     """
     Vista para listar y crear usuarios.
     GET: Admin y vendedores pueden ver usuarios.
-    POST: Solo admin puede crear usuarios.
+    POST: Admin puede crear cualquier usuario, vendedor solo puede crear clientes.
     """
     queryset = CustomUser.objects.all()
     permission_classes = [IsAuthenticated]
@@ -225,10 +225,8 @@ class UserListCreateView(generics.ListCreateAPIView):
         return UserSerializer
     
     def get_permissions(self):
-        """Vendedores pueden listar, solo admin puede crear."""
+        """Admin y vendedores pueden listar y crear (con restricciones)."""
         user = self.request.user
-        if self.request.method == 'POST':
-            return [IsAuthenticated(), IsAdmin()]
         if user.is_vendedor() or user.is_admin():
             return [IsAuthenticated()]
         return [IsAuthenticated(), IsAdmin()]
@@ -287,14 +285,28 @@ class UserListCreateView(generics.ListCreateAPIView):
         return queryset
     
     def create(self, request, *args, **kwargs):
-        """Crea un nuevo usuario y devuelve con UserSerializer completo."""
+        """
+        Crea un nuevo usuario y devuelve con UserSerializer completo.
+        Vendedores solo pueden crear usuarios con rol 'cliente'.
+        """
+        user = request.user
+        
+        # Si es vendedor, validar que solo pueda crear clientes
+        if user.is_vendedor():
+            rol = request.data.get('rol', 'cliente')
+            if rol != 'cliente':
+                return Response(
+                    {'error': 'Los vendedores solo pueden crear clientes.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
+        new_user = serializer.save()
         
         # Devolver con el serializer de lectura para incluir todos los campos
         return Response(
-            UserSerializer(user).data, 
+            UserSerializer(new_user).data, 
             status=status.HTTP_201_CREATED
         )
 

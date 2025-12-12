@@ -7,6 +7,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import VendedorHomeScreen from '@/screens/vendedor/VendedorHomeScreen';
 import ClientesListScreen from '@/screens/vendedor/ClientesListScreen';
 import ClienteDetalleScreen from '@/screens/vendedor/ClienteDetalleScreen';
+import ClienteFormScreen from '@/screens/vendedor/ClienteFormScreen';
 import PedidosListScreen from '@/screens/shared/PedidosListScreen';
 import PedidoDetalleScreen from '@/screens/shared/PedidoDetalleScreen';
 import NuevoPedidoScreen from '@/screens/vendedor/NuevoPedidoScreen';
@@ -23,6 +24,7 @@ export type VendedorDrawerParamList = {
 export type VendedorStackParamList = {
   VendedorDrawer: undefined;
   ClienteDetalle: { clienteId: number };
+  ClienteForm: undefined;
   PedidoDetalle: { pedidoId: number };
   NuevoPedido: { clienteId?: number };
   ProductosSinStock: undefined;
@@ -113,6 +115,11 @@ const VendedorStack = () => {
         name="ClienteDetalle"
         component={ClienteDetalleScreen}
         options={{ title: 'Detalle Cliente' }}
+      />
+      <Stack.Screen
+        name="ClienteForm"
+        component={ClienteFormScreen}
+        options={{ title: 'Nuevo Cliente' }}
       />
       <Stack.Screen
         name="PedidoDetalle"
