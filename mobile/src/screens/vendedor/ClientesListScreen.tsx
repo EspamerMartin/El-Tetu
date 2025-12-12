@@ -160,7 +160,6 @@ const ClientesListScreen = ({ navigation }: Props) => {
         icon="plus"
         style={styles.fab}
         onPress={handleNuevoCliente}
-        label="Nuevo Cliente"
       />
     </ScreenContainer>
   );
@@ -231,10 +230,8 @@ const styles = StyleSheet.create({
   statusChip: {},
   fab: {
     position: 'absolute',
-    margin: spacing.md,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.primary,
+    bottom: spacing.lg,
+    right: spacing.lg,
   },
 });
 
