@@ -94,6 +94,7 @@ export interface Categoria {
   id: number;
   nombre: string;
   descripcion?: string;
+  url_imagen?: string;
   activo: boolean;
   fecha_creacion: string;
 }
@@ -104,6 +105,7 @@ export interface Subcategoria {
   categoria_nombre: string;
   nombre: string;
   descripcion?: string;
+  url_imagen?: string;
   activo: boolean;
   fecha_creacion: string;
 }

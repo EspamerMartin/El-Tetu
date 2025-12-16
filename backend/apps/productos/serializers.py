@@ -25,7 +25,7 @@ class CategoriaSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Categoria
-        fields = ['id', 'nombre', 'descripcion', 'activo', 'fecha_creacion']
+        fields = ['id', 'nombre', 'descripcion', 'url_imagen', 'activo', 'fecha_creacion']
         read_only_fields = ['id', 'fecha_creacion']
 
 
@@ -38,7 +38,7 @@ class SubcategoriaSerializer(serializers.ModelSerializer):
         model = Subcategoria
         fields = [
             'id', 'categoria', 'categoria_nombre', 'nombre',
-            'descripcion', 'activo', 'fecha_creacion'
+            'descripcion', 'url_imagen', 'activo', 'fecha_creacion'
         ]
         read_only_fields = ['id', 'fecha_creacion']
 

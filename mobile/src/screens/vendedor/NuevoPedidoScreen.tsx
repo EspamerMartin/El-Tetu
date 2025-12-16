@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, Alert, FlatList, Dimensions } from 'react-native';
-import { Text, Button, Searchbar, List, Divider, Card, Chip, Surface, Menu, IconButton, Badge } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, FlatList, Dimensions, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text, Button, Searchbar, List, Divider, Surface, IconButton, Badge, Portal } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { AdminStackParamList } from '@/navigation/AdminStack';
-import { useFetch } from '@/hooks';
+import { useFetch, usePaginatedFetch } from '@/hooks';
 import { clientesAPI, productosAPI, pedidosAPI, listasAPI } from '@/services/api';
-import { Cliente, Producto, CreatePedidoData, ListaPrecio, Categoria } from '@/types';
-import { LoadingOverlay, ScreenContainer, ProductCard } from '@/components';
+import { Cliente, Producto, CreatePedidoData, ListaPrecio, Categoria, Subcategoria, PaginatedResponse } from '@/types';
+import { LoadingOverlay, ScreenContainer, ProductCard, CategoryCard } from '@/components';
 import { colors, spacing, borderRadius } from '@/theme';
 import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -21,62 +22,120 @@ interface ItemPedido {
   cantidad: number;
 }
 
+type ProductosLevel = 'categorias' | 'subcategorias' | 'productos';
+
 /**
  * NuevoPedidoScreen
  * 
  * Crear nuevo pedido manualmente:
  * Paso 1: Seleccionar cliente
- * Paso 2: Agregar productos
+ * Paso 2: Agregar productos (navegación jerárquica)
  * Paso 3: Confirmar pedido
  */
 const NuevoPedidoScreen = ({ navigation }: Props) => {
+  const insets = useSafeAreaInsets();
   const [paso, setPaso] = useState<1 | 2 | 3>(1);
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
   const [items, setItems] = useState<ItemPedido[]>([]);
   const [searchCliente, setSearchCliente] = useState('');
-  const [searchProducto, setSearchProducto] = useState('');
-  const [categoriaFiltro, setCategoriaFiltro] = useState<number | null>(null);
   const [listaSeleccionada, setListaSeleccionada] = useState<ListaPrecio | null>(null);
-  const [menuVisible, setMenuVisible] = useState(false);
   const [menuListaPrecioVisible, setMenuListaPrecioVisible] = useState(false);
-  const [menuCategoriaVisible, setMenuCategoriaVisible] = useState(false);
   const [creating, setCreating] = useState(false);
   const menuOpenTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const menuCategoriaTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Estados para navegación jerárquica de productos (Paso 2)
+  const [productosLevel, setProductosLevel] = useState<ProductosLevel>('categorias');
+  const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null);
+  const [selectedSubcategoria, setSelectedSubcategoria] = useState<Subcategoria | null>(null);
+  const [searchProducto, setSearchProducto] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const { data: clientesData, loading: loadingClientes } = useFetch(() => 
     clientesAPI.getAll({ rol: 'cliente' })
   );
-  // Fetch productos - se actualiza cuando cambia categoriaFiltro
-  const { data: productosData, loading: loadingProductos, refetch: refetchProductos } = useFetch(() => {
-    const params: any = { activo: true };
-    if (categoriaFiltro) {
-      params.categoria = categoriaFiltro;
-    }
-    return productosAPI.getAll(params);
-  });
+  
   const { data: listasData, loading: loadingListas } = useFetch(() => listasAPI.getAll());
-  const { data: categoriasData } = useFetch(() => productosAPI.getCategorias({ activo: 'true' }));
-  // Asegurar que siempre tengamos arrays, incluso si la respuesta es directa
+  
+  const { data: categoriasData, loading: loadingCategorias } = useFetch(() => 
+    productosAPI.getCategorias({ activo: 'true' })
+  );
+  
+  const { data: subcategoriasData, loading: loadingSubcategorias } = useFetch(() => 
+    productosAPI.getSubcategorias({ activo: 'true' })
+  );
+
+  // Arrays normalizados
   const clientes = Array.isArray(clientesData) ? clientesData : (clientesData?.results || []);
-  const productos = Array.isArray(productosData) ? productosData : (productosData?.results || []);
   const listas = Array.isArray(listasData) ? listasData : (listasData?.results || []);
-  const categorias = Array.isArray(categoriasData) ? categoriasData : (categoriasData?.results || []);
+  const categorias = useMemo(() => 
+    (categoriasData?.results || []).filter((c: Categoria) => c.activo),
+    [categoriasData]
+  );
+  const allSubcategorias = useMemo(() => 
+    (subcategoriasData?.results || []).filter((s: Subcategoria) => s.activo),
+    [subcategoriasData]
+  );
 
-  // Refetch productos cuando cambie el filtro de categoría
+  // Subcategorías filtradas por categoría seleccionada
+  const subcategoriasFiltradas = useMemo(() => {
+    if (!selectedCategoria) return [];
+    return allSubcategorias.filter((s: Subcategoria) => s.categoria === selectedCategoria.id);
+  }, [selectedCategoria, allSubcategorias]);
+
+  // Contar subcategorías por categoría
+  const getSubcategoriaCount = useCallback((categoriaId: number) => {
+    return allSubcategorias.filter((s: Subcategoria) => s.categoria === categoriaId).length;
+  }, [allSubcategorias]);
+
+  // Debounce para búsqueda de productos
   useEffect(() => {
-    if (paso === 2) {
-      refetchProductos();
-    }
-  }, [categoriaFiltro, paso, refetchProductos]);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchProducto);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchProducto]);
 
-  // Seleccionar Lista Base por defecto (solo una vez)
+  // Función de fetch para productos
+  const fetchProductos = useCallback(async (page: number): Promise<PaginatedResponse<Producto>> => {
+    const params: Record<string, any> = { 
+      activo: true,
+      page,
+    };
+    
+    if (selectedCategoria) params.categoria = selectedCategoria.id;
+    if (selectedSubcategoria) params.subcategoria = selectedSubcategoria.id;
+    if (debouncedSearch) params.search = debouncedSearch;
+    
+    return productosAPI.getAll(params);
+  }, [selectedCategoria, selectedSubcategoria, debouncedSearch]);
+
+  // Hook de paginación para productos
+  const {
+    data: productos,
+    loading: loadingProductos,
+    loadingMore,
+    hasMore,
+    loadMore,
+    reset: resetProductos,
+  } = usePaginatedFetch<Producto>(fetchProductos, {
+    pageSize: 20,
+    autoFetch: false,
+  });
+
+  // Fetch productos cuando cambie el nivel o filtros
+  useEffect(() => {
+    if (paso === 2 && productosLevel === 'productos') {
+      resetProductos();
+    }
+  }, [paso, productosLevel, selectedCategoria, selectedSubcategoria, debouncedSearch, resetProductos]);
+
+  // Seleccionar Lista Base por defecto
   useEffect(() => {
     if (listas.length > 0 && !listaSeleccionada) {
       const listaBase = listas.find(l => l.codigo === 'base') || listas[0];
       setListaSeleccionada(listaBase);
     }
-  }, [listas]); // Removido listaSeleccionada de dependencias
+  }, [listas]);
 
   // Limpiar timeouts al desmontar
   useEffect(() => {
@@ -84,19 +143,15 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
       if (menuOpenTimeoutRef.current) {
         clearTimeout(menuOpenTimeoutRef.current);
       }
-      if (menuCategoriaTimeoutRef.current) {
-        clearTimeout(menuCategoriaTimeoutRef.current);
-      }
     };
   }, []);
 
+  // Handlers del menú de lista de precios
   const handleOpenMenu = useCallback(() => {
-    // Limpiar cualquier timeout pendiente
     if (menuOpenTimeoutRef.current) {
       clearTimeout(menuOpenTimeoutRef.current);
       menuOpenTimeoutRef.current = null;
     }
-    // Usar un pequeño delay para asegurar que el estado anterior se haya limpiado
     menuOpenTimeoutRef.current = setTimeout(() => {
       setMenuListaPrecioVisible(true);
       menuOpenTimeoutRef.current = null;
@@ -104,7 +159,6 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   }, []);
 
   const handleCloseMenu = useCallback(() => {
-    // Limpiar timeout si existe
     if (menuOpenTimeoutRef.current) {
       clearTimeout(menuOpenTimeoutRef.current);
       menuOpenTimeoutRef.current = null;
@@ -113,46 +167,52 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   }, []);
 
   const handleSelectLista = useCallback((lista: ListaPrecio) => {
-    // Cerrar el menú primero
     setMenuListaPrecioVisible(false);
-    // Luego actualizar la lista con un pequeño delay para evitar conflictos
     setTimeout(() => {
       setListaSeleccionada(lista);
     }, 100);
   }, []);
 
-  // Manejo robusto del menú de categoría
-  const handleOpenMenuCategoria = useCallback(() => {
-    // Limpiar cualquier timeout pendiente
-    if (menuCategoriaTimeoutRef.current) {
-      clearTimeout(menuCategoriaTimeoutRef.current);
-      menuCategoriaTimeoutRef.current = null;
+  // Handlers de navegación jerárquica de productos
+  const handleSelectCategoria = useCallback((categoria: Categoria) => {
+    setSelectedCategoria(categoria);
+    setSelectedSubcategoria(null);
+    setSearchProducto('');
+    setDebouncedSearch('');
+    
+    const subcats = allSubcategorias.filter((s: Subcategoria) => s.categoria === categoria.id);
+    if (subcats.length > 0) {
+      setProductosLevel('subcategorias');
+    } else {
+      setProductosLevel('productos');
     }
-    // Usar un pequeño delay para asegurar que el estado anterior se haya limpiado
-    menuCategoriaTimeoutRef.current = setTimeout(() => {
-      setMenuCategoriaVisible(true);
-      menuCategoriaTimeoutRef.current = null;
-    }, 50);
+  }, [allSubcategorias]);
+
+  const handleSelectSubcategoria = useCallback((subcategoria: Subcategoria) => {
+    setSelectedSubcategoria(subcategoria);
+    setSearchProducto('');
+    setDebouncedSearch('');
+    setProductosLevel('productos');
   }, []);
 
-  const handleCloseMenuCategoria = useCallback(() => {
-    // Limpiar timeout si existe
-    if (menuCategoriaTimeoutRef.current) {
-      clearTimeout(menuCategoriaTimeoutRef.current);
-      menuCategoriaTimeoutRef.current = null;
+  const handleBackProductos = useCallback(() => {
+    if (productosLevel === 'productos') {
+      if (selectedSubcategoria) {
+        setSelectedSubcategoria(null);
+        setProductosLevel('subcategorias');
+      } else {
+        setSelectedCategoria(null);
+        setProductosLevel('categorias');
+      }
+      setSearchProducto('');
+      setDebouncedSearch('');
+    } else if (productosLevel === 'subcategorias') {
+      setSelectedCategoria(null);
+      setProductosLevel('categorias');
     }
-    setMenuCategoriaVisible(false);
-  }, []);
+  }, [productosLevel, selectedSubcategoria]);
 
-  const handleSelectCategoria = useCallback((categoriaId: number | null) => {
-    // Cerrar el menú primero
-    setMenuCategoriaVisible(false);
-    // Luego actualizar el filtro con un pequeño delay para evitar conflictos
-    setTimeout(() => {
-      setCategoriaFiltro(categoriaId);
-    }, 100);
-  }, []);
-
+  // Filtrado de clientes
   const clientesFiltrados = searchCliente
     ? clientes.filter(c => 
         c.nombre.toLowerCase().includes(searchCliente.toLowerCase()) ||
@@ -160,29 +220,28 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
       )
     : clientes;
 
-  const productosFiltrados = searchProducto
-    ? productos.filter(p => p.nombre.toLowerCase().includes(searchProducto.toLowerCase()))
-    : productos;
-
-  // Separar productos con stock y sin stock (memoizado para optimización)
+  // Separar productos con y sin stock
   const productosConStock = useMemo(() => 
-    productosFiltrados.filter(p => p.tiene_stock), 
-    [productosFiltrados]
+    productos.filter(p => p.tiene_stock), 
+    [productos]
   );
   const productosSinStock = useMemo(() => 
-    productosFiltrados.filter(p => !p.tiene_stock), 
-    [productosFiltrados]
+    productos.filter(p => !p.tiene_stock), 
+    [productos]
   );
-
 
   const handleSelectCliente = (cliente: Cliente) => {
     setClienteSeleccionado(cliente);
     setPaso(2);
     setSearchCliente('');
+    // Reset navegación de productos
+    setProductosLevel('categorias');
+    setSelectedCategoria(null);
+    setSelectedSubcategoria(null);
+    setSearchProducto('');
   };
 
   const handleAddProducto = (producto: Producto) => {
-    // Validar que el producto tenga stock disponible
     if (!producto.tiene_stock) {
       Alert.alert('Sin stock', 'Este producto no tiene stock disponible');
       return;
@@ -218,13 +277,97 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
     ));
   };
 
-  // Renderizado optimizado de productos con stock (memoizado)
+  const handleEndReached = useCallback(() => {
+    if (hasMore && !loadingMore && !loadingProductos) {
+      loadMore();
+    }
+  }, [hasMore, loadingMore, loadingProductos, loadMore]);
+
+  // Calcular precio con descuento
+  const calcularPrecioConDescuento = (precioBase: number | string): number => {
+    const precio = typeof precioBase === 'string' ? parseFloat(precioBase) : precioBase;
+    if (isNaN(precio)) return 0;
+    if (!listaSeleccionada) return precio;
+    
+    const descuentoPorcentaje = parseFloat(listaSeleccionada.descuento_porcentaje);
+    if (isNaN(descuentoPorcentaje) || descuentoPorcentaje === 0) return precio;
+    
+    const descuento = precio * (descuentoPorcentaje / 100);
+    return precio - descuento;
+  };
+
+  const calcularTotal = () => {
+    return items.reduce((acc, item) => {
+      const precioBase = parseFloat(item.producto.precio);
+      const precioConDescuento = calcularPrecioConDescuento(precioBase);
+      return acc + (precioConDescuento * item.cantidad);
+    }, 0);
+  };
+
+  const handleConfirmarPedido = async () => {
+    if (!clienteSeleccionado || items.length === 0 || !listaSeleccionada) {
+      Alert.alert('Error', 'Debe seleccionar un cliente, una lista de precios y agregar productos');
+      return;
+    }
+
+    try {
+      setCreating(true);
+      const payload: CreatePedidoData = {
+        cliente: clienteSeleccionado.id,
+        lista_precio: listaSeleccionada.id,
+        items: items.map(i => ({
+          producto: i.producto.id,
+          cantidad: i.cantidad,
+        })),
+      };
+
+      await pedidosAPI.create(payload);
+      Alert.alert('Éxito', 'Pedido creado correctamente', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch (err: any) {
+      Alert.alert('Error', err.response?.data?.error || 'No se pudo crear el pedido');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // Render categorías
+  const renderCategoria = useCallback(({ item }: { item: Categoria }) => {
+    const subcatCount = getSubcategoriaCount(item.id);
+    return (
+      <View style={styles.cardWrapper}>
+        <CategoryCard
+          nombre={item.nombre}
+          descripcion={item.descripcion}
+          url_imagen={item.url_imagen}
+          onPress={() => handleSelectCategoria(item)}
+          itemCount={subcatCount}
+          itemLabel={subcatCount === 1 ? 'subcategoría' : 'subcategorías'}
+        />
+      </View>
+    );
+  }, [getSubcategoriaCount, handleSelectCategoria]);
+
+  // Render subcategorías
+  const renderSubcategoria = useCallback(({ item }: { item: Subcategoria }) => (
+    <View style={styles.cardWrapper}>
+      <CategoryCard
+        nombre={item.nombre}
+        descripcion={item.descripcion}
+        url_imagen={item.url_imagen}
+        onPress={() => handleSelectSubcategoria(item)}
+      />
+    </View>
+  ), [handleSelectSubcategoria]);
+
+  // Render productos con stock
   const renderProductoConStock = useCallback(({ item: producto }: { item: Producto }) => {
     const itemEnCarrito = items.find(i => i.producto.id === producto.id);
     const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
     
     return (
-      <View style={styles.productWrapper}>
+      <View style={styles.cardWrapper}>
         <View style={styles.productCardContainer}>
           <ProductCard 
             producto={producto} 
@@ -272,11 +415,11 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
         </View>
       </View>
     );
-  }, [items]);
+  }, [items, handleAddProducto, handleUpdateCantidad]);
 
-  // Renderizado optimizado de productos sin stock (memoizado)
+  // Render productos sin stock
   const renderProductoSinStock = useCallback(({ item: producto }: { item: Producto }) => (
-    <View style={styles.productWrapper}>
+    <View style={styles.cardWrapper}>
       <View style={[styles.productCardContainer, styles.productoSinStockContainer]}>
         <ProductCard 
           producto={producto} 
@@ -292,64 +435,107 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
     </View>
   ), []);
 
-  // Calcular precio con descuento de la lista seleccionada
-  const calcularPrecioConDescuento = (precioBase: number | string): number => {
-    const precio = typeof precioBase === 'string' ? parseFloat(precioBase) : precioBase;
-    if (isNaN(precio)) {
-      return 0;
-    }
-    if (!listaSeleccionada) {
-      return precio;
-    }
-    const descuentoPorcentaje = parseFloat(listaSeleccionada.descuento_porcentaje);
-    if (isNaN(descuentoPorcentaje) || descuentoPorcentaje === 0) {
-      return precio;
-    }
-    const descuento = precio * (descuentoPorcentaje / 100);
-    return precio - descuento;
+  // Breadcrumb de productos
+  const renderProductosBreadcrumb = () => {
+    if (productosLevel === 'categorias') return null;
+
+    return (
+      <Surface style={styles.breadcrumb} elevation={1}>
+        <TouchableOpacity 
+          style={styles.breadcrumbItem} 
+          onPress={() => {
+            setSelectedCategoria(null);
+            setSelectedSubcategoria(null);
+            setProductosLevel('categorias');
+            setSearchProducto('');
+          }}
+        >
+          <Icon name="home" size={16} color={colors.primary} />
+          <Text style={styles.breadcrumbText}>Categorías</Text>
+        </TouchableOpacity>
+
+        {selectedCategoria && (
+          <>
+            <Icon name="chevron-right" size={16} color={colors.textSecondary} />
+            <TouchableOpacity 
+              style={styles.breadcrumbItem}
+              onPress={() => {
+                if (productosLevel === 'productos' && subcategoriasFiltradas.length > 0) {
+                  setSelectedSubcategoria(null);
+                  setProductosLevel('subcategorias');
+                  setSearchProducto('');
+                }
+              }}
+              disabled={productosLevel === 'subcategorias' || subcategoriasFiltradas.length === 0}
+            >
+              <Text style={[
+                styles.breadcrumbText,
+                (productosLevel === 'subcategorias' || subcategoriasFiltradas.length === 0) && styles.breadcrumbTextActive
+              ]}>
+                {selectedCategoria.nombre}
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {selectedSubcategoria && (
+          <>
+            <Icon name="chevron-right" size={16} color={colors.textSecondary} />
+            <Text style={[styles.breadcrumbText, styles.breadcrumbTextActive]}>
+              {selectedSubcategoria.nombre}
+            </Text>
+          </>
+        )}
+      </Surface>
+    );
   };
 
-
-  // Calcular total
-  const calcularTotal = () => {
-    return items.reduce((acc, item) => {
-      const precioBase = parseFloat(item.producto.precio);
-      const precioConDescuento = calcularPrecioConDescuento(precioBase);
-      return acc + (precioConDescuento * item.cantidad);
-    }, 0);
-  };
-
-  const handleConfirmarPedido = async () => {
-    if (!clienteSeleccionado || items.length === 0 || !listaSeleccionada) {
-      Alert.alert('Error', 'Debe seleccionar un cliente, una lista de precios y agregar productos');
-      return;
+  // Header de productos (paso 2)
+  const renderProductosHeader = () => {
+    let title = 'Categorías';
+    if (productosLevel === 'subcategorias' && selectedCategoria) {
+      title = selectedCategoria.nombre;
+    } else if (productosLevel === 'productos') {
+      title = selectedSubcategoria?.nombre || selectedCategoria?.nombre || 'Productos';
     }
 
-    try {
-      setCreating(true);
-      const payload: CreatePedidoData = {
-        cliente: clienteSeleccionado.id,
-        lista_precio: listaSeleccionada.id,
-        items: items.map(i => ({
-          producto: i.producto.id,
-          cantidad: i.cantidad,
-        })),
-      };
+    return (
+      <Surface style={styles.productosHeader} elevation={2}>
+        <View style={styles.productosHeaderRow}>
+          {productosLevel !== 'categorias' && (
+            <IconButton
+              icon="arrow-left"
+              size={22}
+              onPress={handleBackProductos}
+              style={styles.backButtonSmall}
+            />
+          )}
+          <Text style={styles.productosHeaderTitle} numberOfLines={1}>
+            {title}
+          </Text>
+        </View>
 
-      await pedidosAPI.create(payload);
-      Alert.alert('Éxito', 'Pedido creado correctamente', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
-    } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.error || 'No se pudo crear el pedido');
-    } finally {
-      setCreating(false);
-    }
+        {productosLevel === 'productos' && (
+          <Searchbar
+            placeholder="Buscar productos..."
+            onChangeText={setSearchProducto}
+            value={searchProducto}
+            style={styles.searchbarCompact}
+            icon="magnify"
+          />
+        )}
+      </Surface>
+    );
   };
+
+  const isLoadingProductosData = 
+    (productosLevel === 'categorias' && loadingCategorias) ||
+    (productosLevel === 'subcategorias' && loadingSubcategorias) ||
+    (productosLevel === 'productos' && loadingProductos && productos.length === 0);
 
   return (
-    <ScreenContainer>
-      {(loadingClientes || loadingProductos || loadingListas || creating) && <LoadingOverlay visible message="Procesando..." />}
+    <ScreenContainer edges={[]}>
+      {(loadingClientes || loadingListas || creating) && <LoadingOverlay visible message="Procesando..." />}
 
       {/* Stepper */}
       <View style={styles.stepper}>
@@ -388,114 +574,101 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
         </ScrollView>
       )}
 
-      {/* PASO 2: Agregar Productos */}
+      {/* PASO 2: Agregar Productos con Navegación Jerárquica */}
       {paso === 2 && (
         <View style={styles.paso2Container}>
-          {/* Header minimalista */}
-          <Surface style={styles.paso2Header} elevation={2}>
-            <View style={styles.headerCompact}>
-              <View style={styles.headerInfo}>
-                <View style={styles.headerRow}>
-                  <Icon name="account" size={24} color={colors.primary} />
-                  <Text variant="bodyLarge" style={styles.headerText} numberOfLines={1}>
-                    {clienteSeleccionado?.nombre} {clienteSeleccionado?.apellido}
-                  </Text>
-                  <Button 
-                    mode="text" 
-                    textColor={colors.primary}
-                    onPress={() => setPaso(1)}
-                    style={styles.changeButton}
-                    contentStyle={styles.changeButtonContent}
-                  >
-                    Cambiar
-                  </Button>
-                </View>
-              </View>
-            </View>
-            <Searchbar
-              placeholder="Buscar productos..."
-              onChangeText={setSearchProducto}
-              value={searchProducto}
-              style={styles.searchbarCompact}
-            />
-            {/* Filtro por categoría */}
-            <View style={styles.filtroCategoriaContainer}>
-              <Menu
-                visible={menuCategoriaVisible}
-                onDismiss={handleCloseMenuCategoria}
-                anchor={
-                  <Button
-                    mode="outlined"
-                    icon="filter"
-                    onPress={handleOpenMenuCategoria}
-                    style={styles.filtroCategoriaButton}
-                    contentStyle={styles.filtroCategoriaButtonContent}
-                    compact
-                  >
-                    {categoriaFiltro 
-                      ? categorias.find(c => c.id === categoriaFiltro)?.nombre || 'Categoría'
-                      : 'Todas las categorías'}
-                  </Button>
-                }
+          {/* Info del cliente seleccionado */}
+          <Surface style={styles.clienteInfoBar} elevation={1}>
+            <View style={styles.clienteInfoRow}>
+              <Icon name="account" size={20} color={colors.primary} />
+              <Text style={styles.clienteInfoText} numberOfLines={1}>
+                {clienteSeleccionado?.nombre} {clienteSeleccionado?.apellido}
+              </Text>
+              <Button 
+                mode="text" 
+                textColor={colors.primary}
+                onPress={() => setPaso(1)}
+                compact
               >
-                <Menu.Item
-                  onPress={() => handleSelectCategoria(null)}
-                  title="Todas las categorías"
-                />
-                {categorias.map((cat) => (
-                  <Menu.Item
-                    key={cat.id}
-                    onPress={() => handleSelectCategoria(cat.id)}
-                    title={cat.nombre}
-                  />
-                ))}
-              </Menu>
+                Cambiar
+              </Button>
             </View>
           </Surface>
 
-          {/* Lista de productos en grid - Optimizado con FlatList */}
-          <FlatList
-            data={productosConStock}
-            renderItem={renderProductoConStock}
-            keyExtractor={(item) => item.id.toString()}
-            numColumns={2}
-            contentContainerStyle={styles.productsList}
-            style={styles.productosScrollView}
-            showsVerticalScrollIndicator={false}
-            removeClippedSubviews={true}
-            maxToRenderPerBatch={10}
-            updateCellsBatchingPeriod={50}
-            initialNumToRender={10}
-            windowSize={10}
-            getItemLayout={(data, index) => {
-              const row = Math.floor(index / 2);
-              return {
-                length: 240,
-                offset: 240 * row + (spacing.xs * row),
-                index,
-              };
-            }}
-            ListFooterComponent={
-              productosSinStock.length > 0 ? (
-                <>
-                  <Text variant="titleMedium" style={styles.sinStockSectionTitle}>
-                    Productos Sin Stock
-                  </Text>
-                  <FlatList
-                    data={productosSinStock}
-                    renderItem={renderProductoSinStock}
-                    keyExtractor={(item) => `sin-stock-${item.id}`}
-                    numColumns={2}
-                    scrollEnabled={false}
-                    removeClippedSubviews={true}
-                    maxToRenderPerBatch={10}
-                  />
-                </>
-              ) : null
-            }
-          />
+          {/* Header de productos */}
+          {renderProductosHeader()}
+          
+          {/* Breadcrumb de productos */}
+          {renderProductosBreadcrumb()}
 
-          <Surface style={styles.carrito} elevation={5}>
+          {/* Loading */}
+          {isLoadingProductosData && <LoadingOverlay visible message="Cargando..." />}
+
+          {/* Nivel: Categorías */}
+          {productosLevel === 'categorias' && !loadingCategorias && (
+            <FlatList
+              data={categorias}
+              renderItem={renderCategoria}
+              keyExtractor={(item) => item.id.toString()}
+              numColumns={2}
+              contentContainerStyle={styles.categoriasList}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+
+          {/* Nivel: Subcategorías */}
+          {productosLevel === 'subcategorias' && !loadingSubcategorias && (
+            <FlatList
+              data={subcategoriasFiltradas}
+              renderItem={renderSubcategoria}
+              keyExtractor={(item) => item.id.toString()}
+              numColumns={2}
+              contentContainerStyle={styles.categoriasList}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+
+          {/* Nivel: Productos */}
+          {productosLevel === 'productos' && (
+            <FlatList
+              data={productosConStock}
+              renderItem={renderProductoConStock}
+              keyExtractor={(item) => item.id.toString()}
+              numColumns={2}
+              contentContainerStyle={styles.productsList}
+              showsVerticalScrollIndicator={false}
+              onEndReached={handleEndReached}
+              onEndReachedThreshold={0.5}
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={10}
+              ListFooterComponent={
+                <>
+                  {loadingMore && (
+                    <View style={styles.footerLoader}>
+                      <Text style={styles.footerText}>Cargando más...</Text>
+                    </View>
+                  )}
+                  {productosSinStock.length > 0 && (
+                    <>
+                      <Text variant="titleMedium" style={styles.sinStockSectionTitle}>
+                        Productos Sin Stock
+                      </Text>
+                      <FlatList
+                        data={productosSinStock}
+                        renderItem={renderProductoSinStock}
+                        keyExtractor={(item) => `sin-stock-${item.id}`}
+                        numColumns={2}
+                        scrollEnabled={false}
+                      />
+                    </>
+                  )}
+                </>
+              }
+            />
+          )}
+
+          {/* Barra del carrito */}
+          <Surface style={[styles.carrito, { paddingBottom: Math.max(spacing.md, insets.bottom) }]} elevation={5}>
             <View style={styles.carritoInfo}>
               <View style={styles.carritoInfoRow}>
                 <Icon name="cart" size={24} color={colors.primary} />
@@ -525,119 +698,152 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
       {/* PASO 3: Confirmar */}
       {paso === 3 && (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.paso3Container}>
+          <ScrollView contentContainerStyle={styles.scrollContentPaso3}>
+            <Surface style={styles.resumenSection} elevation={1}>
+              <Text variant="titleMedium">Cliente</Text>
+              <Text variant="bodyLarge">{clienteSeleccionado?.nombre} {clienteSeleccionado?.apellido}</Text>
+            </Surface>
 
-          <Surface style={styles.resumenSection} elevation={1}>
-            <Text variant="titleMedium">Cliente</Text>
-            <Text variant="bodyLarge">{clienteSeleccionado?.nombre} {clienteSeleccionado?.apellido}</Text>
-          </Surface>
-
-          <Surface style={styles.resumenSection} elevation={1}>
-            <View style={styles.listaPrecioSection}>
-              <View style={styles.listaPrecioHeader}>
-                <Text variant="titleMedium">Lista de Precios</Text>
-                <Menu
-                  visible={menuListaPrecioVisible}
-                  onDismiss={handleCloseMenu}
-                  anchor={
-                    <Button 
-                      mode="outlined" 
-                      icon="tag"
-                      onPress={handleOpenMenu}
-                      style={styles.listaPrecioButton}
-                      contentStyle={styles.listaPrecioButtonContent}
-                    >
-                      {listaSeleccionada?.nombre || 'Seleccionar lista'}
-                    </Button>
-                  }
-                >
-                  {listas.map((lista) => (
-                    <Menu.Item
-                      key={lista.id}
-                      onPress={() => handleSelectLista(lista)}
-                      title={`${lista.nombre} (${lista.descuento_porcentaje}% desc.)`}
-                    />
-                  ))}
-                </Menu>
-              </View>
-              {listaSeleccionada && (
-                <Text variant="bodyMedium" style={styles.listaPrecioInfo}>
-                  Descuento: {listaSeleccionada.descuento_porcentaje}%
-                </Text>
-              )}
-            </View>
-          </Surface>
-
-          <Surface style={styles.resumenSection} elevation={1}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>Productos ({items.length})</Text>
-            {items.map((item, index) => {
-              const precioBase = parseFloat(item.producto.precio);
-              const precioUnitario = calcularPrecioConDescuento(precioBase);
-              const subtotal = precioUnitario * item.cantidad;
-              
-              return (
-                <View key={index} style={styles.itemRow}>
-                  <View style={styles.itemInfo}>
-                    <Text variant="bodyLarge" style={styles.itemNombre}>{item.producto.nombre}</Text>
-                    <View style={styles.itemDetails}>
-                      <Text variant="bodySmall" style={styles.itemPrecioUnitario}>
-                        {formatPrice(precioUnitario)} c/u
-                      </Text>
-                      <Text variant="bodyMedium" style={styles.itemSubtotal}>
-                        Subtotal: {formatPrice(subtotal)}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.itemActions}>
-                    <View style={styles.cantidadControlsConfirm}>
-                      <IconButton
-                        icon="minus-circle"
-                        size={22}
-                        iconColor={colors.error}
-                        onPress={() => handleUpdateCantidad(item.producto.id, item.cantidad - 1)}
-                        style={styles.cantidadButtonConfirm}
-                      />
-                      <Surface style={styles.cantidadDisplayConfirm}>
-                        <Text variant="titleMedium" style={styles.cantidadTextConfirm}>
-                          {item.cantidad}
-                        </Text>
-                      </Surface>
-                      <IconButton
-                        icon="plus-circle"
-                        size={22}
-                        iconColor={colors.primary}
-                        onPress={() => handleUpdateCantidad(item.producto.id, item.cantidad + 1)}
-                        style={styles.cantidadButtonConfirm}
-                      />
-                    </View>
-                    <IconButton
-                      icon="delete"
-                      size={20}
-                      iconColor={colors.error}
-                      onPress={() => handleRemoveItem(item.producto.id)}
-                      style={styles.deleteButton}
-                    />
-                  </View>
+            <Surface style={styles.resumenSection} elevation={1}>
+              <View style={styles.listaPrecioSection}>
+                <View style={styles.listaPrecioHeader}>
+                  <Text variant="titleMedium">Lista de Precios</Text>
+                  <Button 
+                    mode="outlined" 
+                    icon="tag"
+                    onPress={handleOpenMenu}
+                    style={styles.listaPrecioButton}
+                  >
+                    {listaSeleccionada?.nombre || 'Seleccionar'}
+                  </Button>
                 </View>
-              );
-            })}
-          </Surface>
+                {listaSeleccionada && (
+                  <Text variant="bodyMedium" style={styles.listaPrecioInfo}>
+                    Descuento: {listaSeleccionada.descuento_porcentaje}%
+                  </Text>
+                )}
+              </View>
+            </Surface>
 
-          {/* Resumen de Totales */}
-          <Surface style={styles.totalSection} elevation={1}>
-            <View style={styles.totalRow}>
-              <Text variant="headlineSmall" style={styles.totalLabel}>Total:</Text>
-              <Text variant="headlineSmall" style={styles.totalValue}>
-                {formatPrice(calcularTotal())}
-              </Text>
-            </View>
-          </Surface>
+            <Surface style={styles.resumenSection} elevation={1}>
+              <Text variant="titleMedium" style={styles.sectionTitle}>Productos ({items.length})</Text>
+              {items.map((item, index) => {
+                const precioBase = parseFloat(item.producto.precio);
+                const precioUnitario = calcularPrecioConDescuento(precioBase);
+                const subtotal = precioUnitario * item.cantidad;
+                
+                return (
+                  <View key={index} style={styles.itemRow}>
+                    <View style={styles.itemInfo}>
+                      <Text variant="bodyLarge" style={styles.itemNombre}>{item.producto.nombre}</Text>
+                      <View style={styles.itemDetails}>
+                        <Text variant="bodySmall" style={styles.itemPrecioUnitario}>
+                          {formatPrice(precioUnitario)} c/u
+                        </Text>
+                        <Text variant="bodyMedium" style={styles.itemSubtotal}>
+                          Subtotal: {formatPrice(subtotal)}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.itemActions}>
+                      <View style={styles.cantidadControlsConfirm}>
+                        <IconButton
+                          icon="minus-circle"
+                          size={22}
+                          iconColor={colors.error}
+                          onPress={() => handleUpdateCantidad(item.producto.id, item.cantidad - 1)}
+                          style={styles.cantidadButtonConfirm}
+                        />
+                        <Surface style={styles.cantidadDisplayConfirm}>
+                          <Text variant="titleMedium" style={styles.cantidadTextConfirm}>
+                            {item.cantidad}
+                          </Text>
+                        </Surface>
+                        <IconButton
+                          icon="plus-circle"
+                          size={22}
+                          iconColor={colors.primary}
+                          onPress={() => handleUpdateCantidad(item.producto.id, item.cantidad + 1)}
+                          style={styles.cantidadButtonConfirm}
+                        />
+                      </View>
+                      <IconButton
+                        icon="delete"
+                        size={20}
+                        iconColor={colors.error}
+                        onPress={() => handleRemoveItem(item.producto.id)}
+                        style={styles.deleteButton}
+                      />
+                    </View>
+                  </View>
+                );
+              })}
+            </Surface>
 
-          <View style={styles.actions}>
-            <Button mode="outlined" onPress={() => setPaso(2)}>Atrás</Button>
-            <Button mode="contained" onPress={handleConfirmarPedido}>Confirmar Pedido</Button>
-          </View>
-        </ScrollView>
+            {/* Spacer para empujar el total al fondo cuando hay poco contenido */}
+            <View style={styles.spacer} />
+
+            <Surface style={styles.totalSection} elevation={1}>
+              <View style={styles.totalRow}>
+                <Text variant="headlineSmall" style={styles.totalLabel}>Total:</Text>
+                <Text variant="headlineSmall" style={styles.totalValue}>
+                  {formatPrice(calcularTotal())}
+                </Text>
+              </View>
+            </Surface>
+          </ScrollView>
+
+          {/* Modal de selección de lista - Fuera del ScrollView para que no se mueva */}
+          <Portal>
+            {menuListaPrecioVisible && (
+              <TouchableOpacity 
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={handleCloseMenu}
+              >
+                <Surface 
+                  style={styles.listaPrecioModal} 
+                  elevation={4}
+                >
+                  <Text variant="titleMedium" style={styles.modalTitle}>Seleccionar Lista</Text>
+                  <ScrollView style={styles.modalScrollView}>
+                    {listas.map((lista) => (
+                      <TouchableOpacity 
+                        key={lista.id} 
+                        style={styles.listaOption}
+                        onPress={() => handleSelectLista(lista)}
+                      >
+                        <Text style={styles.listaOptionText}>
+                          {lista.nombre} ({lista.descuento_porcentaje}% desc.)
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                  <Button mode="text" onPress={handleCloseMenu}>Cerrar</Button>
+                </Surface>
+              </TouchableOpacity>
+            )}
+          </Portal>
+
+          {/* Barra de acciones fija */}
+          <Surface style={[styles.actionsBar, { paddingBottom: Math.max(spacing.md, insets.bottom) }]} elevation={5}>
+            <Button 
+              mode="outlined" 
+              onPress={() => setPaso(2)}
+              style={styles.actionButton}
+            >
+              Atrás
+            </Button>
+            <Button 
+              mode="contained" 
+              onPress={handleConfirmarPedido}
+              style={styles.actionButton}
+            >
+              Confirmar Pedido
+            </Button>
+          </Surface>
+        </View>
       )}
     </ScreenContainer>
   );
@@ -668,116 +874,110 @@ const styles = StyleSheet.create({
   stepDivider: {
     width: spacing.sm,
   },
+  scrollContent: {
+    padding: spacing.md,
+  },
+  paso3Container: {
+    flex: 1,
+  },
+  scrollContentPaso3: {
+    flexGrow: 1,
+    padding: spacing.md,
+    paddingBottom: spacing.md,
+  },
+  spacer: {
+    flex: 1,
+    minHeight: spacing.md,
+  },
+  title: {
+    marginBottom: spacing.md,
+    fontWeight: 'bold',
+  },
+  searchbar: {
+    marginBottom: spacing.md,
+  },
   paso2Container: {
     flex: 1,
   },
-  paso2Header: {
+  clienteInfoBar: {
     backgroundColor: colors.surface,
-    padding: spacing.sm,
-    paddingBottom: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
   },
-  headerCompact: {
-    paddingHorizontal: spacing.xs,
-  },
-  headerInfo: {
-    gap: 0,
-  },
-  headerRow: {
+  clienteInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    minHeight: 36,
+    gap: spacing.sm,
   },
-  headerText: {
+  clienteInfoText: {
     flex: 1,
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 15,
+    color: colors.text,
   },
-  changeButton: {
-    margin: 0,
-    minWidth: 70,
-  },
-  changeButtonContent: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  listaButtonContainer: {
-    flex: 1,
-    minHeight: 40,
-    justifyContent: 'center',
-  },
-  listaButton: {
-    margin: 0,
-    flex: 1,
-    minHeight: 40,
-    alignSelf: 'flex-start',
-  },
-  listaButtonContent: {
+  productosHeader: {
+    backgroundColor: colors.white,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
-  listaButtonLabel: {
-    fontSize: 15,
-    fontWeight: '500',
+  productosHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButtonSmall: {
+    marginRight: spacing.xs,
+  },
+  productosHeaderTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
   },
   searchbarCompact: {
-    marginTop: spacing.xs,
-    marginHorizontal: 0,
+    marginTop: spacing.sm,
     elevation: 0,
+    backgroundColor: colors.primarySurface,
+    borderRadius: borderRadius.md,
   },
-  filtroCategoriaContainer: {
-    marginTop: spacing.xs,
-    marginHorizontal: 0,
+  breadcrumb: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    flexWrap: 'wrap',
+    gap: spacing.xs,
   },
-  filtroCategoriaButton: {
-    margin: 0,
+  breadcrumbItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
-  filtroCategoriaButtonContent: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs / 2,
+  breadcrumbText: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  breadcrumbTextActive: {
+    color: colors.text,
+    fontWeight: '600',
+  },
+  categoriasList: {
+    padding: spacing.sm,
+    paddingBottom: 140,
   },
   productsList: {
-    padding: spacing.xs,
-    paddingBottom: spacing.lg,
+    padding: spacing.sm,
+    paddingBottom: 140,
   },
-  productsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.xs,
-  },
-  productWrapper: {
-    width: (screenWidth - spacing.sm * 2 - spacing.xs * 3) / 2,
-    marginBottom: spacing.xs,
-    minHeight: 240,
-    position: 'relative',
+  cardWrapper: {
+    width: (screenWidth - spacing.sm * 3) / 2,
+    margin: spacing.sm / 2,
   },
   productCardContainer: {
     position: 'relative',
-  },
-  promoBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.secondary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs / 2,
-    borderRadius: 12,
-    zIndex: 10,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    gap: spacing.xs / 2,
-  },
-  promoBadgeText: {
-    color: 'white',
-    fontWeight: '700',
-    fontSize: 10,
-    letterSpacing: 0.5,
   },
   cantidadOverlay: {
     position: 'absolute',
@@ -787,17 +987,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: spacing.xs / 2,
     elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
     borderWidth: 1,
     borderColor: colors.outline + '20',
   },
   cantidadControlsOverlay: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: spacing.xs / 2,
   },
   cantidadButtonOverlay: {
@@ -812,7 +1007,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryContainer,
     minWidth: 32,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   cantidadTextOverlay: {
     fontWeight: '700',
@@ -828,14 +1022,8 @@ const styles = StyleSheet.create({
   addButtonOverlayStyle: {
     borderRadius: 8,
   },
-  sinStockGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: spacing.xs,
-    paddingBottom: spacing.sm,
-  },
   productoSinStockContainer: {
-    position: 'relative',
+    opacity: 0.7,
   },
   disabledOverlay: {
     position: 'absolute',
@@ -845,21 +1033,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.error,
     borderRadius: 8,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
     alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    borderWidth: 2,
-    borderColor: colors.errorContainer,
-    minHeight: 36,
   },
   disabledText: {
     color: 'white',
     fontWeight: '700',
     fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    textAlign: 'center',
   },
   sinStockSectionTitle: {
     marginTop: spacing.lg,
@@ -868,117 +1047,13 @@ const styles = StyleSheet.create({
     color: colors.error,
     fontWeight: '600',
   },
-  title: {
-    marginBottom: spacing.md,
-    fontWeight: 'bold',
-  },
-  searchbar: {
-    marginBottom: spacing.md,
-    marginHorizontal: spacing.md,
-  },
-  categoriaTitle: {
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
-  clienteCard: {
+  footerLoader: {
     padding: spacing.md,
-    margin: spacing.md,
-    marginBottom: spacing.sm,
-    borderRadius: 8,
-  },
-  listaPrecioCard: {
-    padding: spacing.md,
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.sm,
-    borderRadius: 8,
-  },
-  listaPrecioTitle: {
-    marginBottom: spacing.xs,
-    fontWeight: 'bold',
-  },
-  radioRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  productoCard: {
-    marginBottom: spacing.md,
-    elevation: 2,
-  },
-  productoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  productoInfo: {
-    flex: 1,
-  },
-  productoNombre: {
-    fontWeight: '600',
-    marginBottom: spacing.xs,
-  },
-  productoMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.xs,
-    flexWrap: 'wrap',
-  },
-  stockContainer: {
-    flexShrink: 0,
-  },
-  stockChip: {
-    height: 28,
-    maxWidth: '100%',
-  },
-  stockOk: {
-    backgroundColor: colors.tertiaryContainer,
-  },
-  stockWarning: {
-    backgroundColor: colors.secondaryContainer,
-  },
-  stockError: {
-    backgroundColor: colors.errorContainer,
-  },
-  stockChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  precio: {
-    color: colors.primary,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  cantidadBadge: {
-    backgroundColor: colors.primary,
-    position: 'absolute',
-    top: -8,
-    right: -8,
-  },
-  cardActions: {
-    paddingHorizontal: spacing.sm,
-    paddingBottom: spacing.sm,
-  },
-  cantidadControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  cantidadButton: {
-    margin: 0,
-  },
-  cantidadDisplay: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: 8,
-    backgroundColor: colors.surfaceVariant,
-    minWidth: 50,
     alignItems: 'center',
   },
-  cantidadText: {
-    fontWeight: 'bold',
-    color: colors.primary,
+  footerText: {
+    color: colors.textSecondary,
+    fontSize: 12,
   },
   carrito: {
     padding: spacing.sm,
@@ -1012,12 +1087,6 @@ const styles = StyleSheet.create({
   continuarButtonContent: {
     paddingVertical: spacing.xs,
   },
-  productoSinStock: {
-    opacity: 0.6,
-  },
-  productoSinStockText: {
-    opacity: 0.7,
-  },
   resumenSection: {
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -1025,6 +1094,56 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: spacing.sm,
+  },
+  listaPrecioSection: {
+    gap: spacing.sm,
+  },
+  listaPrecioHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  listaPrecioButton: {
+    marginLeft: spacing.md,
+  },
+  listaPrecioInfo: {
+    color: colors.secondary,
+    fontWeight: '500',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  listaPrecioModal: {
+    width: '90%',
+    maxWidth: 400,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    maxHeight: '70%',
+  },
+  modalScrollView: {
+    maxHeight: 300,
+  },
+  modalTitle: {
+    marginBottom: spacing.md,
+    fontWeight: '600',
+  },
+  listaOption: {
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  listaOptionText: {
+    fontSize: 15,
+    color: colors.text,
   },
   itemRow: {
     flexDirection: 'row',
@@ -1042,51 +1161,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: spacing.xs,
   },
-  itemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
-  },
   itemDetails: {
-    flexDirection: 'column',
     gap: spacing.xs / 2,
-    marginTop: spacing.xs,
-  },
-  promoBadgeInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.secondaryContainer,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.xs / 2,
-    borderRadius: 8,
-    gap: spacing.xs / 2,
-  },
-  promoBadgeTextInline: {
-    color: colors.secondary,
-    fontWeight: '600',
-    fontSize: 10,
-  },
-  promoDescuentoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.xs / 2,
-  },
-  promoDescuentoLabel: {
-    color: colors.onSurfaceVariant,
-  },
-  promoDescuentoValue: {
-    color: colors.secondary,
-    fontWeight: '600',
-  },
-  itemTotalConDescuento: {
-    color: colors.primary,
-    fontWeight: '600',
-    marginTop: spacing.xs / 2,
   },
   itemPrecioUnitario: {
-    color: colors.onSurfaceVariant,
+    color: colors.textSecondary,
   },
   itemSubtotal: {
     color: colors.primary,
@@ -1103,7 +1182,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceVariant,
     borderRadius: 10,
     padding: spacing.xs / 2,
-    gap: spacing.xs / 2,
   },
   cantidadButtonConfirm: {
     margin: 0,
@@ -1117,7 +1195,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     minWidth: 45,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   cantidadTextConfirm: {
     fontWeight: 'bold',
@@ -1126,28 +1203,6 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     margin: 0,
-    marginLeft: spacing.xs,
-  },
-  listaPrecioSection: {
-    gap: spacing.sm,
-  },
-  listaPrecioHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  listaPrecioButton: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  listaPrecioButtonContent: {
-    paddingVertical: spacing.xs,
-  },
-  listaPrecioInfo: {
-    color: colors.secondary,
-    fontWeight: '500',
-    marginTop: spacing.xs,
   },
   totalSection: {
     padding: spacing.lg,
@@ -1159,22 +1214,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  descuentoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  descuentoLabel: {
-    color: colors.secondary,
-  },
-  descuentoValue: {
-    color: colors.secondary,
-    fontWeight: '700',
-  },
-  totalDivider: {
-    marginVertical: spacing.sm,
   },
   totalLabel: {
     fontWeight: '700',
@@ -1184,18 +1223,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
   },
-  actions: {
+  actionsBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xl * 2, // Mucho espacio para evitar tocar botones del sistema
-    paddingHorizontal: spacing.md,
-  },
-  scrollContent: {
     padding: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+    backgroundColor: colors.surface,
   },
-  productosScrollView: {
+  actionButton: {
     flex: 1,
   },
 });

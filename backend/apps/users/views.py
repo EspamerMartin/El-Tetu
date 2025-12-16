@@ -225,9 +225,19 @@ class UserListCreateView(generics.ListCreateAPIView):
         return UserSerializer
     
     def get_permissions(self):
-        """Admin y vendedores pueden listar y crear (con restricciones)."""
+        """
+        Permisos según método HTTP:
+        - GET: Admin y vendedores pueden listar usuarios
+        - POST: Usa CanCreateUser para validar permisos de creación
+        """
+        from .permissions import CanCreateUser
+        
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), CanCreateUser()]
+        
+        # Para GET, admin y vendedores pueden listar
         user = self.request.user
-        if user.is_vendedor() or user.is_admin():
+        if user.is_authenticated and (user.is_vendedor() or user.is_admin()):
             return [IsAuthenticated()]
         return [IsAuthenticated(), IsAdmin()]
     
@@ -287,19 +297,8 @@ class UserListCreateView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         """
         Crea un nuevo usuario y devuelve con UserSerializer completo.
-        Vendedores solo pueden crear usuarios con rol 'cliente'.
+        La autorización (quién puede crear qué) se maneja en CanCreateUser permission.
         """
-        user = request.user
-        
-        # Si es vendedor, validar que solo pueda crear clientes
-        if user.is_vendedor():
-            rol = request.data.get('rol', 'cliente')
-            if rol != 'cliente':
-                return Response(
-                    {'error': 'Los vendedores solo pueden crear clientes.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         new_user = serializer.save()

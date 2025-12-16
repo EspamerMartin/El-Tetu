@@ -80,7 +80,7 @@ const PerfilScreen = ({ navigation }: Props) => {
   };
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={[]}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Avatar y nombre */}
         <View style={styles.avatarSection}>
