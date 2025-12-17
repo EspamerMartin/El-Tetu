@@ -145,8 +145,7 @@ REST_FRAMEWORK = {
 # JWT Settings
 # NOTA: Tokens configurados para no expirar (365 días / 10 años)
 # Para producción con expiración normal, configurar en variables de entorno:
-#   JWT_ACCESS_TOKEN_LIFETIME_MINUTES=60
-#   JWT_REFRESH_TOKEN_LIFETIME_DAYS=7
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(
         days=config('JWT_ACCESS_TOKEN_LIFETIME_DAYS', default=365, cast=int)
