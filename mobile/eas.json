@@ -23,8 +23,5 @@
   },
   "submit": {
     "production": {}
-  },
-  "prebuild": {
-    "clean": true
   }
 }
