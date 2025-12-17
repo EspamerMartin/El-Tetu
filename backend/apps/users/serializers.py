@@ -91,7 +91,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    """Serializer para crear usuarios (solo admin, permite cualquier rol)."""
+    """Serializer para crear usuarios (admin o vendedor para clientes)."""
     
     password = serializers.CharField(write_only=True, min_length=6)
     horarios = HorarioClienteCreateSerializer(many=True, required=False)
@@ -104,6 +104,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
             # Campos específicos de cliente
             'zona', 'calle', 'entre_calles', 'numero', 'descripcion_ubicacion',
             'horarios',
+            # Lista de precios
+            'lista_precio',
             'is_active'
         ]
     

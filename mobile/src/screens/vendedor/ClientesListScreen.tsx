@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
-import { Text, Searchbar, Card, Avatar, Chip } from 'react-native-paper';
+import { Text, Searchbar, Card, Avatar, Chip, FAB } from 'react-native-paper';
+import { DrawerScreenProps } from '@react-navigation/drawer';
+import { CompositeScreenProps, useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useFocusEffect } from '@react-navigation/native';
-import { VendedorStackParamList } from '@/navigation/VendedorStack';
+import { VendedorDrawerParamList, VendedorStackParamList } from '@/navigation/VendedorStack';
 import { clientesAPI } from '@/services/api';
 import { Cliente } from '@/types';
 import { LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
 import { colors, spacing, borderRadius, shadows } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-type Props = NativeStackScreenProps<VendedorStackParamList, 'ClientesList'>;
+type Props = CompositeScreenProps<
+  DrawerScreenProps<VendedorDrawerParamList, 'Clientes'>,
+  NativeStackScreenProps<VendedorStackParamList>
+>;
 
 /**
  * ClientesListScreen
@@ -59,7 +63,11 @@ const ClientesListScreen = ({ navigation }: Props) => {
   };
 
   const handleClientePress = (cliente: Cliente) => {
-    navigation.navigate('ClienteDetalle', { clienteId: cliente.id });
+    navigation.getParent()?.navigate('ClienteDetalle', { clienteId: cliente.id });
+  };
+
+  const handleNuevoCliente = () => {
+    navigation.getParent()?.navigate('ClienteForm');
   };
 
   const renderCliente = ({ item }: { item: Cliente }) => {
@@ -147,6 +155,12 @@ const ClientesListScreen = ({ navigation }: Props) => {
           }
         />
       )}
+
+      <FAB
+        icon="plus"
+        style={styles.fab}
+        onPress={handleNuevoCliente}
+      />
     </ScreenContainer>
   );
 };
@@ -214,6 +228,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   statusChip: {},
+  fab: {
+    position: 'absolute',
+    bottom: spacing.lg,
+    right: spacing.lg,
+  },
 });
 
 export default ClientesListScreen;

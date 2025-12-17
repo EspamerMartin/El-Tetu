@@ -67,7 +67,7 @@ const MisPedidosScreen = () => {
 
   if (error) {
     return (
-      <ScreenContainer>
+      <ScreenContainer edges={[]}>
         <View style={styles.errorContainer}>
           <Text variant="bodyLarge" style={styles.errorText}>
             {error}
@@ -78,7 +78,8 @@ const MisPedidosScreen = () => {
   }
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={[]}>
+
       <FlatList
         data={pedidos}
         renderItem={renderPedido}

@@ -184,7 +184,7 @@ const CarritoScreen = ({ navigation }: Props) => {
 
   if (items.length === 0) {
     return (
-      <ScreenContainer>
+      <ScreenContainer edges={[]}>
         <EmptyState
           icon="cart-off"
           title="Carrito vacío"
@@ -197,7 +197,7 @@ const CarritoScreen = ({ navigation }: Props) => {
   }
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={[]}>
       <View style={styles.content}>
         <FlatList
           data={items}
@@ -208,17 +208,17 @@ const CarritoScreen = ({ navigation }: Props) => {
 
         <Surface style={styles.totalsContainer} elevation={4}>
           <View style={styles.totalRow}>
-            <Text variant="bodyLarge" style={styles.totalRowLabel}>Subtotal:</Text>
-            <Text variant="bodyLarge">{formatPrice(subtotal)}</Text>
+            <Text variant="bodyMedium" style={styles.totalRowLabel}>Subtotal:</Text>
+            <Text variant="bodyMedium" style={styles.totalRowValue}>{formatPrice(subtotal)}</Text>
           </View>
 
           <Divider style={styles.divider} />
 
           <View style={styles.totalRow}>
-            <Text variant="headlineSmall" style={styles.totalLabel}>
+            <Text variant="titleLarge" style={styles.totalLabel}>
               Total:
             </Text>
-            <Text variant="headlineMedium" style={styles.totalPrice}>
+            <Text variant="titleLarge" style={styles.totalPrice}>
               {formatPrice(total)}
             </Text>
           </View>
@@ -314,8 +314,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   totalsContainer: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xl,
+    padding: spacing.md,
     backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: colors.borderLight,
@@ -323,17 +322,22 @@ const styles = StyleSheet.create({
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing.sm,
+    alignItems: 'center',
+    marginBottom: spacing.xs,
   },
   totalRowLabel: {
     color: colors.textSecondary,
   },
+  totalRowValue: {
+    color: colors.text,
+    fontWeight: '500',
+  },
   totalLabel: {
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: colors.text,
   },
   totalPrice: {
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: colors.primary,
   },
   confirmButton: {

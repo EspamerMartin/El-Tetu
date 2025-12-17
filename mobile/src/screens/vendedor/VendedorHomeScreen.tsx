@@ -167,13 +167,27 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => navigation.getParent()?.navigate('NuevoPedido')}
-            style={styles.nuevoPedidoButton}
+            style={styles.actionTouchable}
           >
-            <Surface style={styles.actionCardFull} elevation={1}>
-              <Icon name="plus-circle" size={40} color={colors.accent} />
+            <Surface style={styles.actionCard} elevation={1}>
+              <Icon name="clipboard-plus" size={40} color={colors.accent} />
               <Text variant="titleMedium" style={styles.actionTitle}>Nuevo Pedido</Text>
               <Text variant="bodySmall" style={styles.actionDescription}>
                 Crear pedido manual
+              </Text>
+            </Surface>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.getParent()?.navigate('ClienteForm')}
+            style={styles.actionTouchable}
+          >
+            <Surface style={styles.actionCard} elevation={1}>
+              <Icon name="account-plus" size={40} color={colors.success} />
+              <Text variant="titleMedium" style={styles.actionTitle}>Nuevo Cliente</Text>
+              <Text variant="bodySmall" style={styles.actionDescription}>
+                Registrar cliente
               </Text>
             </Surface>
           </TouchableOpacity>
@@ -253,17 +267,6 @@ const styles = StyleSheet.create({
     minWidth: '45%',
   },
   actionCard: {
-    padding: spacing.lg,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    backgroundColor: colors.white,
-  },
-  nuevoPedidoButton: {
-    width: '100%',
-    marginTop: spacing.sm,
-  },
-  actionCardFull: {
-    width: '100%',
     padding: spacing.lg,
     borderRadius: borderRadius.md,
     alignItems: 'center',

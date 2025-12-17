@@ -56,6 +56,12 @@ class Categoria(SoftDeleteMixin, TimestampMixin):
     
     nombre = models.CharField(max_length=100, unique=True, verbose_name='Nombre')
     descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
+    url_imagen = models.URLField(
+        blank=True,
+        null=True,
+        verbose_name='URL de Imagen',
+        help_text='URL de la imagen de la categoría (ej: S3)'
+    )
     activo = models.BooleanField(default=True, verbose_name='Activo')
     
     class Meta:
@@ -78,6 +84,12 @@ class Subcategoria(SoftDeleteMixin, TimestampMixin):
     )
     nombre = models.CharField(max_length=100, verbose_name='Nombre')
     descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
+    url_imagen = models.URLField(
+        blank=True,
+        null=True,
+        verbose_name='URL de Imagen',
+        help_text='URL de la imagen de la subcategoría (ej: S3)'
+    )
     activo = models.BooleanField(default=True, verbose_name='Activo')
     
     class Meta:

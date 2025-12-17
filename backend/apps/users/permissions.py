@@ -35,3 +35,35 @@ class IsOwnerOrAdmin(permissions.BasePermission):
         
         # El usuario puede ver/editar solo sus propios objetos
         return obj == request.user or (hasattr(obj, 'cliente') and obj.cliente == request.user)
+
+
+class CanCreateUser(permissions.BasePermission):
+    """
+    Permiso para controlar quién puede crear usuarios.
+    - Admin: puede crear usuarios de cualquier rol
+    - Vendedor: solo puede crear usuarios con rol 'cliente'
+    - Otros: no pueden crear usuarios
+    """
+    message = 'No tiene permisos para crear este tipo de usuario.'
+    
+    def has_permission(self, request, view):
+        user = request.user
+        
+        if not user or not user.is_authenticated:
+            return False
+        
+        # Admin puede crear cualquier usuario
+        if user.rol == 'admin':
+            return True
+        
+        # Vendedor solo puede crear clientes
+        if user.rol == 'vendedor':
+            # Obtener el rol del usuario a crear (default: cliente)
+            rol_to_create = request.data.get('rol', 'cliente')
+            if rol_to_create != 'cliente':
+                self.message = 'Los vendedores solo pueden crear clientes.'
+                return False
+            return True
+        
+        # Otros roles no pueden crear usuarios
+        return False

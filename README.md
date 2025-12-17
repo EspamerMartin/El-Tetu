@@ -217,6 +217,25 @@ La app móvil está configurada para usar la URL de producción por defecto en `
 - Permisos por rol (admin, vendedor, cliente)
 - SQL injection prevention (Django ORM)
 
+### ⏰ Configuración de Tokens JWT
+
+**Por defecto, los tokens están configurados para NO expirar** (365 días access / 10 años refresh) para facilitar el desarrollo y testing.
+
+Para configurar expiración en producción, agregar estas variables de entorno:
+
+| Variable | Descripción | Valor recomendado producción |
+|----------|-------------|------------------------------|
+| `JWT_ACCESS_TOKEN_LIFETIME_DAYS` | Duración del access token en días | `1` (o usar minutos) |
+| `JWT_REFRESH_TOKEN_LIFETIME_DAYS` | Duración del refresh token en días | `7` |
+
+**Ejemplo para producción con expiración normal:**
+```bash
+JWT_ACCESS_TOKEN_LIFETIME_DAYS=1
+JWT_REFRESH_TOKEN_LIFETIME_DAYS=7
+```
+
+> ⚠️ **Nota:** Si no se configuran estas variables, los tokens durarán 365 días / 10 años respectivamente.
+
 ---
 
 ## 📱 Navegación Mobile

@@ -1,132 +1,180 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, StyleSheet, FlatList, ScrollView, Animated, Dimensions, ActivityIndicator } from 'react-native';
-import { Text, Searchbar, Chip, Button, IconButton, Surface, Badge, Divider } from 'react-native-paper';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import React, { useEffect, useState, useCallback, useMemo, useLayoutEffect } from 'react';
+import { View, StyleSheet, FlatList, Dimensions, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { Text, Searchbar, Button, IconButton, Surface, FAB } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ClienteStackParamList } from '@/navigation/ClienteStack';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { ClienteStackParamList, ClienteTabParamList } from '@/navigation/ClienteStack';
 import { productosAPI } from '@/services/api';
 import { Producto, Categoria, Subcategoria, PaginatedResponse } from '@/types';
-import { ProductCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
+import { ProductCard, CategoryCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { addToCart, updateQuantity } from '@/store/slices/cartSlice';
-import { usePaginatedFetch } from '@/hooks';
+import { useFetch, usePaginatedFetch } from '@/hooks';
 import { colors, spacing, borderRadius } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-type NavigationProp = NativeStackNavigationProp<ClienteStackParamList>;
+type NavigationProp = NativeStackNavigationProp<ClienteStackParamList> & BottomTabNavigationProp<ClienteTabParamList>;
 
 const screenWidth = Dimensions.get('window').width;
 
-interface FilterState {
-  search: string;
-  categoria: number | null;
-  subcategoria: number | null;
-  disponible: boolean;
-}
+type NavigationLevel = 'categorias' | 'subcategorias' | 'productos';
 
 /**
- * CatalogoScreen - Catálogo de productos con paginación infinita
+ * CatalogoScreen - Catálogo de productos con navegación jerárquica
+ * 
+ * Flujo de navegación:
+ * 1. Categorías → 2. Subcategorías (si existen) → 3. Productos
  * 
  * Características:
- * - Paginación infinita con scroll
- * - Filtros avanzados (categoría, subcategoría, disponibilidad)
- * - Búsqueda inteligente con debounce
- * - Pull to refresh
- * - Animaciones suaves
+ * - Navegación jerárquica intuitiva
+ * - Breadcrumbs para contexto
+ * - FAB con badge del carrito
+ * - Búsqueda disponible en nivel de productos
+ * - Paginación infinita en productos
  */
 const CatalogoScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector(state => state.cart.items);
   
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<FilterState>({
-    search: '',
-    categoria: null,
-    subcategoria: null,
-    disponible: false,
-  });
+  // Estado de navegación
+  const [level, setLevel] = useState<NavigationLevel>('categorias');
+  const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null);
+  const [selectedSubcategoria, setSelectedSubcategoria] = useState<Subcategoria | null>(null);
+  
+  // Estado de búsqueda (en nivel productos)
+  const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const filterAnimation = useState(new Animated.Value(0))[0];
+
+  // Fetch categorías
+  const { 
+    data: categoriasData, 
+    loading: loadingCategorias, 
+    refetch: refetchCategorias 
+  } = useFetch(() => productosAPI.getCategorias({ activo: 'true' }));
+
+  // Fetch subcategorías
+  const { 
+    data: subcategoriasData, 
+    loading: loadingSubcategorias,
+    refetch: refetchSubcategorias 
+  } = useFetch(() => productosAPI.getSubcategorias({ activo: 'true' }));
+
+  const categorias = useMemo(() => 
+    (categoriasData?.results || []).filter((c: Categoria) => c.activo),
+    [categoriasData]
+  );
+
+  const allSubcategorias = useMemo(() => 
+    (subcategoriasData?.results || []).filter((s: Subcategoria) => s.activo),
+    [subcategoriasData]
+  );
+
+  // Subcategorías filtradas por categoría seleccionada
+  const subcategoriasFiltradas = useMemo(() => {
+    if (!selectedCategoria) return [];
+    return allSubcategorias.filter((s: Subcategoria) => s.categoria === selectedCategoria.id);
+  }, [selectedCategoria, allSubcategorias]);
+
+  // Contar subcategorías por categoría
+  const getSubcategoriaCount = useCallback((categoriaId: number) => {
+    return allSubcategorias.filter((s: Subcategoria) => s.categoria === categoriaId).length;
+  }, [allSubcategorias]);
 
   // Debounce para búsqueda
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(filters.search);
+      setDebouncedSearch(searchQuery);
     }, 400);
     return () => clearTimeout(timer);
-  }, [filters.search]);
+  }, [searchQuery]);
 
-  // Función de fetch con filtros aplicados
+  // Función de fetch para productos
   const fetchProductos = useCallback(async (page: number): Promise<PaginatedResponse<Producto>> => {
     const params: Record<string, any> = { 
       activo: true,
       page,
     };
     
+    if (selectedCategoria) params.categoria = selectedCategoria.id;
+    if (selectedSubcategoria) params.subcategoria = selectedSubcategoria.id;
     if (debouncedSearch) params.search = debouncedSearch;
-    if (filters.categoria) params.categoria = filters.categoria;
-    if (filters.subcategoria) params.subcategoria = filters.subcategoria;
-    if (filters.disponible) params.disponible = true;
     
     return productosAPI.getAll(params);
-  }, [debouncedSearch, filters.categoria, filters.subcategoria, filters.disponible]);
+  }, [selectedCategoria, selectedSubcategoria, debouncedSearch]);
 
-  // Hook de paginación infinita
+  // Hook de paginación para productos
   const {
     data: productos,
-    loading,
+    loading: loadingProductos,
     loadingMore,
     refreshing,
     hasMore,
     totalCount,
     loadMore,
-    refresh,
-    reset,
+    refresh: refreshProductos,
+    reset: resetProductos,
   } = usePaginatedFetch<Producto>(fetchProductos, {
     pageSize: 20,
-    autoFetch: true,
+    autoFetch: false, // No fetch automático, controlamos manualmente
   });
 
-  // Recargar cuando cambien los filtros (excepto search que tiene debounce)
+  // Fetch productos cuando cambie el nivel o los filtros
   useEffect(() => {
-    reset();
-  }, [debouncedSearch, filters.categoria, filters.subcategoria, filters.disponible]);
+    if (level === 'productos') {
+      resetProductos();
+    }
+  }, [level, selectedCategoria, selectedSubcategoria, debouncedSearch, resetProductos]);
 
-  // Cargar categorías y subcategorías al montar
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const [categoriasData, subcategoriasData] = await Promise.all([
-          productosAPI.getCategorias(),
-          productosAPI.getSubcategorias(),
-        ]);
-        setCategorias(categoriasData?.results || []);
-        setSubcategorias(subcategoriasData?.results || []);
-      } catch (err) {
-        console.error('Error al cargar datos:', err);
-      }
-    };
-    fetchInitialData();
-  }, []);
-
-  // Refrescar al volver a la pantalla
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-    }, [refresh])
+  // Calcular total de items en carrito
+  const cartTotalItems = useMemo(() => 
+    cartItems.reduce((acc, item) => acc + item.cantidad, 0),
+    [cartItems]
   );
 
-  // Animación del panel de filtros
-  useEffect(() => {
-    Animated.timing(filterAnimation, {
-      toValue: showFilters ? 1 : 0,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-  }, [showFilters, filterAnimation]);
+  // Handlers de navegación
+  const handleSelectCategoria = useCallback((categoria: Categoria) => {
+    setSelectedCategoria(categoria);
+    setSelectedSubcategoria(null);
+    setSearchQuery('');
+    setDebouncedSearch('');
+    
+    // Verificar si tiene subcategorías
+    const subcats = allSubcategorias.filter((s: Subcategoria) => s.categoria === categoria.id);
+    if (subcats.length > 0) {
+      setLevel('subcategorias');
+    } else {
+      // Ir directo a productos si no hay subcategorías
+      setLevel('productos');
+    }
+  }, [allSubcategorias]);
+
+  const handleSelectSubcategoria = useCallback((subcategoria: Subcategoria) => {
+    setSelectedSubcategoria(subcategoria);
+    setSearchQuery('');
+    setDebouncedSearch('');
+    setLevel('productos');
+  }, []);
+
+  const handleBack = useCallback(() => {
+    if (level === 'productos') {
+      // Si venimos de subcategorías, volver a subcategorías
+      // Si no había subcategorías, volver a categorías
+      if (selectedSubcategoria) {
+        setSelectedSubcategoria(null);
+        setLevel('subcategorias');
+      } else {
+        setSelectedCategoria(null);
+        setLevel('categorias');
+      }
+      setSearchQuery('');
+      setDebouncedSearch('');
+    } else if (level === 'subcategorias') {
+      setSelectedCategoria(null);
+      setLevel('categorias');
+    }
+  }, [level, selectedSubcategoria]);
 
   const handleProductPress = useCallback((producto: Producto) => {
     navigation.navigate('ProductoDetalle', { productoId: producto.id });
@@ -149,44 +197,70 @@ const CatalogoScreen = () => {
     dispatch(updateQuantity({ productoId, cantidad: Math.max(0, nuevaCantidad) }));
   }, [dispatch]);
 
-  const updateFilter = useCallback((key: keyof FilterState, value: any) => {
-    setFilters(prev => {
-      const newFilters = { ...prev, [key]: value };
-      if (key === 'categoria') {
-        newFilters.subcategoria = null;
-      }
-      return newFilters;
+  const handleEndReached = useCallback(() => {
+    if (hasMore && !loadingMore && !loadingProductos) {
+      loadMore();
+    }
+  }, [hasMore, loadingMore, loadingProductos, loadMore]);
+
+  // Configurar header dinámicamente según el nivel de navegación
+  useLayoutEffect(() => {
+    let title = 'Inicio';
+    if (level === 'subcategorias' && selectedCategoria) {
+      title = selectedCategoria.nombre;
+    } else if (level === 'productos') {
+      title = selectedSubcategoria?.nombre || selectedCategoria?.nombre || 'Productos';
+    }
+
+    navigation.setOptions({
+      title,
+      headerLeft: level !== 'categorias' ? () => (
+        <IconButton
+          icon="arrow-left"
+          size={24}
+          onPress={handleBack}
+          iconColor={colors.text}
+        />
+      ) : undefined,
     });
-  }, []);
+  }, [navigation, level, selectedCategoria, selectedSubcategoria, handleBack]);
 
-  const clearAllFilters = useCallback(() => {
-    setFilters({
-      search: '',
-      categoria: null,
-      subcategoria: null,
-      disponible: false,
-    });
-  }, []);
+  // Render categorías
+  const renderCategoria = useCallback(({ item }: { item: Categoria }) => {
+    const subcatCount = getSubcategoriaCount(item.id);
+    return (
+      <View style={styles.cardWrapper}>
+        <CategoryCard
+          nombre={item.nombre}
+          descripcion={item.descripcion}
+          url_imagen={item.url_imagen}
+          onPress={() => handleSelectCategoria(item)}
+          itemCount={subcatCount}
+          itemLabel={subcatCount === 1 ? 'subcategoría' : 'subcategorías'}
+        />
+      </View>
+    );
+  }, [getSubcategoriaCount, handleSelectCategoria]);
 
-  const activeFiltersCount = useMemo(() => {
-    let count = 0;
-    if (filters.categoria) count++;
-    if (filters.subcategoria) count++;
-    if (filters.disponible) count++;
-    return count;
-  }, [filters]);
+  // Render subcategorías
+  const renderSubcategoria = useCallback(({ item }: { item: Subcategoria }) => (
+    <View style={styles.cardWrapper}>
+      <CategoryCard
+        nombre={item.nombre}
+        descripcion={item.descripcion}
+        url_imagen={item.url_imagen}
+        onPress={() => handleSelectSubcategoria(item)}
+      />
+    </View>
+  ), [handleSelectSubcategoria]);
 
-  const subcategoriasFiltradas = useMemo(() => {
-    if (!filters.categoria) return [];
-    return subcategorias.filter(s => s.categoria === filters.categoria && s.activo);
-  }, [filters.categoria, subcategorias]);
-
+  // Render productos
   const renderProducto = useCallback(({ item }: { item: Producto }) => {
     const itemEnCarrito = cartItems.find(i => i.producto.id === item.id);
     const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
     
     return (
-      <View style={styles.productWrapper}>
+      <View style={styles.cardWrapper}>
         <View style={styles.productCardContainer}>
           <ProductCard 
             producto={item} 
@@ -244,190 +318,170 @@ const CatalogoScreen = () => {
     );
   }, [loadingMore]);
 
-  const handleEndReached = useCallback(() => {
-    if (hasMore && !loadingMore && !loading) {
-      loadMore();
-    }
-  }, [hasMore, loadingMore, loading, loadMore]);
+  // Breadcrumb
+  const renderBreadcrumb = () => {
+    if (level === 'categorias') return null;
+
+    return (
+      <Surface style={styles.breadcrumb} elevation={1}>
+        <TouchableOpacity 
+          style={styles.breadcrumbItem} 
+          onPress={() => {
+            setSelectedCategoria(null);
+            setSelectedSubcategoria(null);
+            setLevel('categorias');
+            setSearchQuery('');
+          }}
+        >
+          <Icon name="home" size={18} color={colors.primary} />
+          <Text style={styles.breadcrumbText}>Inicio</Text>
+        </TouchableOpacity>
+
+        {selectedCategoria && (
+          <>
+            <Icon name="chevron-right" size={18} color={colors.textSecondary} />
+            <TouchableOpacity 
+              style={styles.breadcrumbItem}
+              onPress={() => {
+                if (level === 'productos' && subcategoriasFiltradas.length > 0) {
+                  setSelectedSubcategoria(null);
+                  setLevel('subcategorias');
+                  setSearchQuery('');
+                }
+              }}
+              disabled={level === 'subcategorias' || subcategoriasFiltradas.length === 0}
+            >
+              <Text style={[
+                styles.breadcrumbText,
+                (level === 'subcategorias' || subcategoriasFiltradas.length === 0) && styles.breadcrumbTextActive
+              ]}>
+                {selectedCategoria.nombre}
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {selectedSubcategoria && (
+          <>
+            <Icon name="chevron-right" size={18} color={colors.textSecondary} />
+            <Text style={[styles.breadcrumbText, styles.breadcrumbTextActive]}>
+              {selectedSubcategoria.nombre}
+            </Text>
+          </>
+        )}
+      </Surface>
+    );
+  };
+
+  // Loading state
+  const isLoading = 
+    (level === 'categorias' && loadingCategorias) ||
+    (level === 'subcategorias' && loadingSubcategorias) ||
+    (level === 'productos' && loadingProductos && productos.length === 0);
 
   return (
-    <ScreenContainer>
-      {/* Header con búsqueda y filtros */}
-      <Surface style={styles.header} elevation={2}>
-        <View style={styles.searchRow}>
+    <ScreenContainer edges={[]}>
+      {/* Barra de búsqueda (siempre visible en nivel productos) */}
+      {level === 'productos' && (
+        <Surface style={styles.searchContainer} elevation={1}>
           <Searchbar
             placeholder="Buscar productos..."
-            onChangeText={(text) => updateFilter('search', text)}
-            value={filters.search}
+            onChangeText={setSearchQuery}
+            value={searchQuery}
             style={styles.searchbar}
             icon="magnify"
           />
-          <IconButton
-            icon={showFilters ? 'filter-off' : 'filter-variant'}
-            size={24}
-            onPress={() => setShowFilters(!showFilters)}
-            style={[
-              styles.filterButton,
-              activeFiltersCount > 0 && styles.filterButtonActive
-            ]}
-          />
-          {activeFiltersCount > 0 && (
-            <Badge style={styles.filterBadge}>{activeFiltersCount}</Badge>
-          )}
-        </View>
+        </Surface>
+      )}
 
-        {/* Panel de filtros expandible */}
-        <Animated.View 
-          style={[
-            styles.filtersPanel, 
-            { 
-              maxHeight: filterAnimation.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 400],
-              }), 
-              overflow: 'hidden' 
-            }
-          ]}
-        >
-          <ScrollView style={styles.filterScroll} showsVerticalScrollIndicator={false}>
-            {/* Categorías */}
-            <View style={styles.filterSection}>
-              <Text variant="titleSmall" style={styles.filterTitle}>
-                Categorías
-              </Text>
-              <View style={styles.chipsRow}>
-                <Chip
-                  icon={!filters.categoria ? 'check' : undefined}
-                  selected={!filters.categoria}
-                  onPress={() => updateFilter('categoria', null)}
-                  style={styles.filterChip}
-                  compact
-                >
-                  Todas
-                </Chip>
-                {categorias.filter(c => c.activo).map((cat) => (
-                  <Chip
-                    key={cat.id}
-                    icon={filters.categoria === cat.id ? 'check' : undefined}
-                    selected={filters.categoria === cat.id}
-                    onPress={() => updateFilter('categoria', cat.id)}
-                    style={styles.filterChip}
-                    compact
-                  >
-                    {cat.nombre}
-                  </Chip>
-                ))}
-              </View>
-            </View>
+      {renderBreadcrumb()}
 
-            {/* Subcategorías */}
-            {filters.categoria && subcategoriasFiltradas.length > 0 && (
-              <View style={styles.filterSection}>
-                <Text variant="titleSmall" style={styles.filterTitle}>
-                  Subcategorías
-                </Text>
-                <View style={styles.chipsRow}>
-                  <Chip
-                    icon={!filters.subcategoria ? 'check' : undefined}
-                    selected={!filters.subcategoria}
-                    onPress={() => updateFilter('subcategoria', null)}
-                    style={styles.filterChip}
-                    compact
-                  >
-                    Todas
-                  </Chip>
-                  {subcategoriasFiltradas.map((subcat) => (
-                    <Chip
-                      key={subcat.id}
-                      icon={filters.subcategoria === subcat.id ? 'check' : undefined}
-                      selected={filters.subcategoria === subcat.id}
-                      onPress={() => updateFilter('subcategoria', subcat.id)}
-                      style={styles.filterChip}
-                      compact
-                    >
-                      {subcat.nombre}
-                    </Chip>
-                  ))}
-                </View>
-              </View>
-            )}
+      {isLoading && <LoadingOverlay visible message="Cargando..." />}
 
-            <Divider style={styles.divider} />
-
-            {/* Filtros rápidos */}
-            <View style={styles.filterSection}>
-              <Text variant="titleSmall" style={styles.filterTitle}>
-                Filtros rápidos
-              </Text>
-              <View style={styles.quickFilters}>
-                <Chip
-                  icon={filters.disponible ? 'check-circle' : 'circle-outline'}
-                  selected={filters.disponible}
-                  onPress={() => updateFilter('disponible', !filters.disponible)}
-                  style={styles.quickFilterChip}
-                >
-                  Solo disponibles
-                </Chip>
-              </View>
-            </View>
-
-            {activeFiltersCount > 0 && (
-              <Button
-                mode="text"
-                icon="close-circle"
-                onPress={clearAllFilters}
-                style={styles.clearButton}
-              >
-                Limpiar filtros
-              </Button>
-            )}
-          </ScrollView>
-        </Animated.View>
-      </Surface>
-
-      {/* Barra de estadísticas */}
-      <Surface style={styles.statsBar} elevation={0}>
-        <View style={styles.statItem}>
-          <Icon name="package-variant" size={18} color={colors.primary} />
-          <Text variant="bodySmall" style={styles.statText}>
-            {loading ? 'Cargando...' : `${productos.length} de ${totalCount} producto${totalCount !== 1 ? 's' : ''}`}
-          </Text>
-        </View>
-        {hasMore && !loading && productos.length > 0 && (
-          <Text variant="labelSmall" style={styles.moreText}>
-            Desliza para ver más
-          </Text>
-        )}
-      </Surface>
-
-      {/* Lista de productos */}
-      {loading && productos.length === 0 ? (
-        <LoadingOverlay visible message="Cargando productos..." />
-      ) : productos.length === 0 ? (
-        <EmptyState
-          icon="package-variant-closed"
-          title="No hay productos"
-          message={filters.search ? 'Intenta con otra búsqueda' : 'Ajusta los filtros para ver más productos'}
-          actionLabel={activeFiltersCount > 0 ? 'Limpiar filtros' : undefined}
-          onAction={activeFiltersCount > 0 ? clearAllFilters : undefined}
-        />
-      ) : (
+      {/* Nivel: Categorías */}
+      {level === 'categorias' && !loadingCategorias && (
         <FlatList
-          data={productos}
-          renderItem={renderProducto}
+          data={categorias}
+          renderItem={renderCategoria}
           keyExtractor={(item) => item.id.toString()}
           numColumns={2}
-          contentContainerStyle={styles.productsList}
+          contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
-          onEndReached={handleEndReached}
-          onEndReachedThreshold={0.5}
-          refreshing={refreshing}
-          onRefresh={refresh}
-          ListFooterComponent={renderFooter}
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={5}
-          initialNumToRender={10}
+          ListEmptyComponent={
+            <EmptyState
+              icon="shape-outline"
+              title="No hay categorías"
+              message="No se encontraron categorías disponibles"
+            />
+          }
+        />
+      )}
+
+      {/* Nivel: Subcategorías */}
+      {level === 'subcategorias' && !loadingSubcategorias && (
+        <FlatList
+          data={subcategoriasFiltradas}
+          renderItem={renderSubcategoria}
+          keyExtractor={(item) => item.id.toString()}
+          numColumns={2}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <EmptyState
+              icon="shape-outline"
+              title="No hay subcategorías"
+              message="Esta categoría no tiene subcategorías"
+            />
+          }
+        />
+      )}
+
+      {/* Nivel: Productos */}
+      {level === 'productos' && (
+        <>
+          {productos.length === 0 && !loadingProductos ? (
+            <EmptyState
+              icon="package-variant-closed"
+              title="No hay productos"
+              message={searchQuery 
+                ? 'Intenta con otra búsqueda' 
+                : 'No hay productos en esta categoría'}
+              actionLabel={searchQuery ? 'Limpiar búsqueda' : undefined}
+              onAction={searchQuery ? () => {
+                setSearchQuery('');
+                setDebouncedSearch('');
+              } : undefined}
+            />
+          ) : (
+            <FlatList
+              data={productos}
+              renderItem={renderProducto}
+              keyExtractor={(item) => item.id.toString()}
+              numColumns={2}
+              contentContainerStyle={styles.productsList}
+              showsVerticalScrollIndicator={false}
+              onEndReached={handleEndReached}
+              onEndReachedThreshold={0.5}
+              refreshing={refreshing}
+              onRefresh={refreshProductos}
+              ListFooterComponent={renderFooter}
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              initialNumToRender={10}
+            />
+          )}
+        </>
+      )}
+
+      {/* FAB del carrito */}
+      {cartTotalItems > 0 && (
+        <FAB
+          icon="cart"
+          style={styles.fab}
+          color={colors.primary}
+          onPress={() => navigation.navigate('Carrito')}
+          label={cartTotalItems.toString()}
         />
       )}
     </ScreenContainer>
@@ -435,103 +489,50 @@ const CatalogoScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  header: {
+  searchContainer: {
     backgroundColor: colors.white,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm + 4,
-    paddingBottom: spacing.sm,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    position: 'relative',
+    paddingVertical: spacing.sm,
   },
   searchbar: {
-    flex: 1,
     elevation: 0,
     backgroundColor: colors.primarySurface,
     borderRadius: borderRadius.md,
   },
-  filterButton: {
-    marginLeft: spacing.sm,
-  },
-  filterButtonActive: {
-    backgroundColor: colors.primarySurface,
-  },
-  filterBadge: {
-    position: 'absolute',
-    right: spacing.sm,
-    top: spacing.sm,
-    backgroundColor: colors.error,
-  },
-  filtersPanel: {
-    marginTop: spacing.sm + 4,
-  },
-  filterScroll: {
-    maxHeight: 400,
-  },
-  filterSection: {
-    marginBottom: spacing.md,
-  },
-  filterTitle: {
-    fontWeight: '600',
-    marginBottom: spacing.sm,
-    color: colors.text,
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  filterChip: {
-    marginRight: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  quickFilters: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  quickFilterChip: {
-    flex: 1,
-  },
-  divider: {
-    marginVertical: spacing.sm + 4,
-  },
-  clearButton: {
-    marginTop: spacing.sm,
-  },
-  statsBar: {
+  breadcrumb: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 4,
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    flexWrap: 'wrap',
+    gap: spacing.xs,
   },
-  statItem: {
+  breadcrumbItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.xs,
   },
-  statText: {
-    color: colors.textSecondary,
+  breadcrumbText: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '500',
   },
-  moreText: {
-    color: colors.textTertiary,
-    fontStyle: 'italic',
+  breadcrumbTextActive: {
+    color: colors.text,
+    fontWeight: '600',
+  },
+  list: {
+    padding: spacing.sm,
+    paddingBottom: spacing.xxl + 60, // Espacio para FAB
   },
   productsList: {
-    paddingHorizontal: spacing.sm + 4,
-    paddingVertical: spacing.sm,
-    paddingBottom: spacing.xxl,
+    padding: spacing.sm,
+    paddingBottom: spacing.xxl + 60, // Espacio para FAB
   },
-  productWrapper: {
-    width: (screenWidth - 48) / 2,
-    margin: 6,
-    minHeight: 220,
-    position: 'relative',
+  cardWrapper: {
+    width: (screenWidth - spacing.sm * 3) / 2,
+    margin: spacing.sm / 2,
   },
   productCardContainer: {
     position: 'relative',
@@ -577,6 +578,12 @@ const styles = StyleSheet.create({
   footerText: {
     color: colors.textSecondary,
     fontSize: 12,
+  },
+  fab: {
+    position: 'absolute',
+    right: spacing.md,
+    bottom: spacing.md,
+    backgroundColor: colors.white,
   },
 });
 
