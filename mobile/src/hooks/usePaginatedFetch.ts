@@ -78,14 +78,19 @@ export function usePaginatedFetch<T>(
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Refs para evitar race conditions
+  // Refs para evitar race conditions y dependencias circulares
   const isFetchingRef = useRef(false);
   const fetchFnRef = useRef(fetchFn);
+  const dataRef = useRef<T[]>(data);
 
-  // Actualizar ref de fetchFn cuando cambie
+  // Actualizar refs cuando cambien
   useEffect(() => {
     fetchFnRef.current = fetchFn;
   }, [fetchFn]);
+
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
 
   /**
    * Cargar datos de una página específica
@@ -127,11 +132,11 @@ export function usePaginatedFetch<T>(
       setHasMore(response.next !== null);
       setCurrentPage(page);
 
-      // Callback de éxito
+      // Callback de éxito (usar dataRef para evitar dependencia circular)
       if (isRefresh || page === 1) {
         onSuccess?.(newItems);
       } else {
-        onSuccess?.(data.concat(newItems));
+        onSuccess?.(dataRef.current.concat(newItems));
       }
 
     } catch (err: any) {
@@ -152,7 +157,7 @@ export function usePaginatedFetch<T>(
       setRefreshing(false);
       isFetchingRef.current = false;
     }
-  }, [onSuccess, onError, data]);
+  }, [onSuccess, onError]); // Eliminado 'data' de las dependencias
 
   /**
    * Cargar siguiente página
