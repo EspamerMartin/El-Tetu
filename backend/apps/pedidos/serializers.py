@@ -263,11 +263,18 @@ class PedidoUpdateEstadoSerializer(serializers.ModelSerializer):
         if not instance:
             return value
         
-        # Definir transiciones permitidas (solo PENDIENTE, CONFIRMADO, CANCELADO)
+        # Definir transiciones permitidas
+        # PENDIENTE -> EN_PREPARACION (aprobar) o RECHAZADO
+        # EN_PREPARACION -> FACTURADO o RECHAZADO
+        # FACTURADO -> ENTREGADO o RECHAZADO
+        # ENTREGADO -> (estado final)
+        # RECHAZADO -> (estado final)
         transiciones_permitidas = {
-            'PENDIENTE': ['CONFIRMADO', 'CANCELADO'],
-            'CONFIRMADO': ['CANCELADO'],
-            'CANCELADO': [],
+            'PENDIENTE': ['EN_PREPARACION', 'RECHAZADO'],
+            'EN_PREPARACION': ['FACTURADO', 'RECHAZADO'],
+            'FACTURADO': ['ENTREGADO', 'RECHAZADO'],
+            'ENTREGADO': [],
+            'RECHAZADO': [],
         }
         
         if value not in transiciones_permitidas.get(instance.estado, []):
@@ -281,10 +288,14 @@ class PedidoUpdateEstadoSerializer(serializers.ModelSerializer):
         """Actualiza estado y ejecuta lógica correspondiente."""
         nuevo_estado = validated_data.get('estado')
         
-        if nuevo_estado == 'CONFIRMADO':
-            instance.confirmar()
-        elif nuevo_estado == 'CANCELADO':
-            instance.cancelar()
+        if nuevo_estado == 'EN_PREPARACION':
+            instance.aprobar()
+        elif nuevo_estado == 'FACTURADO':
+            instance.facturar()
+        elif nuevo_estado == 'ENTREGADO':
+            instance.entregar()
+        elif nuevo_estado == 'RECHAZADO':
+            instance.rechazar()
         else:
             instance.estado = nuevo_estado
             instance.save()

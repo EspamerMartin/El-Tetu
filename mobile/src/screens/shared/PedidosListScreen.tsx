@@ -9,7 +9,7 @@ import { PedidoCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/compo
 import { colors, spacing, borderRadius } from '@/theme';
 import { Pedido } from '@/types';
 
-type EstadoFilter = 'TODOS' | 'PENDIENTE' | 'CONFIRMADO' | 'CANCELADO';
+type EstadoFilter = 'TODOS' | 'PENDIENTE' | 'EN_PREPARACION' | 'FACTURADO' | 'ENTREGADO' | 'RECHAZADO';
 
 interface PedidosListScreenProps {
   navigation: any; // Navigation prop genérico que funciona con ambos stacks
@@ -85,14 +85,18 @@ const PedidosListScreen = ({ navigation }: PedidosListScreenProps) => {
     ? [
         { value: null, label: 'Todos', icon: 'view-list' },
         { value: 'PENDIENTE', label: 'Pendientes', icon: 'clock-outline' },
-        { value: 'CONFIRMADO', label: 'Aprobados', icon: 'check-circle' },
-        { value: 'CANCELADO', label: 'Cancelados', icon: 'close-circle' },
+        { value: 'EN_PREPARACION', label: 'En Preparación', icon: 'progress-wrench' },
+        { value: 'FACTURADO', label: 'Facturados', icon: 'file-document-outline' },
+        { value: 'ENTREGADO', label: 'Entregados', icon: 'check-circle' },
+        { value: 'RECHAZADO', label: 'Rechazados', icon: 'close-circle' },
       ]
     : [
         { value: 'TODOS', label: 'Todos', icon: 'view-list' },
         { value: 'PENDIENTE', label: 'Pendiente', icon: 'clock-outline' },
-        { value: 'CONFIRMADO', label: 'Confirmado', icon: 'check-circle' },
-        { value: 'CANCELADO', label: 'Cancelado', icon: 'close-circle' },
+        { value: 'EN_PREPARACION', label: 'En Preparación', icon: 'progress-wrench' },
+        { value: 'FACTURADO', label: 'Facturado', icon: 'file-document-outline' },
+        { value: 'ENTREGADO', label: 'Entregado', icon: 'check-circle' },
+        { value: 'RECHAZADO', label: 'Rechazado', icon: 'close-circle' },
       ];
 
   const getEmptyMessage = () => {

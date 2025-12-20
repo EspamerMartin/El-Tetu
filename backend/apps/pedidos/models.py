@@ -8,8 +8,10 @@ class Pedido(models.Model):
     
     ESTADO_CHOICES = (
         ('PENDIENTE', 'Pendiente'),
-        ('CONFIRMADO', 'Confirmado'),
-        ('CANCELADO', 'Cancelado'),
+        ('EN_PREPARACION', 'En Preparación'),
+        ('FACTURADO', 'Facturado'),
+        ('ENTREGADO', 'Entregado'),
+        ('RECHAZADO', 'Rechazado'),
     )
     
     cliente = models.ForeignKey(
@@ -20,7 +22,7 @@ class Pedido(models.Model):
     )
     
     estado = models.CharField(
-        max_length=20,
+        max_length=15,
         choices=ESTADO_CHOICES,
         default='PENDIENTE',
         verbose_name='Estado'
@@ -104,16 +106,16 @@ class Pedido(models.Model):
         
         self.save()
     
-    def confirmar(self):
+    def aprobar(self):
         """
-        Confirma el pedido.
+        Aprueba el pedido pasándolo a EN_PREPARACION.
         
         Verifica que los productos estén activos y con stock disponible.
         """
         from django.utils import timezone
         
         if self.estado != 'PENDIENTE':
-            raise ValueError('Solo se pueden confirmar pedidos pendientes.')
+            raise ValueError('Solo se pueden aprobar pedidos pendientes.')
         
         # Verificar que el pedido tenga productos válidos
         producto_ids = list(self.items.values_list('producto_id', flat=True).distinct())
@@ -128,7 +130,7 @@ class Pedido(models.Model):
         
         for item in self.items.all():
             if not item.producto_id:
-                raise ValueError('No se puede confirmar un pedido con productos eliminados.')
+                raise ValueError('No se puede aprobar un pedido con productos eliminados.')
             
             producto = productos_dict.get(item.producto_id)
             if not producto:
@@ -142,18 +144,44 @@ class Pedido(models.Model):
                 raise ValueError(f'El producto "{producto.nombre}" no tiene stock disponible.')
         
         # Actualizar estado del pedido
-        self.estado = 'CONFIRMADO'
+        self.estado = 'EN_PREPARACION'
         self.fecha_confirmacion = timezone.now()
         self.save()
     
-    def cancelar(self):
+    def facturar(self):
         """
-        Cancela el pedido.
+        Marca el pedido como facturado.
         """
-        if self.estado == 'CANCELADO':
-            raise ValueError('El pedido ya está cancelado.')
+        if self.estado != 'EN_PREPARACION':
+            raise ValueError('Solo se pueden facturar pedidos en preparación.')
         
-        self.estado = 'CANCELADO'
+        self.estado = 'FACTURADO'
+        self.save()
+    
+    def entregar(self):
+        """
+        Marca el pedido como entregado.
+        """
+        from django.utils import timezone
+        
+        if self.estado != 'FACTURADO':
+            raise ValueError('Solo se pueden entregar pedidos facturados.')
+        
+        self.estado = 'ENTREGADO'
+        self.fecha_entrega = timezone.now()
+        self.save()
+    
+    def rechazar(self):
+        """
+        Rechaza el pedido.
+        """
+        if self.estado == 'RECHAZADO':
+            raise ValueError('El pedido ya está rechazado.')
+        
+        if self.estado == 'ENTREGADO':
+            raise ValueError('No se puede rechazar un pedido ya entregado.')
+        
+        self.estado = 'RECHAZADO'
         self.save()
 
 

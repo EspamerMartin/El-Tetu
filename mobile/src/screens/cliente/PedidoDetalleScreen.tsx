@@ -63,10 +63,14 @@ const PedidoDetalleScreen = ({ route }: Props) => {
     switch (estado) {
       case 'PENDIENTE':
         return { color: colors.warning, bgColor: colors.warningLight, label: 'Pendiente' };
-      case 'CONFIRMADO':
-        return { color: colors.success, bgColor: colors.successLight, label: 'Confirmado' };
-      case 'CANCELADO':
-        return { color: colors.error, bgColor: colors.errorLight, label: 'Cancelado' };
+      case 'EN_PREPARACION':
+        return { color: colors.info, bgColor: colors.infoLight, label: 'En Preparación' };
+      case 'FACTURADO':
+        return { color: colors.invoice, bgColor: colors.invoiceLight, label: 'Facturado' };
+      case 'ENTREGADO':
+        return { color: colors.success, bgColor: colors.successLight, label: 'Entregado' };
+      case 'RECHAZADO':
+        return { color: colors.error, bgColor: colors.errorLight, label: 'Rechazado' };
       default:
         return { color: colors.textSecondary, bgColor: colors.borderLight, label: estado };
     }

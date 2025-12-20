@@ -145,7 +145,7 @@ export interface CartItem {
 
 // ========== Pedido Types ==========
 
-export type PedidoEstado = 'PENDIENTE' | 'CONFIRMADO' | 'CANCELADO';
+export type PedidoEstado = 'PENDIENTE' | 'EN_PREPARACION' | 'FACTURADO' | 'ENTREGADO' | 'RECHAZADO';
 
 export interface ListaPrecio {
   id: number;

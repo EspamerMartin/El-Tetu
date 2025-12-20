@@ -62,9 +62,9 @@ const AdminHomeScreen = ({ navigation }: Props) => {
            fechaPedido.getFullYear() === hoy.getFullYear();
   });
 
-  // Pedidos aprobados del mes (solo CONFIRMADO)
+  // Pedidos procesados del mes (no pendientes ni rechazados)
   const pedidosAprobadosMes = pedidosMes.filter((p: any) => 
-    p.estado === 'CONFIRMADO'
+    ['EN_PREPARACION', 'FACTURADO', 'ENTREGADO'].includes(p.estado)
   );
 
   const stats = {

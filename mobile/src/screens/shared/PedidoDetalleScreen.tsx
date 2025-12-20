@@ -64,8 +64,8 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
           onPress: async () => {
             try {
               setProcessing(true);
-              await pedidosAPI.updateEstado(pedido.id, 'CONFIRMADO');
-              Alert.alert('Éxito', 'Pedido aprobado correctamente');
+              await pedidosAPI.updateEstado(pedido.id, 'EN_PREPARACION');
+              Alert.alert('Éxito', 'Pedido aprobado y pasado a preparación');
               await fetchPedido();
             } catch (err: any) {
               const errorMessage = 
@@ -91,7 +91,7 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
 
     Alert.alert(
       'Rechazar Pedido',
-      `¿Está seguro que desea rechazar el pedido #${pedido.id}? El pedido quedará marcado como cancelado.`,
+      `¿Está seguro que desea rechazar el pedido #${pedido.id}?`,
       [
         {
           text: 'No',
@@ -104,7 +104,7 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
             try {
               setProcessing(true);
               await pedidosAPI.rechazar(pedido.id);
-              Alert.alert('Pedido Rechazado', 'El pedido ha sido rechazado y marcado como cancelado');
+              Alert.alert('Pedido Rechazado', 'El pedido ha sido rechazado');
               await fetchPedido();
             } catch (err: any) {
               const errorMessage = 
@@ -116,6 +116,51 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
               
               console.error('Error al rechazar pedido:', err);
               Alert.alert('Error al rechazar pedido', errorMessage, [{ text: 'OK' }]);
+            } finally {
+              setProcessing(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleCambiarEstado = async (nuevoEstado: string) => {
+    if (!pedido) return;
+
+    const estadoLabels: Record<string, string> = {
+      'FACTURADO': 'facturado',
+      'ENTREGADO': 'entregado',
+    };
+
+    const label = estadoLabels[nuevoEstado] || nuevoEstado.toLowerCase();
+
+    Alert.alert(
+      'Cambiar Estado',
+      `¿Marcar el pedido #${pedido.id} como ${label}?`,
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Confirmar',
+          onPress: async () => {
+            try {
+              setProcessing(true);
+              await pedidosAPI.updateEstado(pedido.id, nuevoEstado);
+              Alert.alert('Éxito', `Pedido marcado como ${label}`);
+              await fetchPedido();
+            } catch (err: any) {
+              const errorMessage = 
+                err.response?.data?.error || 
+                err.response?.data?.message ||
+                err.response?.data?.detail ||
+                err.message ||
+                'No se pudo actualizar el pedido';
+              
+              console.error('Error al actualizar pedido:', err);
+              Alert.alert('Error', errorMessage, [{ text: 'OK' }]);
             } finally {
               setProcessing(false);
             }
@@ -148,9 +193,13 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
     switch (estado) {
       case 'PENDIENTE':
         return colors.secondary;
-      case 'CONFIRMADO':
-        return '#2196F3';
-      case 'CANCELADO':
+      case 'EN_PREPARACION':
+        return colors.info;
+      case 'FACTURADO':
+        return colors.invoice;
+      case 'ENTREGADO':
+        return colors.success;
+      case 'RECHAZADO':
         return colors.error;
       default:
         return colors.onSurfaceVariant;
@@ -161,10 +210,14 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
     switch (estado) {
       case 'PENDIENTE':
         return 'Pendiente';
-      case 'CONFIRMADO':
-        return 'Confirmado';
-      case 'CANCELADO':
-        return 'Cancelado';
+      case 'EN_PREPARACION':
+        return 'En Preparación';
+      case 'FACTURADO':
+        return 'Facturado';
+      case 'ENTREGADO':
+        return 'Entregado';
+      case 'RECHAZADO':
+        return 'Rechazado';
       default:
         return estado;
     }
@@ -309,10 +362,64 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
                   </>
                 )}
 
-                {pedido.estado !== 'PENDIENTE' && (
+                {pedido.estado === 'EN_PREPARACION' && (
+                  <>
+                    <Button
+                      mode="contained"
+                      onPress={() => handleCambiarEstado('FACTURADO')}
+                      disabled={processing}
+                      loading={processing}
+                      style={[styles.aprobarButton, { backgroundColor: colors.invoice }]}
+                      icon="file-document-outline"
+                    >
+                      Marcar como Facturado
+                    </Button>
+
+                    <Button
+                      mode="contained"
+                      onPress={handleRechazar}
+                      disabled={processing}
+                      loading={processing}
+                      style={styles.rechazarButton}
+                      buttonColor={colors.error}
+                      icon="close-circle"
+                    >
+                      Rechazar Pedido
+                    </Button>
+                  </>
+                )}
+
+                {pedido.estado === 'FACTURADO' && (
+                  <>
+                    <Button
+                      mode="contained"
+                      onPress={() => handleCambiarEstado('ENTREGADO')}
+                      disabled={processing}
+                      loading={processing}
+                      style={[styles.aprobarButton, { backgroundColor: colors.success }]}
+                      icon="truck-check"
+                    >
+                      Marcar como Entregado
+                    </Button>
+
+                    <Button
+                      mode="contained"
+                      onPress={handleRechazar}
+                      disabled={processing}
+                      loading={processing}
+                      style={styles.rechazarButton}
+                      buttonColor={colors.error}
+                      icon="close-circle"
+                    >
+                      Rechazar Pedido
+                    </Button>
+                  </>
+                )}
+
+                {(pedido.estado === 'ENTREGADO' || pedido.estado === 'RECHAZADO') && (
                   <View style={styles.estadoInfo}>
                     <Text variant="bodyLarge" style={styles.estadoInfoText}>
-                      Este pedido ya ha sido procesado ({getEstadoLabel(pedido.estado)})
+                      Este pedido está {getEstadoLabel(pedido.estado).toLowerCase()}
                     </Text>
                   </View>
                 )}

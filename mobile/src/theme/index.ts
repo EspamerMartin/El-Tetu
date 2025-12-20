@@ -27,6 +27,8 @@ const brandColors = {
     errorLight: '#FFEBEE',
     info: '#1565C0',      // Azul información
     infoLight: '#E3F2FD',
+    invoice: '#7B1FA2',   // Violeta facturado
+    invoiceLight: '#F3E5F5',
   },
   // Colores neutros
   neutral: {
@@ -243,6 +245,8 @@ export const colors = {
   onErrorContainer: brandColors.semantic.error,
   info: brandColors.semantic.info,
   infoLight: brandColors.semantic.infoLight,
+  invoice: brandColors.semantic.invoice,
+  invoiceLight: brandColors.semantic.invoiceLight,
   
   // Neutros
   white: brandColors.neutral.white,

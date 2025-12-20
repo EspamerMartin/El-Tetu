@@ -65,12 +65,16 @@ class PedidoListCreateView(generics.ListCreateAPIView):
             # Formato esperado: YYYY-MM-DD
             queryset = queryset.filter(fecha_creacion__date=fecha_creacion)
         
-        # Ordenar: primero pedidos activos (no cancelados), luego por fecha de creación (más recientes primero)
-        # Usar Case/When para que CANCELADO vaya al final
+        # Ordenar: primero pedidos activos, luego por fecha de creación (más recientes primero)
+        # Usar Case/When para ordenar: activos primero, entregados después, rechazados al final
         return queryset.annotate(
             estado_orden=Case(
-                When(estado='CANCELADO', then=1),
-                default=0,
+                When(estado='PENDIENTE', then=0),
+                When(estado='EN_PREPARACION', then=1),
+                When(estado='FACTURADO', then=2),
+                When(estado='ENTREGADO', then=3),
+                When(estado='RECHAZADO', then=4),
+                default=5,
                 output_field=IntegerField()
             )
         ).order_by('estado_orden', '-fecha_creacion')
@@ -140,8 +144,13 @@ def update_estado_view(request, pk):
     
     Body:
     {
-        "estado": "CONFIRMADO"
+        "estado": "EN_PREPARACION" | "FACTURADO" | "ENTREGADO" | "RECHAZADO"
     }
+    
+    Transiciones permitidas:
+    - PENDIENTE -> EN_PREPARACION (aprobar) o RECHAZADO
+    - EN_PREPARACION -> FACTURADO o RECHAZADO
+    - FACTURADO -> ENTREGADO o RECHAZADO
     """
     pedido = get_object_or_404(Pedido, pk=pk)
     
@@ -169,25 +178,30 @@ def update_estado_view(request, pk):
 @permission_classes([IsAuthenticated, IsAdminOrVendedor])
 def rechazar_pedido_view(request, pk):
     """
-    Vista para rechazar un pedido (cambiar estado a CANCELADO).
+    Vista para rechazar un pedido (cambiar estado a RECHAZADO).
     PUT /api/pedidos/{id}/rechazar/
     
     Solo admin y vendedor pueden rechazar pedidos.
-    Solo se pueden rechazar pedidos por aprobar.
+    No se pueden rechazar pedidos ya rechazados o entregados.
     """
     pedido = get_object_or_404(Pedido, pk=pk)
     
-    if pedido.estado in ['CANCELADO']:
+    if pedido.estado == 'RECHAZADO':
         return Response(
-            {'error': 'No se puede rechazar un pedido ya cancelado.'},
+            {'error': 'No se puede rechazar un pedido ya rechazado.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if pedido.estado == 'ENTREGADO':
+        return Response(
+            {'error': 'No se puede rechazar un pedido ya entregado.'},
             status=status.HTTP_400_BAD_REQUEST
         )
     
     try:
-        # Usar el método cancelar() del modelo para restaurar stock si es necesario
-        pedido.cancelar()
+        pedido.rechazar()
         logger.info(
-            f'Pedido #{pedido.id} cancelado por usuario {request.user.email}'
+            f'Pedido #{pedido.id} rechazado por usuario {request.user.email}'
         )
         return Response(
             PedidoSerializer(pedido).data,
@@ -195,7 +209,7 @@ def rechazar_pedido_view(request, pk):
         )
     except ValueError as e:
         logger.warning(
-            f'Error al cancelar pedido #{pedido.id}: {str(e)}'
+            f'Error al rechazar pedido #{pedido.id}: {str(e)}'
         )
         return Response(
             {'error': str(e)},
