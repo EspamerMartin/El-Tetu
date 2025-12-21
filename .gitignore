@@ -128,3 +128,5 @@ Desktop.ini
 
 # NOTA: Las migraciones de Django NO deben ignorarse
 # Son parte del esquema de la base de datos y deben versionarse
+.agent/best-practices.md
+.agent/context.md
