@@ -29,6 +29,10 @@ const brandColors = {
     infoLight: '#E3F2FD',
     invoice: '#7B1FA2',   // Violeta facturado
     invoiceLight: '#F3E5F5',
+    promo: '#FF6B35',     // Naranja promoción
+    promoLight: '#FFF4E5',
+    promoGradientStart: '#FF6B35',
+    promoGradientEnd: '#F7C331',
   },
   // Colores neutros
   neutral: {
@@ -247,6 +251,10 @@ export const colors = {
   infoLight: brandColors.semantic.infoLight,
   invoice: brandColors.semantic.invoice,
   invoiceLight: brandColors.semantic.invoiceLight,
+  promo: brandColors.semantic.promo,
+  promoLight: brandColors.semantic.promoLight,
+  promoGradientStart: brandColors.semantic.promoGradientStart,
+  promoGradientEnd: brandColors.semantic.promoGradientEnd,
   
   // Neutros
   white: brandColors.neutral.white,

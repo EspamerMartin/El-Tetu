@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Categoria, Subcategoria, Producto, ListaPrecio, Marca
+from .models import Categoria, Subcategoria, Producto, ListaPrecio, Marca, Promocion, PromocionItem
 
 
 class MarcaSerializer(serializers.ModelSerializer):
@@ -176,3 +176,164 @@ class ProductoCreateUpdateSerializer(serializers.ModelSerializer):
                 })
         
         return data
+
+
+# ========== Promociones ==========
+
+class PromocionItemSerializer(serializers.ModelSerializer):
+    """Serializer para items de promoción (lectura)."""
+    
+    producto_nombre = serializers.CharField(source='producto.nombre', read_only=True)
+    producto_imagen = serializers.URLField(source='producto.url_imagen', read_only=True)
+    producto_precio = serializers.DecimalField(
+        source='producto.precio_base', 
+        max_digits=10, 
+        decimal_places=2, 
+        read_only=True
+    )
+    subtotal = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = PromocionItem
+        fields = [
+            'id', 'producto', 'producto_nombre', 'producto_imagen',
+            'producto_precio', 'cantidad', 'subtotal'
+        ]
+        read_only_fields = ['id']
+    
+    def get_subtotal(self, obj):
+        """Calcula el subtotal del item (precio * cantidad)."""
+        if obj.producto:
+            return str(obj.producto.precio_base * obj.cantidad)
+        return '0'
+
+
+class PromocionItemWriteSerializer(serializers.ModelSerializer):
+    """Serializer para crear/actualizar items de promoción."""
+    
+    class Meta:
+        model = PromocionItem
+        fields = ['producto', 'cantidad']
+    
+    def validate_cantidad(self, value):
+        """Valida que la cantidad sea positiva."""
+        if value <= 0:
+            raise serializers.ValidationError("La cantidad debe ser mayor a 0.")
+        return value
+    
+    def validate_producto(self, value):
+        """Valida que el producto esté activo."""
+        if not value.activo:
+            raise serializers.ValidationError("El producto no está activo.")
+        return value
+
+
+class PromocionListSerializer(serializers.ModelSerializer):
+    """Serializer para listado de promociones (versión ligera)."""
+    
+    items_count = serializers.SerializerMethodField()
+    precio_original = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    ahorro = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    porcentaje_descuento = serializers.DecimalField(max_digits=5, decimal_places=1, read_only=True)
+    esta_vigente = serializers.BooleanField(read_only=True)
+    
+    class Meta:
+        model = Promocion
+        fields = [
+            'id', 'nombre', 'descripcion', 'precio', 'url_imagen',
+            'activo', 'fecha_inicio', 'fecha_fin', 'esta_vigente',
+            'items_count', 'precio_original', 'ahorro', 'porcentaje_descuento',
+            'fecha_creacion'
+        ]
+    
+    def get_items_count(self, obj):
+        """Cuenta total de productos en la promoción."""
+        return sum(item.cantidad for item in obj.items.all())
+
+
+class PromocionDetailSerializer(serializers.ModelSerializer):
+    """Serializer para detalle de promoción (versión completa)."""
+    
+    items = PromocionItemSerializer(many=True, read_only=True)
+    precio_original = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    ahorro = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    porcentaje_descuento = serializers.DecimalField(max_digits=5, decimal_places=1, read_only=True)
+    esta_vigente = serializers.BooleanField(read_only=True)
+    
+    class Meta:
+        model = Promocion
+        fields = [
+            'id', 'nombre', 'descripcion', 'precio', 'url_imagen',
+            'activo', 'fecha_inicio', 'fecha_fin', 'esta_vigente',
+            'items', 'precio_original', 'ahorro', 'porcentaje_descuento',
+            'fecha_creacion', 'fecha_actualizacion'
+        ]
+        read_only_fields = ['id', 'fecha_creacion', 'fecha_actualizacion']
+
+
+class PromocionCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer para crear/actualizar promociones."""
+    
+    items = PromocionItemWriteSerializer(many=True)
+    
+    class Meta:
+        model = Promocion
+        fields = [
+            'nombre', 'descripcion', 'precio', 'url_imagen',
+            'activo', 'fecha_inicio', 'fecha_fin', 'items'
+        ]
+    
+    def validate_precio(self, value):
+        """Valida que el precio sea positivo."""
+        if value <= 0:
+            raise serializers.ValidationError("El precio debe ser mayor a 0.")
+        return value
+    
+    def validate_items(self, value):
+        """Valida que haya al menos un item."""
+        if not value or len(value) == 0:
+            raise serializers.ValidationError("La promoción debe tener al menos un producto.")
+        return value
+    
+    def validate(self, data):
+        """Valida fechas de vigencia."""
+        fecha_inicio = data.get('fecha_inicio')
+        fecha_fin = data.get('fecha_fin')
+        
+        if fecha_inicio and fecha_fin:
+            if fecha_fin <= fecha_inicio:
+                raise serializers.ValidationError({
+                    'fecha_fin': 'La fecha de fin debe ser posterior a la fecha de inicio.'
+                })
+        
+        return data
+    
+    def create(self, validated_data):
+        """Crea promoción con sus items."""
+        items_data = validated_data.pop('items')
+        promocion = Promocion.objects.create(**validated_data)
+        
+        for item_data in items_data:
+            PromocionItem.objects.create(promocion=promocion, **item_data)
+        
+        return promocion
+    
+    def update(self, instance, validated_data):
+        """Actualiza promoción y sus items."""
+        items_data = validated_data.pop('items', None)
+        
+        # Actualizar campos de la promoción
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Si se proporcionaron items, reemplazarlos
+        if items_data is not None:
+            # Eliminar items anteriores
+            instance.items.all().delete()
+            
+            # Crear nuevos items
+            for item_data in items_data:
+                PromocionItem.objects.create(promocion=instance, **item_data)
+        
+        return instance

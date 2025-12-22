@@ -6,6 +6,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 // Screens
 import CatalogoScreen from '@/screens/cliente/CatalogoScreen';
 import ProductoDetalleScreen from '@/screens/cliente/ProductoDetalleScreen';
+import PromocionDetalleScreen from '@/screens/cliente/PromocionDetalleScreen';
 import CarritoScreen from '@/screens/cliente/CarritoScreen';
 import MisPedidosScreen from '@/screens/cliente/MisPedidosScreen';
 import PedidoDetalleScreen from '@/screens/cliente/PedidoDetalleScreen';
@@ -21,6 +22,7 @@ export type ClienteTabParamList = {
 export type ClienteStackParamList = {
   ClienteTabs: { screen?: keyof ClienteTabParamList };
   ProductoDetalle: { productoId: number };
+  PromocionDetalle: { promocionId: number };
   PedidoDetalle: { pedidoId: number };
 };
 
@@ -110,6 +112,11 @@ const ClienteStack = () => {
         name="ProductoDetalle"
         component={ProductoDetalleScreen}
         options={{ title: 'Producto' }}
+      />
+      <Stack.Screen
+        name="PromocionDetalle"
+        component={PromocionDetalleScreen}
+        options={{ title: 'Promoción' }}
       />
       <Stack.Screen
         name="PedidoDetalle"

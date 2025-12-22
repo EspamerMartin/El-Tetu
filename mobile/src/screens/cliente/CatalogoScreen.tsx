@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useCallback, useMemo, useLayoutEffect } from 'react';
-import { View, StyleSheet, FlatList, Dimensions, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, FlatList, Dimensions, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
 import { Text, Searchbar, Button, IconButton, Surface, FAB } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { ClienteStackParamList, ClienteTabParamList } from '@/navigation/ClienteStack';
-import { productosAPI } from '@/services/api';
-import { Producto, Categoria, Subcategoria, PaginatedResponse } from '@/types';
-import { ProductCard, CategoryCard, LoadingOverlay, ScreenContainer, EmptyState } from '@/components';
+import { productosAPI, promocionesAPI } from '@/services/api';
+import { Producto, Categoria, Subcategoria, PaginatedResponse, Promocion } from '@/types';
+import { ProductCard, CategoryCard, LoadingOverlay, ScreenContainer, EmptyState, PromocionCard } from '@/components';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { addToCart, updateQuantity } from '@/store/slices/cartSlice';
 import { useFetch, usePaginatedFetch } from '@/hooks';
@@ -60,6 +60,17 @@ const CatalogoScreen = () => {
     loading: loadingSubcategorias,
     refetch: refetchSubcategorias 
   } = useFetch(() => productosAPI.getSubcategorias({ activo: 'true' }));
+
+  // Fetch promociones activas
+  const { 
+    data: promocionesData, 
+    loading: loadingPromociones,
+  } = useFetch(() => promocionesAPI.getActivas());
+
+  const promociones: Promocion[] = useMemo(() => 
+    Array.isArray(promocionesData) ? promocionesData : [],
+    [promocionesData]
+  );
 
   const categorias = useMemo(() => 
     (categoriasData?.results || []).filter((c: Categoria) => c.activo),
@@ -407,6 +418,31 @@ const CatalogoScreen = () => {
           numColumns={2}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            promociones.length > 0 ? (
+              <View style={styles.promocionesSection}>
+                <View style={styles.promocionesTitleRow}>
+                  <Icon name="fire" size={24} color={colors.promo} />
+                  <Text style={styles.promocionesTitle}>Promociones</Text>
+                </View>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.promocionesScroll}
+                >
+                  {promociones.map((promo) => (
+                    <PromocionCard
+                      key={promo.id}
+                      promocion={promo}
+                      compact
+                      onPress={() => navigation.navigate('PromocionDetalle', { promocionId: promo.id })}
+                    />
+                  ))}
+                </ScrollView>
+                <Text style={styles.categoriasTitle}>Categorías</Text>
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
             <EmptyState
               icon="shape-outline"
@@ -584,6 +620,34 @@ const styles = StyleSheet.create({
     right: spacing.md,
     bottom: spacing.md,
     backgroundColor: colors.white,
+  },
+  // Sección de promociones
+  promocionesSection: {
+    marginBottom: spacing.md,
+  },
+  promocionesTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.sm,
+    gap: spacing.xs,
+  },
+  promocionesTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.promo,
+  },
+  promocionesScroll: {
+    paddingLeft: spacing.sm,
+    paddingBottom: spacing.md,
+  },
+  categoriasTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    paddingHorizontal: spacing.sm,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
   },
 });
 

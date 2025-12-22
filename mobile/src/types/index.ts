@@ -136,6 +136,51 @@ export interface Producto {
   fecha_actualizacion: string;
 }
 
+// ========== Promocion Types ==========
+
+export interface PromocionItem {
+  id: number;
+  producto: number;
+  producto_nombre: string;
+  producto_imagen?: string;
+  producto_precio: string;
+  cantidad: number;
+  subtotal: string;
+}
+
+export interface Promocion {
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  precio: string;
+  url_imagen?: string;
+  activo: boolean;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  esta_vigente: boolean;
+  items: PromocionItem[];
+  items_count: number;
+  precio_original: string;
+  ahorro: string;
+  porcentaje_descuento: string;
+  fecha_creacion: string;
+  fecha_actualizacion?: string;
+}
+
+export interface PromocionCreateData {
+  nombre: string;
+  descripcion?: string;
+  precio: number;
+  url_imagen?: string;
+  activo?: boolean;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  items: Array<{
+    producto: number;
+    cantidad: number;
+  }>;
+}
+
 // ========== Cart Types ==========
 
 export interface CartItem {

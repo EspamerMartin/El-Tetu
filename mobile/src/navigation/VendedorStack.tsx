@@ -13,10 +13,13 @@ import PedidoDetalleScreen from '@/screens/shared/PedidoDetalleScreen';
 import NuevoPedidoScreen from '@/screens/vendedor/NuevoPedidoScreen';
 import PerfilVendedorScreen from '@/screens/vendedor/PerfilVendedorScreen';
 import ProductosSinStockScreen from '@/screens/vendedor/ProductosSinStockScreen';
+import PromocionesListScreen from '@/screens/admin/PromocionesListScreen';
+import PromocionFormScreen from '@/screens/admin/PromocionFormScreen';
 
 export type VendedorDrawerParamList = {
   VendedorHome: undefined;
   Clientes: undefined;
+  Promociones: undefined;
   Pedidos: undefined;
   Perfil: undefined;
 };
@@ -27,6 +30,7 @@ export type VendedorStackParamList = {
   ClienteForm: undefined;
   PedidoDetalle: { pedidoId: number };
   NuevoPedido: { clienteId?: number };
+  PromocionForm: { promocionId?: number };
   ProductosSinStock: undefined;
 };
 
@@ -67,6 +71,16 @@ const VendedorDrawer = () => {
           title: 'Clientes',
           drawerIcon: ({ color, size }) => (
             <Icon name="account-multiple" color={color} size={size} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Promociones"
+        component={PromocionesListScreen}
+        options={{
+          title: 'Promociones',
+          drawerIcon: ({ color, size }) => (
+            <Icon name="fire" color={color} size={size} />
           ),
         }}
       />
@@ -130,6 +144,13 @@ const VendedorStack = () => {
         name="NuevoPedido"
         component={NuevoPedidoScreen}
         options={{ title: 'Nuevo Pedido' }}
+      />
+      <Stack.Screen
+        name="PromocionForm"
+        component={PromocionFormScreen}
+        options={({ route }) => ({
+          title: route.params?.promocionId ? 'Editar Promoción' : 'Nueva Promoción',
+        })}
       />
       <Stack.Screen
         name="ProductosSinStock"
