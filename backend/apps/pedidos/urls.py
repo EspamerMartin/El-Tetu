@@ -10,6 +10,8 @@ from .views import (
     entregar_pedido_transportador_view,
     asignar_transportador_view,
     listar_transportadores_view,
+    # PDF
+    descargar_pdf_view,
 )
 
 urlpatterns = [
@@ -18,6 +20,7 @@ urlpatterns = [
     path('<int:pk>/estado/', update_estado_view, name='pedido_update_estado'),
     path('<int:pk>/rechazar/', rechazar_pedido_view, name='pedido_rechazar'),
     path('<int:pk>/asignar-transportador/', asignar_transportador_view, name='pedido_asignar_transportador'),
+    path('<int:pk>/pdf/', descargar_pdf_view, name='pedido_pdf'),
     # Lista de transportadores disponibles (para asignar)
     path('transportadores/', listar_transportadores_view, name='listar_transportadores'),
     # Endpoints para transportador

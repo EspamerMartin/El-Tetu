@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Platform } from 'react-native';
 import { Text, Button, Surface, Chip, Divider, DataTable, Modal, Portal, RadioButton } from 'react-native-paper';
 import { useAppSelector } from '@/store';
 import { pedidosAPI } from '@/services/api';
@@ -8,6 +8,9 @@ import { LoadingOverlay, ScreenContainer } from '@/components';
 import { colors, spacing, borderRadius } from '@/theme';
 import { formatPrice, formatDateTime, formatDate } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Transportador {
   id: number;
@@ -48,6 +51,9 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
   const [loadingTransportadores, setLoadingTransportadores] = useState(false);
   const [selectedTransportadorId, setSelectedTransportadorId] = useState<number | null>(null);
 
+  // Estado para descarga de PDF
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
   useEffect(() => {
     fetchPedido();
   }, [pedidoId]);
@@ -83,6 +89,63 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
     await fetchTransportadores();
     setSelectedTransportadorId(pedido?.transportador || null);
     setTransportadorModalVisible(true);
+  };
+
+  // Función para descargar el PDF del remito
+  const handleDescargarPdf = async () => {
+    if (!pedido) return;
+
+    try {
+      setDownloadingPdf(true);
+
+      // Obtener token de autenticación
+      const token = await AsyncStorage.getItem('accessToken');
+      if (!token) {
+        Alert.alert('Error', 'No hay sesión activa');
+        return;
+      }
+
+      // URL del endpoint PDF
+      const pdfUrl = pedidosAPI.getPdfUrl(pedido.id);
+      const filename = `remito_pedido_${pedido.id}.pdf`;
+      const fileUri = `${FileSystem.documentDirectory}${filename}`;
+
+      // Descargar el archivo
+      const downloadResult = await FileSystem.downloadAsync(
+        pdfUrl,
+        fileUri,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (downloadResult.status !== 200) {
+        throw new Error('Error al descargar el PDF');
+      }
+
+      // Verificar si se puede compartir (para iOS/Android)
+      const canShare = await Sharing.isAvailableAsync();
+      
+      if (canShare) {
+        // Compartir/abrir el archivo
+        await Sharing.shareAsync(downloadResult.uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Remito Pedido #${pedido.id}`,
+        });
+      } else {
+        Alert.alert(
+          'Descarga completada',
+          `El archivo se guardó en: ${fileUri}`
+        );
+      }
+    } catch (err: any) {
+      console.error('Error al descargar PDF:', err);
+      Alert.alert('Error', 'No se pudo descargar el PDF del remito');
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   const handleAsignarTransportador = async () => {
@@ -545,6 +608,19 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
                     )}
                   </View>
                 )}
+
+                {/* Botón Descargar PDF */}
+                <Divider style={styles.divider} />
+                <Button
+                  mode="outlined"
+                  onPress={handleDescargarPdf}
+                  disabled={downloadingPdf}
+                  loading={downloadingPdf}
+                  style={styles.pdfButton}
+                  icon="file-pdf-box"
+                >
+                  {downloadingPdf ? 'Descargando...' : 'Descargar Remito PDF'}
+                </Button>
               </View>
             </>
           )}
@@ -794,6 +870,10 @@ const styles = StyleSheet.create({
   },
   rechazarButton: {
     // buttonColor prop se usa en el componente
+  },
+  pdfButton: {
+    marginTop: spacing.md,
+    borderColor: colors.primary,
   },
   estadoInfo: {
     padding: spacing.md,

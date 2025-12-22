@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
 from django.db.models import Case, When, IntegerField
 import logging
 
@@ -15,6 +16,7 @@ from .serializers import (
     PedidoTransportadorSerializer,
     PedidoAsignarTransportadorSerializer,
 )
+from .pdf_generator import generar_remito_pdf
 
 logger = logging.getLogger('eltetu')
 
@@ -368,3 +370,40 @@ def asignar_transportador_view(request, pk):
     return Response(PedidoSerializer(pedido).data, status=status.HTTP_200_OK)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminOrVendedor])
+def descargar_pdf_view(request, pk):
+    """
+    Vista para descargar el PDF de remito de un pedido.
+    GET /api/pedidos/{id}/pdf/
+    
+    Retorna un archivo PDF con el remito del pedido.
+    Solo admin y vendedor pueden descargar PDFs.
+    """
+    pedido = get_object_or_404(
+        Pedido.objects.select_related(
+            'cliente', 'cliente__zona', 'transportador', 'lista_precio'
+        ).prefetch_related('items__producto'),
+        pk=pk
+    )
+    
+    try:
+        # Generar PDF
+        pdf_buffer = generar_remito_pdf(pedido)
+        
+        # Crear respuesta HTTP con el PDF
+        response = HttpResponse(pdf_buffer.read(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="remito_pedido_{pedido.id}.pdf"'
+        
+        logger.info(
+            f'PDF del pedido #{pedido.id} descargado por usuario {request.user.email}'
+        )
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f'Error al generar PDF del pedido #{pedido.id}: {str(e)}')
+        return Response(
+            {'error': 'Error al generar el PDF'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

@@ -258,6 +258,16 @@ export const pedidosAPI = {
     const response = await api.get('/pedidos/transportadores/');
     return response.data;
   },
+
+  /**
+   * Obtiene la URL para descargar el PDF del pedido.
+   * Retorna la URL base + endpoint del PDF.
+   */
+  getPdfUrl: (id: number): string => {
+    // Obtener la URL base del API (sin /api al final)
+    const baseUrl = api.defaults.baseURL?.replace('/api', '') || '';
+    return `${baseUrl}/api/pedidos/${id}/pdf/`;
+  },
 };
 
 // ========== Pedidos Transportador API ==========
