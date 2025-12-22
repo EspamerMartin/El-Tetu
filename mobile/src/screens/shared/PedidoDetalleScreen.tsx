@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Platform } from 'react-native';
 import { Text, Button, Surface, Chip, Divider, DataTable, Modal, Portal, RadioButton } from 'react-native-paper';
 import { useAppSelector } from '@/store';
 import { pedidosAPI } from '@/services/api';
@@ -8,6 +8,9 @@ import { LoadingOverlay, ScreenContainer } from '@/components';
 import { colors, spacing, borderRadius } from '@/theme';
 import { formatPrice, formatDateTime, formatDate } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { File, Paths } from 'expo-file-system/next';
+import * as Sharing from 'expo-sharing';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Transportador {
   id: number;
@@ -48,6 +51,9 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
   const [loadingTransportadores, setLoadingTransportadores] = useState(false);
   const [selectedTransportadorId, setSelectedTransportadorId] = useState<number | null>(null);
 
+  // Estado para descarga de PDF
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
   useEffect(() => {
     fetchPedido();
   }, [pedidoId]);
@@ -83,6 +89,97 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
     await fetchTransportadores();
     setSelectedTransportadorId(pedido?.transportador || null);
     setTransportadorModalVisible(true);
+  };
+
+  // Función para descargar el PDF del remito
+  const handleDescargarPdf = async () => {
+    if (!pedido) return;
+
+    try {
+      setDownloadingPdf(true);
+
+      // Obtener token de autenticación
+      const token = await AsyncStorage.getItem('access_token');
+      if (!token) {
+        Alert.alert('Error', 'No hay sesión activa');
+        return;
+      }
+
+      // URL del endpoint PDF
+      const pdfUrl = pedidosAPI.getPdfUrl(pedido.id);
+      // Nombre único con timestamp para evitar conflictos
+      const timestamp = Date.now();
+      const filename = `remito_pedido_${pedido.id}_${timestamp}.pdf`;
+
+      // Descargar usando fetch y la nueva API de expo-file-system
+      const response = await fetch(pdfUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error al descargar: ${response.status}`);
+      }
+
+      // Obtener el contenido como blob y convertir a base64
+      const blob = await response.blob();
+      const reader = new FileReader();
+      
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          // Remover el prefijo "data:application/pdf;base64,"
+          const base64Content = base64.split(',')[1];
+          resolve(base64Content);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      // Crear archivo en el directorio de caché (temporal, se limpia automáticamente)
+      const file = new File(Paths.cache, filename);
+      
+      // Si el archivo existe, eliminarlo primero
+      if (file.exists) {
+        file.delete();
+      }
+      
+      // Crear y escribir el archivo
+      file.create();
+      file.write(base64Data, { encoding: 'base64' });
+
+      // Verificar si se puede compartir
+      const canShare = await Sharing.isAvailableAsync();
+      
+      if (canShare) {
+        // Compartir abre el visor de PDF o permite guardar/enviar
+        await Sharing.shareAsync(file.uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Remito Pedido #${pedido.id}`,
+        });
+        
+        // Limpiar archivo temporal después de compartir
+        setTimeout(() => {
+          try {
+            if (file.exists) file.delete();
+          } catch (e) {
+            // Ignorar errores de limpieza
+          }
+        }, 5000);
+      } else {
+        Alert.alert(
+          'Descarga completada',
+          'El archivo PDF se generó correctamente. Usa la opción de compartir para guardarlo.'
+        );
+      }
+    } catch (err: any) {
+      console.error('Error al descargar PDF:', err);
+      Alert.alert('Error', 'No se pudo descargar el PDF del remito');
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   const handleAsignarTransportador = async () => {
@@ -545,6 +642,19 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
                     )}
                   </View>
                 )}
+
+                {/* Botón Descargar PDF */}
+                <Divider style={styles.divider} />
+                <Button
+                  mode="outlined"
+                  onPress={handleDescargarPdf}
+                  disabled={downloadingPdf}
+                  loading={downloadingPdf}
+                  style={styles.pdfButton}
+                  icon="file-pdf-box"
+                >
+                  {downloadingPdf ? 'Descargando...' : 'Descargar Remito PDF'}
+                </Button>
               </View>
             </>
           )}
@@ -794,6 +904,10 @@ const styles = StyleSheet.create({
   },
   rechazarButton: {
     // buttonColor prop se usa en el componente
+  },
+  pdfButton: {
+    marginTop: spacing.md,
+    borderColor: colors.primary,
   },
   estadoInfo: {
     padding: spacing.md,

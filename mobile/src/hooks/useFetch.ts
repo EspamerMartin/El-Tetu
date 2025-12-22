@@ -41,12 +41,10 @@ export function useFetch<T>(
   const onSuccessRef = useRef(onSuccess);
   const onErrorRef = useRef(onError);
 
-  // Actualizar refs en cada render
-  useEffect(() => {
-    fetchFnRef.current = fetchFn;
-    onSuccessRef.current = onSuccess;
-    onErrorRef.current = onError;
-  });
+  // Actualizar refs de forma síncrona (antes de cualquier useEffect)
+  fetchFnRef.current = fetchFn;
+  onSuccessRef.current = onSuccess;
+  onErrorRef.current = onError;
 
   const executeFetch = useCallback(async () => {
     try {

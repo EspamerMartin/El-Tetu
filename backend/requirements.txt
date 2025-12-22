@@ -30,10 +30,8 @@ whitenoise>=6.6.0,<7.0
 # Filtering & Search
 django-filter>=24.0,<25.0
 
-# NOTA: Pillow y reportlab fueron removidos porque no se usan:
-# - Pillow: Solo se necesitaría si hubiera ImageField (actualmente se usa URLField)
-# - reportlab: No hay endpoints que generen PDFs
-# Si en el futuro necesitas estas funcionalidades, agrégalas de vuelta.
+# PDF Generation
+reportlab>=4.2.0
 
 # NOTA: pandas y openpyxl se removieron porque solo se usan en scripts de desarrollo
 # (load_datos_excel.py). Si necesitas cargar datos en producción, instálalos manualmente
