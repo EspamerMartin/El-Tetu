@@ -8,7 +8,7 @@ import { LoadingOverlay, ScreenContainer } from '@/components';
 import { colors, spacing, borderRadius } from '@/theme';
 import { formatPrice, formatDateTime, formatDate } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import * as FileSystem from 'expo-file-system';
+import { File, Paths } from 'expo-file-system/next';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -99,7 +99,7 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
       setDownloadingPdf(true);
 
       // Obtener token de autenticación
-      const token = await AsyncStorage.getItem('accessToken');
+      const token = await AsyncStorage.getItem('access_token');
       if (!token) {
         Alert.alert('Error', 'No hay sesión activa');
         return;
@@ -107,37 +107,71 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
 
       // URL del endpoint PDF
       const pdfUrl = pedidosAPI.getPdfUrl(pedido.id);
-      const filename = `remito_pedido_${pedido.id}.pdf`;
-      const fileUri = `${FileSystem.documentDirectory}${filename}`;
+      // Nombre único con timestamp para evitar conflictos
+      const timestamp = Date.now();
+      const filename = `remito_pedido_${pedido.id}_${timestamp}.pdf`;
 
-      // Descargar el archivo
-      const downloadResult = await FileSystem.downloadAsync(
-        pdfUrl,
-        fileUri,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // Descargar usando fetch y la nueva API de expo-file-system
+      const response = await fetch(pdfUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      if (downloadResult.status !== 200) {
-        throw new Error('Error al descargar el PDF');
+      if (!response.ok) {
+        throw new Error(`Error al descargar: ${response.status}`);
       }
 
-      // Verificar si se puede compartir (para iOS/Android)
+      // Obtener el contenido como blob y convertir a base64
+      const blob = await response.blob();
+      const reader = new FileReader();
+      
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          // Remover el prefijo "data:application/pdf;base64,"
+          const base64Content = base64.split(',')[1];
+          resolve(base64Content);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      // Crear archivo en el directorio de caché (temporal, se limpia automáticamente)
+      const file = new File(Paths.cache, filename);
+      
+      // Si el archivo existe, eliminarlo primero
+      if (file.exists) {
+        file.delete();
+      }
+      
+      // Crear y escribir el archivo
+      file.create();
+      file.write(base64Data, { encoding: 'base64' });
+
+      // Verificar si se puede compartir
       const canShare = await Sharing.isAvailableAsync();
       
       if (canShare) {
-        // Compartir/abrir el archivo
-        await Sharing.shareAsync(downloadResult.uri, {
+        // Compartir abre el visor de PDF o permite guardar/enviar
+        await Sharing.shareAsync(file.uri, {
           mimeType: 'application/pdf',
           dialogTitle: `Remito Pedido #${pedido.id}`,
         });
+        
+        // Limpiar archivo temporal después de compartir
+        setTimeout(() => {
+          try {
+            if (file.exists) file.delete();
+          } catch (e) {
+            // Ignorar errores de limpieza
+          }
+        }, 5000);
       } else {
         Alert.alert(
           'Descarga completada',
-          `El archivo se guardó en: ${fileUri}`
+          'El archivo PDF se generó correctamente. Usa la opción de compartir para guardarlo.'
         );
       }
     } catch (err: any) {

@@ -13,6 +13,10 @@ from reportlab.platypus import (
 )
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from datetime import datetime
+from zoneinfo import ZoneInfo
+
+# Zona horaria de Argentina (Buenos Aires)
+TIMEZONE_AR = ZoneInfo('America/Argentina/Buenos_Aires')
 
 
 def generar_remito_pdf(pedido):
@@ -113,8 +117,15 @@ def generar_remito_pdf(pedido):
     ))
     
     # === DATOS DEL PEDIDO ===
-    fecha_pedido = pedido.fecha_creacion.strftime('%d/%m/%Y %H:%M')
-    fecha_generacion = datetime.now().strftime('%d/%m/%Y %H:%M')
+    # Convertir fechas de UTC a Argentina (UTC-3)
+    fecha_creacion_utc = pedido.fecha_creacion
+    if fecha_creacion_utc.tzinfo is None:
+        # Fecha naive: asumir UTC
+        fecha_creacion_utc = fecha_creacion_utc.replace(tzinfo=ZoneInfo('UTC'))
+    fecha_creacion_ar = fecha_creacion_utc.astimezone(TIMEZONE_AR)
+    
+    fecha_pedido = fecha_creacion_ar.strftime('%d/%m/%Y %H:%M')
+    fecha_generacion = datetime.now(TIMEZONE_AR).strftime('%d/%m/%Y %H:%M')
     
     # Estado en español
     estados = {
@@ -288,32 +299,44 @@ def generar_remito_pdf(pedido):
         elementos.append(Spacer(1, 20))
     
     # === FIRMA DE RECEPCIÓN ===
-    elementos.append(Spacer(1, 30))
-    elementos.append(HRFlowable(
-        width="100%", 
-        thickness=0.5, 
-        color=colors.HexColor('#CCCCCC'),
-        spaceBefore=0,
-        spaceAfter=12
-    ))
+    elementos.append(Spacer(1, 20))
+    elementos.append(Paragraph("CONSTANCIA DE RECEPCIÓN", styles['SeccionTitulo']))
+    elementos.append(Spacer(1, 15))
     
-    # Tabla para firma
-    datos_firma = [
-        ['Recibido por:', '_' * 40, 'Firma:', '_' * 30],
-        ['Fecha de entrega:', '_' * 40, 'Aclaración:', '_' * 30],
+    # Fila 1: Recibido por (izq) | Firma (der)
+    datos_firma_1 = [
+        ['Recibido por:', '', 'Firma:'],
+        ['', '', ''],
     ]
-    
-    tabla_firma = Table(datos_firma, colWidths=[3*cm, 5.5*cm, 2.5*cm, 5.5*cm])
-    tabla_firma.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+    tabla_firma_1 = Table(datos_firma_1, colWidths=[8*cm, 1*cm, 7*cm])
+    tabla_firma_1.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (2, 0), (2, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#666666')),
-        ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+        ('LINEBELOW', (0, 1), (0, 1), 0.5, colors.HexColor('#999999')),
+        ('LINEBELOW', (2, 1), (2, 1), 0.5, colors.HexColor('#999999')),
+        ('BOTTOMPADDING', (0, 1), (-1, 1), 20),
     ]))
+    elementos.append(tabla_firma_1)
+    elementos.append(Spacer(1, 15))
     
-    elementos.append(tabla_firma)
+    # Fila 2: Fecha de entrega (izq) | Aclaración (der)
+    datos_firma_2 = [
+        ['Fecha de entrega:', '', 'Aclaración:'],
+        ['', '', ''],
+    ]
+    tabla_firma_2 = Table(datos_firma_2, colWidths=[8*cm, 1*cm, 7*cm])
+    tabla_firma_2.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (2, 0), (2, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#666666')),
+        ('LINEBELOW', (0, 1), (0, 1), 0.5, colors.HexColor('#999999')),
+        ('LINEBELOW', (2, 1), (2, 1), 0.5, colors.HexColor('#999999')),
+        ('BOTTOMPADDING', (0, 1), (-1, 1), 20),
+    ]))
+    elementos.append(tabla_firma_2)
     
     # Pie de página
     elementos.append(Spacer(1, 20))
