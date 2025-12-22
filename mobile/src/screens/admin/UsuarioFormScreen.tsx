@@ -234,9 +234,11 @@ const UsuarioFormScreen = ({ route, navigation }: Props) => {
         is_active: isActive,
       };
 
-      // Transportador solo requiere teléfono
+      // Datos de contacto según el rol
       const contactData = (rol === 'transportador') ? {
         telefono: telefono.trim(),
+        cuit_dni: cuitDni.trim() || undefined, // Opcional para transportador
+        direccion: descripcionUbicacion.trim() || undefined, // Usar campo dirección
       } : (rol === 'cliente' || rol === 'vendedor') ? {
         telefono: telefono.trim(),
         cuit_dni: cuitDni.trim(),
@@ -366,18 +368,28 @@ const UsuarioFormScreen = ({ route, navigation }: Props) => {
           </Text>
 
           <InputField
-            label="Teléfono *"
+            label={rol === 'transportador' ? 'Teléfono *' : 'Teléfono *'}
             value={telefono}
             onChangeText={setTelefono}
             keyboardType="phone-pad"
           />
-          {/* CUIT/DNI no es obligatorio para transportador */}
-          {(rol === 'vendedor' || rol === 'cliente') && (
+          
+          {/* CUIT/DNI: obligatorio para vendedor/cliente, opcional para transportador */}
+          <InputField
+            label={rol === 'transportador' ? 'CUIT/DNI (opcional)' : 'CUIT/DNI *'}
+            value={cuitDni}
+            onChangeText={setCuitDni}
+            keyboardType="numeric"
+          />
+
+          {/* Dirección opcional para transportador */}
+          {rol === 'transportador' && (
             <InputField
-              label="CUIT/DNI *"
-              value={cuitDni}
-              onChangeText={setCuitDni}
-              keyboardType="numeric"
+              label="Dirección (opcional)"
+              value={descripcionUbicacion}
+              onChangeText={setDescripcionUbicacion}
+              multiline
+              numberOfLines={2}
             />
           )}
 
