@@ -3,6 +3,7 @@ import logging
 
 from apps.productos.serializers import ProductoListSerializer
 from apps.productos.models import Producto
+from apps.users.serializers import HorarioClienteSerializer
 from .models import Pedido, PedidoItem
 
 logger = logging.getLogger('eltetu')
@@ -109,14 +110,16 @@ class PedidoSerializer(serializers.ModelSerializer):
     
     items = PedidoItemSerializer(many=True, read_only=True)
     cliente_nombre = serializers.CharField(source='cliente.full_name', read_only=True)
+    transportador_nombre = serializers.CharField(source='transportador.full_name', read_only=True, allow_null=True)
     lista_precio_nombre = serializers.SerializerMethodField()
     lista_precio_descuento = serializers.SerializerMethodField()
     
     class Meta:
         model = Pedido
         fields = [
-            'id', 'cliente', 'cliente_nombre', 'estado', 'lista_precio',
-            'lista_precio_nombre', 'lista_precio_descuento',
+            'id', 'cliente', 'cliente_nombre', 'estado',
+            'transportador', 'transportador_nombre',
+            'lista_precio', 'lista_precio_nombre', 'lista_precio_descuento',
             'subtotal', 'descuento_total', 'total',
             'items', 'notas',
             'fecha_creacion', 'fecha_actualizacion',
@@ -301,3 +304,74 @@ class PedidoUpdateEstadoSerializer(serializers.ModelSerializer):
             instance.save()
         
         return instance
+
+
+# ========== Serializers para Transportador ==========
+
+class ClienteInfoTransportadorSerializer(serializers.Serializer):
+    """
+    Serializer para información del cliente visible por el transportador.
+    Incluye datos de contacto, dirección y horarios de entrega.
+    """
+    id = serializers.IntegerField(read_only=True)
+    nombre = serializers.CharField(read_only=True)
+    apellido = serializers.CharField(read_only=True)
+    full_name = serializers.CharField(read_only=True)
+    telefono = serializers.CharField(read_only=True, allow_null=True)
+    # Datos de dirección
+    direccion = serializers.CharField(read_only=True, allow_null=True)
+    zona_nombre = serializers.CharField(source='zona.nombre', read_only=True, allow_null=True)
+    calle = serializers.CharField(read_only=True, allow_null=True)
+    entre_calles = serializers.CharField(read_only=True, allow_null=True)
+    numero = serializers.CharField(read_only=True, allow_null=True)
+    descripcion_ubicacion = serializers.CharField(read_only=True, allow_null=True)
+    # Horarios de atención
+    horarios = HorarioClienteSerializer(many=True, read_only=True)
+
+
+class PedidoTransportadorSerializer(serializers.ModelSerializer):
+    """
+    Serializer de pedido para el transportador.
+    Incluye información detallada del cliente para facilitar la entrega.
+    """
+    
+    items = PedidoItemSerializer(many=True, read_only=True)
+    cliente_nombre = serializers.CharField(source='cliente.full_name', read_only=True)
+    cliente_info = ClienteInfoTransportadorSerializer(source='cliente', read_only=True)
+    lista_precio_nombre = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Pedido
+        fields = [
+            'id', 'cliente', 'cliente_nombre', 'cliente_info',
+            'estado', 'lista_precio', 'lista_precio_nombre',
+            'subtotal', 'descuento_total', 'total',
+            'items', 'notas',
+            'fecha_creacion', 'fecha_actualizacion',
+            'fecha_confirmacion', 'fecha_entrega'
+        ]
+        read_only_fields = [
+            'id', 'subtotal', 'descuento_total', 'total',
+            'fecha_creacion', 'fecha_actualizacion',
+            'fecha_confirmacion', 'fecha_entrega'
+        ]
+    
+    def get_lista_precio_nombre(self, obj):
+        """Retorna el nombre de la lista desde snapshot o del objeto."""
+        return obj.lista_precio_nombre_snapshot or (obj.lista_precio.nombre if obj.lista_precio else "Lista Base")
+
+
+class PedidoAsignarTransportadorSerializer(serializers.ModelSerializer):
+    """Serializer para asignar un transportador a un pedido."""
+    
+    class Meta:
+        model = Pedido
+        fields = ['transportador']
+    
+    def validate_transportador(self, value):
+        """Valida que el usuario sea transportador."""
+        if value and value.rol != 'transportador':
+            raise serializers.ValidationError(
+                'El usuario asignado debe tener rol de transportador.'
+            )
+        return value

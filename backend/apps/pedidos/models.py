@@ -21,6 +21,17 @@ class Pedido(models.Model):
         verbose_name='Cliente'
     )
     
+    # Transportador asignado para la entrega
+    transportador = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='pedidos_asignados',
+        verbose_name='Transportador',
+        help_text='Transportador asignado para entregar este pedido'
+    )
+    
     estado = models.CharField(
         max_length=15,
         choices=ESTADO_CHOICES,

@@ -133,6 +133,16 @@ class UserCreateSerializer(serializers.ModelSerializer):
                     for f in missing
                 })
         
+        # Validaciones para TRANSPORTADOR
+        if rol == 'transportador':
+            required_transportador = ['telefono']
+            missing = [f for f in required_transportador if not data.get(f)]
+            if missing:
+                raise serializers.ValidationError({
+                    f: 'Este campo es obligatorio para transportadores.'
+                    for f in missing
+                })
+        
         return data
     
     def create(self, validated_data):
@@ -195,6 +205,16 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             if missing:
                 raise serializers.ValidationError({
                     f: 'Este campo es obligatorio para vendedores.'
+                    for f in missing
+                })
+        
+        # Validaciones para TRANSPORTADOR
+        if rol == 'transportador':
+            required_transportador = ['telefono']
+            missing = [f for f in required_transportador if not get_value(f)]
+            if missing:
+                raise serializers.ValidationError({
+                    f: 'Este campo es obligatorio para transportadores.'
                     for f in missing
                 })
         

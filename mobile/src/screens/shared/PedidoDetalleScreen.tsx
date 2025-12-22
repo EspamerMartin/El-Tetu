@@ -1,12 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Button, Surface, Chip, Divider, DataTable } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { Text, Button, Surface, Chip, Divider, DataTable, Modal, Portal, RadioButton } from 'react-native-paper';
 import { useAppSelector } from '@/store';
 import { pedidosAPI } from '@/services/api';
 import { Pedido, PedidoItem } from '@/types';
 import { LoadingOverlay, ScreenContainer } from '@/components';
 import { colors, spacing, borderRadius } from '@/theme';
 import { formatPrice, formatDateTime, formatDate } from '@/utils';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+
+interface Transportador {
+  id: number;
+  nombre: string;
+  apellido: string;
+  full_name: string;
+  email: string;
+  telefono?: string;
+}
 
 interface PedidoDetalleScreenProps {
   route: { params: { pedidoId: number } };
@@ -17,19 +27,26 @@ interface PedidoDetalleScreenProps {
  * PedidoDetalleScreen - Pantalla unificada para ver detalle de pedido
  * 
  * Funciona para admin y vendedor con:
- * - Admin: Puede aprobar/rechazar pedidos pendientes
- * - Vendedor: Solo visualización
+ * - Admin: Puede gestionar todos los estados y asignar transportador
+ * - Vendedor: Puede aprobar, facturar y asignar transportador
  * - Ambos: Ven toda la información del pedido
  */
 const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) => {
   const { pedidoId } = route.params;
   const { user } = useAppSelector((state) => state.auth);
   const isAdmin = user?.rol === 'admin';
+  const isAdminOrVendedor = user?.rol === 'admin' || user?.rol === 'vendedor';
   
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Estado para modal de transportador
+  const [transportadorModalVisible, setTransportadorModalVisible] = useState(false);
+  const [transportadores, setTransportadores] = useState<Transportador[]>([]);
+  const [loadingTransportadores, setLoadingTransportadores] = useState(false);
+  const [selectedTransportadorId, setSelectedTransportadorId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchPedido();
@@ -40,11 +57,64 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
       setError(null);
       const data = await pedidosAPI.getById(pedidoId);
       setPedido(data);
+      setSelectedTransportadorId(data.transportador || null);
     } catch (err: any) {
       setError('Error al cargar el pedido');
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTransportadores = async () => {
+    try {
+      setLoadingTransportadores(true);
+      const data = await pedidosAPI.getTransportadores();
+      setTransportadores(data);
+    } catch (err: any) {
+      console.error('Error al cargar transportadores:', err);
+      Alert.alert('Error', 'No se pudieron cargar los transportadores');
+    } finally {
+      setLoadingTransportadores(false);
+    }
+  };
+
+  const handleOpenTransportadorModal = async () => {
+    await fetchTransportadores();
+    setSelectedTransportadorId(pedido?.transportador || null);
+    setTransportadorModalVisible(true);
+  };
+
+  const handleAsignarTransportador = async () => {
+    if (!pedido) return;
+
+    try {
+      setProcessing(true);
+      await pedidosAPI.asignarTransportador(pedido.id, selectedTransportadorId);
+      setTransportadorModalVisible(false);
+      
+      const transportadorNombre = selectedTransportadorId 
+        ? transportadores.find(t => t.id === selectedTransportadorId)?.full_name 
+        : null;
+      
+      Alert.alert(
+        'Éxito',
+        selectedTransportadorId 
+          ? `Transportador ${transportadorNombre} asignado correctamente`
+          : 'Transportador removido del pedido'
+      );
+      await fetchPedido();
+    } catch (err: any) {
+      const errorMessage = 
+        err.response?.data?.error || 
+        err.response?.data?.transportador?.[0] ||
+        err.message ||
+        'No se pudo asignar el transportador';
+      
+      console.error('Error al asignar transportador:', err);
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -55,10 +125,7 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
       'Aprobar Pedido',
       `¿Confirmar el pedido #${pedido.id}?`,
       [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
+        { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Aprobar',
           onPress: async () => {
@@ -71,12 +138,10 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
               const errorMessage = 
                 err.response?.data?.error || 
                 err.response?.data?.message ||
-                err.response?.data?.detail ||
                 err.message ||
                 'No se pudo aprobar el pedido';
               
-              console.error('Error al aprobar pedido:', err);
-              Alert.alert('Error al aprobar pedido', errorMessage, [{ text: 'OK' }]);
+              Alert.alert('Error al aprobar pedido', errorMessage);
             } finally {
               setProcessing(false);
             }
@@ -93,10 +158,7 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
       'Rechazar Pedido',
       `¿Está seguro que desea rechazar el pedido #${pedido.id}?`,
       [
-        {
-          text: 'No',
-          style: 'cancel',
-        },
+        { text: 'No', style: 'cancel' },
         {
           text: 'Rechazar',
           style: 'destructive',
@@ -109,13 +171,10 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
             } catch (err: any) {
               const errorMessage = 
                 err.response?.data?.error || 
-                err.response?.data?.message ||
-                err.response?.data?.detail ||
                 err.message ||
                 'No se pudo rechazar el pedido';
               
-              console.error('Error al rechazar pedido:', err);
-              Alert.alert('Error al rechazar pedido', errorMessage, [{ text: 'OK' }]);
+              Alert.alert('Error al rechazar pedido', errorMessage);
             } finally {
               setProcessing(false);
             }
@@ -139,10 +198,7 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
       'Cambiar Estado',
       `¿Marcar el pedido #${pedido.id} como ${label}?`,
       [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
+        { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Confirmar',
           onPress: async () => {
@@ -154,13 +210,10 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
             } catch (err: any) {
               const errorMessage = 
                 err.response?.data?.error || 
-                err.response?.data?.message ||
-                err.response?.data?.detail ||
                 err.message ||
                 'No se pudo actualizar el pedido';
               
-              console.error('Error al actualizar pedido:', err);
-              Alert.alert('Error', errorMessage, [{ text: 'OK' }]);
+              Alert.alert('Error', errorMessage);
             } finally {
               setProcessing(false);
             }
@@ -223,6 +276,10 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
     }
   };
 
+  // Determinar si se puede marcar como entregado directamente
+  // Solo admin puede entregar sin transportador, o si ya tiene transportador asignado
+  const puedeEntregarDirectamente = isAdmin || pedido.transportador;
+
   return (
     <ScreenContainer>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -259,6 +316,56 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
           </View>
 
           <Divider style={styles.divider} />
+
+          {/* Transportador Asignado (visible cuando está facturado o tiene transportador) */}
+          {(pedido.estado === 'FACTURADO' || pedido.transportador) && isAdminOrVendedor && (
+            <>
+              <View style={styles.section}>
+                <Text variant="titleMedium" style={styles.sectionTitle}>
+                  <Icon name="truck-delivery" size={20} color={colors.primary} /> Transportador
+                </Text>
+                
+                {pedido.transportador ? (
+                  <View style={styles.transportadorInfo}>
+                    <View style={styles.transportadorAsignado}>
+                      <Icon name="account-check" size={24} color={colors.success} />
+                      <View style={styles.transportadorTexto}>
+                        <Text variant="bodyLarge" style={styles.transportadorNombre}>
+                          {pedido.transportador_nombre}
+                        </Text>
+                        <Text variant="bodySmall" style={styles.transportadorLabel}>
+                          Asignado para entrega
+                        </Text>
+                      </View>
+                    </View>
+                    {pedido.estado === 'FACTURADO' && (
+                      <Button
+                        mode="outlined"
+                        onPress={handleOpenTransportadorModal}
+                        compact
+                        icon="pencil"
+                      >
+                        Cambiar
+                      </Button>
+                    )}
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.asignarTransportadorButton}
+                    onPress={handleOpenTransportadorModal}
+                  >
+                    <Icon name="truck-plus" size={24} color={colors.primary} />
+                    <Text variant="bodyLarge" style={styles.asignarTransportadorText}>
+                      Asignar Transportador
+                    </Text>
+                    <Icon name="chevron-right" size={24} color={colors.primary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <Divider style={styles.divider} />
+            </>
+          )}
 
           {/* Items del Pedido */}
           <View style={styles.section}>
@@ -330,8 +437,8 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
             </>
           )}
 
-          {/* Botones de Acción (Solo Admin) */}
-          {isAdmin && (
+          {/* Botones de Acción (Admin y Vendedor) */}
+          {isAdminOrVendedor && (
             <>
               <Divider style={styles.divider} />
               <View style={styles.actionsSection}>
@@ -391,16 +498,26 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
 
                 {pedido.estado === 'FACTURADO' && (
                   <>
-                    <Button
-                      mode="contained"
-                      onPress={() => handleCambiarEstado('ENTREGADO')}
-                      disabled={processing}
-                      loading={processing}
-                      style={[styles.aprobarButton, { backgroundColor: colors.success }]}
-                      icon="truck-check"
-                    >
-                      Marcar como Entregado
-                    </Button>
+                    {/* Botón de entregar - solo disponible si tiene transportador o es admin */}
+                    {puedeEntregarDirectamente ? (
+                      <Button
+                        mode="contained"
+                        onPress={() => handleCambiarEstado('ENTREGADO')}
+                        disabled={processing}
+                        loading={processing}
+                        style={[styles.aprobarButton, { backgroundColor: colors.success }]}
+                        icon="truck-check"
+                      >
+                        Marcar como Entregado
+                      </Button>
+                    ) : (
+                      <View style={styles.advertenciaTransportador}>
+                        <Icon name="information" size={20} color={colors.info} />
+                        <Text variant="bodySmall" style={styles.advertenciaText}>
+                          Asigna un transportador para poder marcar como entregado
+                        </Text>
+                      </View>
+                    )}
 
                     <Button
                       mode="contained"
@@ -421,6 +538,11 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
                     <Text variant="bodyLarge" style={styles.estadoInfoText}>
                       Este pedido está {getEstadoLabel(pedido.estado).toLowerCase()}
                     </Text>
+                    {pedido.estado === 'ENTREGADO' && pedido.transportador_nombre && (
+                      <Text variant="bodySmall" style={styles.estadoInfoSubtext}>
+                        Entregado por: {pedido.transportador_nombre}
+                      </Text>
+                    )}
                   </View>
                 )}
               </View>
@@ -428,6 +550,96 @@ const PedidoDetalleScreen = ({ route, navigation }: PedidoDetalleScreenProps) =>
           )}
         </Surface>
       </ScrollView>
+
+      {/* Modal para seleccionar transportador */}
+      <Portal>
+        <Modal
+          visible={transportadorModalVisible}
+          onDismiss={() => setTransportadorModalVisible(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <Text variant="titleLarge" style={styles.modalTitle}>
+            Asignar Transportador
+          </Text>
+          
+          {loadingTransportadores ? (
+            <View style={styles.modalLoading}>
+              <LoadingOverlay visible message="Cargando..." />
+            </View>
+          ) : transportadores.length === 0 ? (
+            <View style={styles.modalEmpty}>
+              <Icon name="account-off" size={48} color={colors.textSecondary} />
+              <Text variant="bodyMedium" style={styles.modalEmptyText}>
+                No hay transportadores disponibles
+              </Text>
+            </View>
+          ) : (
+            <ScrollView style={styles.modalScrollView}>
+              <RadioButton.Group
+                onValueChange={(value) => setSelectedTransportadorId(value ? parseInt(value) : null)}
+                value={selectedTransportadorId?.toString() || ''}
+              >
+                {/* Opción para quitar transportador */}
+                <TouchableOpacity
+                  style={styles.transportadorOption}
+                  onPress={() => setSelectedTransportadorId(null)}
+                >
+                  <RadioButton value="" />
+                  <View style={styles.transportadorOptionInfo}>
+                    <Text variant="bodyLarge" style={styles.transportadorOptionNombre}>
+                      Sin transportador
+                    </Text>
+                    <Text variant="bodySmall" style={styles.transportadorOptionEmail}>
+                      Quitar asignación
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                
+                <Divider />
+                
+                {transportadores.map((t) => (
+                  <TouchableOpacity
+                    key={t.id}
+                    style={styles.transportadorOption}
+                    onPress={() => setSelectedTransportadorId(t.id)}
+                  >
+                    <RadioButton value={t.id.toString()} />
+                    <View style={styles.transportadorOptionInfo}>
+                      <Text variant="bodyLarge" style={styles.transportadorOptionNombre}>
+                        {t.full_name}
+                      </Text>
+                      <Text variant="bodySmall" style={styles.transportadorOptionEmail}>
+                        {t.email}
+                        {t.telefono && ` • ${t.telefono}`}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </RadioButton.Group>
+            </ScrollView>
+          )}
+
+          <View style={styles.modalActions}>
+            <Button
+              mode="outlined"
+              onPress={() => setTransportadorModalVisible(false)}
+              style={styles.modalCancelButton}
+            >
+              Cancelar
+            </Button>
+            <Button
+              mode="contained"
+              onPress={handleAsignarTransportador}
+              disabled={processing || loadingTransportadores}
+              loading={processing}
+              style={styles.modalConfirmButton}
+            >
+              Confirmar
+            </Button>
+          </View>
+        </Modal>
+      </Portal>
+
       <LoadingOverlay visible={processing} message="Procesando..." />
     </ScreenContainer>
   );
@@ -508,6 +720,54 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.onSurface,
   },
+  // Estilos de transportador
+  transportadorInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  transportadorAsignado: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
+  },
+  transportadorTexto: {
+    flex: 1,
+  },
+  transportadorNombre: {
+    fontWeight: '600',
+    color: colors.text,
+  },
+  transportadorLabel: {
+    color: colors.success,
+  },
+  asignarTransportadorButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primarySurface,
+    padding: spacing.md,
+    borderRadius: borderRadius.sm,
+    gap: spacing.sm,
+  },
+  asignarTransportadorText: {
+    flex: 1,
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  advertenciaTransportador: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.infoLight,
+    padding: spacing.md,
+    borderRadius: borderRadius.sm,
+    gap: spacing.sm,
+  },
+  advertenciaText: {
+    flex: 1,
+    color: colors.info,
+  },
+  // Estilos de precios
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -524,6 +784,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.primary,
   },
+  // Estilos de acciones
   actionsSection: {
     marginTop: spacing.md,
     gap: spacing.md,
@@ -544,7 +805,68 @@ const styles = StyleSheet.create({
     color: colors.onSurfaceVariant,
     textAlign: 'center',
   },
+  estadoInfoSubtext: {
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  // Estilos del modal
+  modalContainer: {
+    backgroundColor: colors.surface,
+    margin: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  modalLoading: {
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalEmpty: {
+    padding: spacing.xl,
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  modalEmptyText: {
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  modalScrollView: {
+    maxHeight: 300,
+  },
+  transportadorOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  transportadorOptionInfo: {
+    flex: 1,
+  },
+  transportadorOptionNombre: {
+    fontWeight: '500',
+    color: colors.text,
+  },
+  transportadorOptionEmail: {
+    color: colors.textSecondary,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.md,
+    marginTop: spacing.lg,
+  },
+  modalCancelButton: {
+    flex: 1,
+  },
+  modalConfirmButton: {
+    flex: 1,
+  },
 });
 
 export default PedidoDetalleScreen;
-

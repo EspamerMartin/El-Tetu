@@ -274,7 +274,7 @@ class UserListCreateView(generics.ListCreateAPIView):
             
             if rol:
                 # Validar que el rol sea válido
-                valid_roles = ['admin', 'vendedor', 'cliente']
+                valid_roles = ['admin', 'vendedor', 'cliente', 'transportador']
                 if rol in valid_roles:
                     queryset = queryset.filter(rol=rol)
             
