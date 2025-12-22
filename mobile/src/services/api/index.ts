@@ -10,6 +10,7 @@ import {
   Categoria,
   Subcategoria,
   Pedido,
+  PedidoTransportador,
   CreatePedidoData,
   ListaPrecio,
   Marca,
@@ -239,6 +240,53 @@ export const pedidosAPI = {
     return response.data;
   },
 
+  asignarTransportador: async (id: number, transportadorId: number | null): Promise<Pedido> => {
+    const response = await api.put(`/pedidos/${id}/asignar-transportador/`, { 
+      transportador: transportadorId 
+    });
+    return response.data;
+  },
+
+  getTransportadores: async (): Promise<Array<{
+    id: number;
+    nombre: string;
+    apellido: string;
+    full_name: string;
+    email: string;
+    telefono?: string;
+  }>> => {
+    const response = await api.get('/pedidos/transportadores/');
+    return response.data;
+  },
+};
+
+// ========== Pedidos Transportador API ==========
+
+export const pedidosTransportadorAPI = {
+  /**
+   * Obtiene los pedidos asignados al transportador autenticado.
+   * Solo retorna pedidos en estado FACTURADO (listos para entregar).
+   */
+  getMisPedidos: async (): Promise<PaginatedResponse<PedidoTransportador>> => {
+    const response = await api.get('/pedidos/transportador/');
+    return response.data;
+  },
+
+  /**
+   * Obtiene el detalle de un pedido asignado al transportador.
+   */
+  getById: async (id: number): Promise<PedidoTransportador> => {
+    const response = await api.get(`/pedidos/transportador/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Marca un pedido como entregado.
+   */
+  entregar: async (id: number): Promise<PedidoTransportador> => {
+    const response = await api.put(`/pedidos/transportador/${id}/entregar/`);
+    return response.data;
+  },
 };
 
 // ========== Clientes API (Admin/Vendedor) ==========
@@ -312,6 +360,7 @@ export default {
   zonas: zonasAPI,
   productos: productosAPI,
   pedidos: pedidosAPI,
+  pedidosTransportador: pedidosTransportadorAPI,
   clientes: clientesAPI,
   listas: listasAPI,
 };

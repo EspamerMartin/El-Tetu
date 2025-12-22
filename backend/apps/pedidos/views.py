@@ -6,12 +6,14 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Case, When, IntegerField
 import logging
 
-from apps.users.permissions import IsAdminOrVendedor
+from apps.users.permissions import IsAdminOrVendedor, IsTransportador
 from .models import Pedido
 from .serializers import (
     PedidoSerializer,
     PedidoCreateSerializer,
     PedidoUpdateEstadoSerializer,
+    PedidoTransportadorSerializer,
+    PedidoAsignarTransportadorSerializer,
 )
 
 logger = logging.getLogger('eltetu')
@@ -65,12 +67,16 @@ class PedidoListCreateView(generics.ListCreateAPIView):
             # Formato esperado: YYYY-MM-DD
             queryset = queryset.filter(fecha_creacion__date=fecha_creacion)
         
-        # Ordenar: primero pedidos activos (no cancelados), luego por fecha de creación (más recientes primero)
-        # Usar Case/When para que CANCELADO vaya al final
+        # Ordenar: primero pedidos activos, luego por fecha de creación (más recientes primero)
+        # Usar Case/When para ordenar: activos primero, entregados después, rechazados al final
         return queryset.annotate(
             estado_orden=Case(
-                When(estado='CANCELADO', then=1),
-                default=0,
+                When(estado='PENDIENTE', then=0),
+                When(estado='EN_PREPARACION', then=1),
+                When(estado='FACTURADO', then=2),
+                When(estado='ENTREGADO', then=3),
+                When(estado='RECHAZADO', then=4),
+                default=5,
                 output_field=IntegerField()
             )
         ).order_by('estado_orden', '-fecha_creacion')
@@ -140,8 +146,13 @@ def update_estado_view(request, pk):
     
     Body:
     {
-        "estado": "CONFIRMADO"
+        "estado": "EN_PREPARACION" | "FACTURADO" | "ENTREGADO" | "RECHAZADO"
     }
+    
+    Transiciones permitidas:
+    - PENDIENTE -> EN_PREPARACION (aprobar) o RECHAZADO
+    - EN_PREPARACION -> FACTURADO o RECHAZADO
+    - FACTURADO -> ENTREGADO o RECHAZADO
     """
     pedido = get_object_or_404(Pedido, pk=pk)
     
@@ -169,25 +180,30 @@ def update_estado_view(request, pk):
 @permission_classes([IsAuthenticated, IsAdminOrVendedor])
 def rechazar_pedido_view(request, pk):
     """
-    Vista para rechazar un pedido (cambiar estado a CANCELADO).
+    Vista para rechazar un pedido (cambiar estado a RECHAZADO).
     PUT /api/pedidos/{id}/rechazar/
     
     Solo admin y vendedor pueden rechazar pedidos.
-    Solo se pueden rechazar pedidos por aprobar.
+    No se pueden rechazar pedidos ya rechazados o entregados.
     """
     pedido = get_object_or_404(Pedido, pk=pk)
     
-    if pedido.estado in ['CANCELADO']:
+    if pedido.estado == 'RECHAZADO':
         return Response(
-            {'error': 'No se puede rechazar un pedido ya cancelado.'},
+            {'error': 'No se puede rechazar un pedido ya rechazado.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if pedido.estado == 'ENTREGADO':
+        return Response(
+            {'error': 'No se puede rechazar un pedido ya entregado.'},
             status=status.HTTP_400_BAD_REQUEST
         )
     
     try:
-        # Usar el método cancelar() del modelo para restaurar stock si es necesario
-        pedido.cancelar()
+        pedido.rechazar()
         logger.info(
-            f'Pedido #{pedido.id} cancelado por usuario {request.user.email}'
+            f'Pedido #{pedido.id} rechazado por usuario {request.user.email}'
         )
         return Response(
             PedidoSerializer(pedido).data,
@@ -195,11 +211,160 @@ def rechazar_pedido_view(request, pk):
         )
     except ValueError as e:
         logger.warning(
-            f'Error al cancelar pedido #{pedido.id}: {str(e)}'
+            f'Error al rechazar pedido #{pedido.id}: {str(e)}'
         )
         return Response(
             {'error': str(e)},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+
+# ========== Vistas para Transportador ==========
+
+class PedidoTransportadorListView(generics.ListAPIView):
+    """
+    Vista para listar pedidos asignados al transportador.
+    GET /api/pedidos/transportador/
+    
+    Solo muestra pedidos FACTURADOS asignados al transportador autenticado.
+    """
+    serializer_class = PedidoTransportadorSerializer
+    permission_classes = [IsAuthenticated, IsTransportador]
+    
+    def get_queryset(self):
+        """Filtra pedidos asignados al transportador actual."""
+        user = self.request.user
+        queryset = Pedido.objects.select_related(
+            'cliente', 'cliente__zona'
+        ).prefetch_related(
+            'items__producto',
+            'cliente__horarios'
+        ).filter(
+            transportador=user,
+            estado='FACTURADO'  # Solo pedidos listos para entregar
+        )
+        
+        # Ordenar por fecha de creación (más antiguos primero para entregar)
+        return queryset.order_by('fecha_creacion')
+
+
+class PedidoTransportadorDetailView(generics.RetrieveAPIView):
+    """
+    Vista para obtener detalle de un pedido asignado al transportador.
+    GET /api/pedidos/transportador/{id}/
+    """
+    serializer_class = PedidoTransportadorSerializer
+    permission_classes = [IsAuthenticated, IsTransportador]
+    
+    def get_queryset(self):
+        """Solo pedidos asignados al transportador actual."""
+        user = self.request.user
+        return Pedido.objects.select_related(
+            'cliente', 'cliente__zona'
+        ).prefetch_related(
+            'items__producto',
+            'cliente__horarios'
+        ).filter(transportador=user)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated, IsTransportador])
+def entregar_pedido_transportador_view(request, pk):
+    """
+    Vista para que el transportador marque un pedido como entregado.
+    PUT /api/pedidos/transportador/{id}/entregar/
+    
+    Solo puede entregar pedidos que le fueron asignados y están facturados.
+    """
+    user = request.user
+    pedido = get_object_or_404(Pedido, pk=pk, transportador=user)
+    
+    if pedido.estado != 'FACTURADO':
+        return Response(
+            {'error': 'Solo se pueden entregar pedidos facturados.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        pedido.entregar()
+        logger.info(
+            f'Pedido #{pedido.id} entregado por transportador {user.email}'
+        )
+        return Response(
+            PedidoTransportadorSerializer(pedido).data,
+            status=status.HTTP_200_OK
+        )
+    except ValueError as e:
+        logger.warning(
+            f'Error al entregar pedido #{pedido.id}: {str(e)}'
+        )
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminOrVendedor])
+def listar_transportadores_view(request):
+    """
+    Vista para listar transportadores disponibles.
+    GET /api/pedidos/transportadores/
+    
+    Retorna lista simplificada de transportadores activos para asignar a pedidos.
+    """
+    from apps.users.models import CustomUser
+    
+    transportadores = CustomUser.objects.filter(
+        rol='transportador',
+        is_active=True,
+        fecha_eliminacion__isnull=True
+    ).values('id', 'nombre', 'apellido', 'email', 'telefono')
+    
+    # Agregar full_name
+    result = [
+        {
+            'id': t['id'],
+            'nombre': t['nombre'],
+            'apellido': t['apellido'],
+            'full_name': f"{t['nombre']} {t['apellido']}",
+            'email': t['email'],
+            'telefono': t['telefono'],
+        }
+        for t in transportadores
+    ]
+    
+    return Response(result, status=status.HTTP_200_OK)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated, IsAdminOrVendedor])
+def asignar_transportador_view(request, pk):
+    """
+    Vista para asignar un transportador a un pedido.
+    PUT /api/pedidos/{id}/asignar-transportador/
+    
+    Body:
+    {
+        "transportador": <id_transportador>
+    }
+    
+    Solo admin y vendedor pueden asignar transportadores.
+    """
+    pedido = get_object_or_404(Pedido, pk=pk)
+    
+    serializer = PedidoAsignarTransportadorSerializer(pedido, data=request.data)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    
+    transportador = pedido.transportador
+    transportador_info = f'{transportador.full_name} ({transportador.email})' if transportador else 'ninguno'
+    
+    logger.info(
+        f'Transportador asignado al pedido #{pedido.id}: {transportador_info} '
+        f'por usuario {request.user.email}'
+    )
+    
+    return Response(PedidoSerializer(pedido).data, status=status.HTTP_200_OK)
 
 

@@ -41,7 +41,7 @@ const UsuarioFormScreen = ({ route, navigation }: Props) => {
   const [apellido, setApellido] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rol, setRol] = useState<'admin' | 'vendedor' | 'cliente'>('cliente');
+  const [rol, setRol] = useState<'admin' | 'vendedor' | 'cliente' | 'transportador'>('cliente');
   const [isActive, setIsActive] = useState(true);
 
   // Datos de contacto (Step 2 - vendedor/cliente)
@@ -71,10 +71,11 @@ const UsuarioFormScreen = ({ route, navigation }: Props) => {
   // Calcular número total de pasos según el rol
   // Admin: 1 paso (datos básicos)
   // Vendedor: 2 pasos (datos básicos, contacto)
+  // Transportador: 2 pasos (datos básicos, contacto)
   // Cliente: 3 pasos (datos básicos, contacto+dirección, horarios)
   const getTotalSteps = useCallback(() => {
     if (rol === 'admin') return 1;
-    if (rol === 'vendedor') return 2;
+    if (rol === 'vendedor' || rol === 'transportador') return 2;
     return 3; // cliente
   }, [rol]);
 
@@ -233,7 +234,12 @@ const UsuarioFormScreen = ({ route, navigation }: Props) => {
         is_active: isActive,
       };
 
-      const contactData = (rol === 'cliente' || rol === 'vendedor') ? {
+      // Datos de contacto según el rol
+      const contactData = (rol === 'transportador') ? {
+        telefono: telefono.trim(),
+        cuit_dni: cuitDni.trim() || undefined, // Opcional para transportador
+        direccion: descripcionUbicacion.trim() || undefined, // Usar campo dirección
+      } : (rol === 'cliente' || rol === 'vendedor') ? {
         telefono: telefono.trim(),
         cuit_dni: cuitDni.trim(),
       } : {};
@@ -327,12 +333,13 @@ const UsuarioFormScreen = ({ route, navigation }: Props) => {
             <SegmentedButtons
               value={rol}
               onValueChange={(value) => {
-                setRol(value as 'admin' | 'vendedor' | 'cliente');
+                setRol(value as 'admin' | 'vendedor' | 'cliente' | 'transportador');
                 setCurrentStep(0); // Reset al cambiar rol
               }}
               buttons={[
                 { value: 'cliente', label: 'Cliente' },
                 { value: 'vendedor', label: 'Vendedor' },
+                { value: 'transportador', label: 'Transport.' },
                 { value: 'admin', label: 'Admin' },
               ]}
             />
@@ -346,26 +353,45 @@ const UsuarioFormScreen = ({ route, navigation }: Props) => {
       );
     }
 
-    // PASO 2: Contacto (vendedor) o Contacto + Dirección (cliente)
-    if (currentStep === 1 && (rol === 'vendedor' || rol === 'cliente')) {
+    // PASO 2: Contacto (vendedor/transportador) o Contacto + Dirección (cliente)
+    if (currentStep === 1 && (rol === 'vendedor' || rol === 'cliente' || rol === 'transportador')) {
+      const stepTitle = rol === 'vendedor' 
+        ? 'Datos de Vendedor' 
+        : rol === 'transportador' 
+          ? 'Datos de Transportador'
+          : 'Contacto y Dirección';
+      
       return (
         <View>
           <Text variant="titleMedium" style={styles.stepTitle}>
-            {rol === 'vendedor' ? 'Datos de Vendedor' : 'Contacto y Dirección'}
+            {stepTitle}
           </Text>
 
           <InputField
-            label="Teléfono *"
+            label={rol === 'transportador' ? 'Teléfono *' : 'Teléfono *'}
             value={telefono}
             onChangeText={setTelefono}
             keyboardType="phone-pad"
           />
+          
+          {/* CUIT/DNI: obligatorio para vendedor/cliente, opcional para transportador */}
           <InputField
-            label="CUIT/DNI *"
+            label={rol === 'transportador' ? 'CUIT/DNI (opcional)' : 'CUIT/DNI *'}
             value={cuitDni}
             onChangeText={setCuitDni}
             keyboardType="numeric"
           />
+
+          {/* Dirección opcional para transportador */}
+          {rol === 'transportador' && (
+            <InputField
+              label="Dirección (opcional)"
+              value={descripcionUbicacion}
+              onChangeText={setDescripcionUbicacion}
+              multiline
+              numberOfLines={2}
+            />
+          )}
 
           {/* Campos de dirección solo para cliente */}
           {rol === 'cliente' && (

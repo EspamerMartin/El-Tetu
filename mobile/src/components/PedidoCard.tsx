@@ -25,18 +25,32 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onPress }) => {
           label: 'Pendiente',
           icon: '⏳'
         };
-      case 'CONFIRMADO':
+      case 'EN_PREPARACION':
+        return { 
+          color: colors.info, 
+          bgColor: colors.infoLight,
+          label: 'En Preparación',
+          icon: '🔧'
+        };
+      case 'FACTURADO':
+        return { 
+          color: colors.invoice, 
+          bgColor: colors.invoiceLight,
+          label: 'Facturado',
+          icon: '📄'
+        };
+      case 'ENTREGADO':
         return { 
           color: colors.success, 
           bgColor: colors.successLight,
-          label: 'Confirmado',
+          label: 'Entregado',
           icon: '✓'
         };
-      case 'CANCELADO':
+      case 'RECHAZADO':
         return { 
           color: colors.error, 
           bgColor: colors.errorLight,
-          label: 'Cancelado',
+          label: 'Rechazado',
           icon: '✕'
         };
       default:

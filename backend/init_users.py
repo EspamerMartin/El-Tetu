@@ -83,6 +83,16 @@ def crear_usuarios_desarrollo():
             'is_staff': False,
             'is_superuser': False,
         },
+        {
+            'email': 'transportador@mail.com',
+            'password': 'transportador123',
+            'nombre': 'Transportador',
+            'apellido': 'Test',
+            'rol': 'transportador',
+            'telefono': '1122334455',
+            'is_staff': False,
+            'is_superuser': False,
+        },
     ]
     
     creados = 0

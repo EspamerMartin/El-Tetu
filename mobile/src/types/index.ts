@@ -1,6 +1,6 @@
 // ========== User Types ==========
 
-export type UserRole = 'admin' | 'vendedor' | 'cliente';
+export type UserRole = 'admin' | 'vendedor' | 'cliente' | 'transportador';
 
 export type DiaSemana = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -145,7 +145,7 @@ export interface CartItem {
 
 // ========== Pedido Types ==========
 
-export type PedidoEstado = 'PENDIENTE' | 'CONFIRMADO' | 'CANCELADO';
+export type PedidoEstado = 'PENDIENTE' | 'EN_PREPARACION' | 'FACTURADO' | 'ENTREGADO' | 'RECHAZADO';
 
 export interface ListaPrecio {
   id: number;
@@ -174,6 +174,8 @@ export interface Pedido {
   cliente: number;
   cliente_nombre: string;
   estado: PedidoEstado;
+  transportador?: number;
+  transportador_nombre?: string;
   lista_precio?: number;
   lista_precio_nombre?: string;
   lista_precio_descuento?: string;
@@ -186,6 +188,27 @@ export interface Pedido {
   fecha_actualizacion: string;
   fecha_confirmacion?: string;
   fecha_entrega?: string;
+}
+
+// ========== Pedido Transportador Types ==========
+
+export interface ClienteInfoTransportador {
+  id: number;
+  nombre: string;
+  apellido: string;
+  full_name: string;
+  telefono?: string;
+  direccion?: string;
+  zona_nombre?: string;
+  calle?: string;
+  entre_calles?: string;
+  numero?: string;
+  descripcion_ubicacion?: string;
+  horarios?: HorarioCliente[];
+}
+
+export interface PedidoTransportador extends Omit<Pedido, 'cliente_info'> {
+  cliente_info: ClienteInfoTransportador;
 }
 
 export interface CreatePedidoData {

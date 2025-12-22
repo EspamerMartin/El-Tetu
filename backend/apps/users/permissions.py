@@ -37,6 +37,28 @@ class IsOwnerOrAdmin(permissions.BasePermission):
         return obj == request.user or (hasattr(obj, 'cliente') and obj.cliente == request.user)
 
 
+class IsTransportador(permissions.BasePermission):
+    """
+    Permiso personalizado para permitir solo a usuarios transportador.
+    """
+    
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.rol == 'transportador'
+
+
+class IsAdminOrTransportador(permissions.BasePermission):
+    """
+    Permiso personalizado para permitir a admin o transportador.
+    """
+    
+    def has_permission(self, request, view):
+        return (
+            request.user and
+            request.user.is_authenticated and
+            request.user.rol in ['admin', 'transportador']
+        )
+
+
 class CanCreateUser(permissions.BasePermission):
     """
     Permiso para controlar quién puede crear usuarios.

@@ -10,6 +10,7 @@ import AuthStack from './AuthStack';
 import ClienteStack from './ClienteStack';
 import VendedorStack from './VendedorStack';
 import AdminStack from './AdminStack';
+import TransportadorStack from './TransportadorStack';
 
 const Stack = createNativeStackNavigator();
 
@@ -18,7 +19,7 @@ const Stack = createNativeStackNavigator();
  * 
  * Navegador principal que decide qué stack mostrar según:
  * - Si el usuario está autenticado
- * - El rol del usuario (cliente, vendedor, admin)
+ * - El rol del usuario (cliente, vendedor, admin, transportador)
  */
 const RootNavigator = () => {
   const dispatch = useAppDispatch();
@@ -53,6 +54,9 @@ const RootNavigator = () => {
         ) : user?.rol === 'admin' ? (
           // Usuario admin
           <Stack.Screen name="Admin" component={AdminStack} />
+        ) : user?.rol === 'transportador' ? (
+          // Usuario transportador
+          <Stack.Screen name="Transportador" component={TransportadorStack} />
         ) : (
           // Rol inválido o desconocido → volver a Auth
           <Stack.Screen name="Auth" component={AuthStack} />

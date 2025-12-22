@@ -34,7 +34,7 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
   const { user } = useAppSelector((state) => state.auth);
 
   const { data: pedidos, loading: loadingPedidos, refetch: refetchPedidos } = useFetch(
-    () => pedidosAPI.getAll({ estado__in: 'PENDIENTE,CONFIRMADO' })
+    () => pedidosAPI.getAll({ estado__in: 'PENDIENTE,EN_PREPARACION,FACTURADO' })
   );
 
   const { data: ventasHoy, loading: loadingVentas, refetch: refetchVentas } = useFetch(

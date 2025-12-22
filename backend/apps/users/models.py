@@ -56,6 +56,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin, SoftDeleteMixin):
         ('admin', 'Administrador'),
         ('vendedor', 'Vendedor'),
         ('cliente', 'Cliente'),
+        ('transportador', 'Transportador'),
     )
     
     email = models.EmailField(unique=True, verbose_name='Email')
@@ -126,6 +127,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin, SoftDeleteMixin):
     def is_cliente(self):
         """Verifica si el usuario es cliente."""
         return self.rol == 'cliente'
+    
+    def is_transportador(self):
+        """Verifica si el usuario es transportador."""
+        return self.rol == 'transportador'
 
 
 class HorarioCliente(models.Model):
