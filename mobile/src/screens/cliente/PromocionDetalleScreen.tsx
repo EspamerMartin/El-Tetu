@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, Image, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, Button, Surface, Divider, Chip } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ClienteStackParamList } from '@/navigation/ClienteStack';
@@ -10,7 +11,7 @@ import { colors, spacing, borderRadius } from '@/theme';
 import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { addToCart } from '@/store/slices/cartSlice';
+import { addPromocionToCart } from '@/store/slices/cartSlice';
 
 type Props = NativeStackScreenProps<ClienteStackParamList, 'PromocionDetalle'>;
 
@@ -21,11 +22,18 @@ type Props = NativeStackScreenProps<ClienteStackParamList, 'PromocionDetalle'>;
 const PromocionDetalleScreen = ({ route, navigation }: Props) => {
   const { promocionId } = route.params;
   const dispatch = useAppDispatch();
+  const insets = useSafeAreaInsets();
   const cartItems = useAppSelector(state => state.cart.items);
   
   const [promocion, setPromocion] = useState<Promocion | null>(null);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  
+  // Verificar si la promoción ya está en el carrito
+  const promocionEnCarrito = cartItems.find(
+    item => item.tipo === 'promocion' && item.promocion?.id === promocionId
+  );
+  const cantidadEnCarrito = promocionEnCarrito?.cantidad || 0;
 
   useEffect(() => {
     loadPromocion();
@@ -44,22 +52,20 @@ const PromocionDetalleScreen = ({ route, navigation }: Props) => {
     }
   };
 
-  const handleAgregarAlCarrito = async () => {
+  const handleAgregarAlCarrito = () => {
     if (!promocion) return;
 
     setAdding(true);
     try {
-      // Agregar cada producto de la promoción al carrito
-      // TODO: En el futuro, agregar promociones como un item especial
-      for (const item of promocion.items) {
-        // Por ahora agregamos los productos individuales
-        // Esto se puede mejorar agregando la promoción como un bundle
-        Alert.alert(
-          'Promoción agregada',
-          `Los productos de "${promocion.nombre}" se agregarían al carrito.\n\nEsta funcionalidad estará disponible próximamente.`
-        );
-        break;
-      }
+      dispatch(addPromocionToCart({ promocion, cantidad: 1 }));
+      Alert.alert(
+        'Promoción agregada',
+        `"${promocion.nombre}" se agregó al carrito.`,
+        [
+          { text: 'Seguir viendo', style: 'cancel' },
+          { text: 'Ir al carrito', onPress: () => navigation.navigate('Carrito') },
+        ]
+      );
     } catch (err) {
       Alert.alert('Error', 'No se pudo agregar al carrito');
     } finally {
@@ -211,22 +217,27 @@ const PromocionDetalleScreen = ({ route, navigation }: Props) => {
       </ScrollView>
 
       {/* Botón fijo de agregar al carrito */}
-      <Surface style={styles.bottomBar}>
+      <Surface style={[styles.bottomBar, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
         <View style={styles.bottomBarContent}>
           <View>
             <Text style={styles.bottomBarLabel}>Precio:</Text>
             <Text style={styles.bottomBarPrecio}>{formatPrice(promocion.precio)}</Text>
+            {cantidadEnCarrito > 0 && (
+              <Text style={styles.enCarritoText}>
+                {cantidadEnCarrito} en carrito
+              </Text>
+            )}
           </View>
           <Button
             mode="contained"
             onPress={handleAgregarAlCarrito}
             loading={adding}
             disabled={adding}
-            icon="cart-plus"
+            icon={cantidadEnCarrito > 0 ? "cart-check" : "cart-plus"}
             buttonColor={colors.promo}
             style={styles.addButton}
           >
-            Agregar
+            {cantidadEnCarrito > 0 ? 'Agregar otra' : 'Agregar'}
           </Button>
         </View>
       </Surface>
@@ -480,6 +491,12 @@ const styles = StyleSheet.create({
   },
   addButton: {
     borderRadius: borderRadius.md,
+  },
+  enCarritoText: {
+    fontSize: 12,
+    color: colors.success,
+    fontWeight: '600',
+    marginTop: 2,
   },
 });
 

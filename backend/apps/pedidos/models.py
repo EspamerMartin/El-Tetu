@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from apps.productos.models import Producto
+from apps.productos.models import Producto, Promocion
 
 
 class Pedido(models.Model):
@@ -197,7 +197,7 @@ class Pedido(models.Model):
 
 
 class PedidoItem(models.Model):
-    """Modelo para items de un pedido."""
+    """Modelo para items de un pedido (producto individual o promoción)."""
     
     pedido = models.ForeignKey(
         Pedido,
@@ -206,6 +206,7 @@ class PedidoItem(models.Model):
         verbose_name='Pedido'
     )
     
+    # Puede ser un producto individual o una promoción (uno de los dos)
     producto = models.ForeignKey(
         Producto,
         on_delete=models.SET_NULL,
@@ -216,20 +217,30 @@ class PedidoItem(models.Model):
         help_text='Producto del pedido. Se establece en NULL si el producto se elimina.'
     )
     
-    # Snapshots para preservar información histórica del producto
+    promocion = models.ForeignKey(
+        Promocion,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='pedido_items',
+        verbose_name='Promoción',
+        help_text='Promoción del pedido. Se establece en NULL si la promoción se elimina.'
+    )
+    
+    # Snapshots para preservar información histórica del producto/promoción
     producto_nombre_snapshot = models.CharField(
         max_length=200,
         blank=True,
         null=True,
-        verbose_name='Nombre Producto (Snapshot)',
-        help_text='Nombre del producto al momento de crear el item'
+        verbose_name='Nombre Producto/Promoción (Snapshot)',
+        help_text='Nombre del producto o promoción al momento de crear el item'
     )
     producto_codigo_snapshot = models.CharField(
         max_length=50,
         blank=True,
         null=True,
         verbose_name='Código Producto (Snapshot)',
-        help_text='Código del producto al momento de crear el item'
+        help_text='Código del producto al momento de crear el item (vacío para promociones)'
     )
     
     cantidad = models.IntegerField(verbose_name='Cantidad')
@@ -260,9 +271,21 @@ class PedidoItem(models.Model):
         verbose_name_plural = 'Items de Pedido'
         ordering = ['id']
     
+    @property
+    def es_promocion(self):
+        """Indica si este item es una promoción."""
+        return self.promocion is not None
+    
     def __str__(self):
-        producto_nombre = self.producto_nombre_snapshot or (self.producto.nombre if self.producto else "Producto eliminado")
-        return f"{producto_nombre} x{self.cantidad}"
+        if self.producto_nombre_snapshot:
+            nombre = self.producto_nombre_snapshot
+        elif self.promocion:
+            nombre = self.promocion.nombre
+        elif self.producto:
+            nombre = self.producto.nombre
+        else:
+            nombre = "Item eliminado"
+        return f"{nombre} x{self.cantidad}"
     
     def save(self, *args, **kwargs):
         """Calcula subtotal y guarda snapshots antes de guardar."""
@@ -270,9 +293,13 @@ class PedidoItem(models.Model):
         if self.precio_unitario and self.cantidad:
             self.subtotal = self.precio_unitario * self.cantidad
         
-        # Guardar snapshots del producto si existe y no están guardados
-        if self.producto and not self.producto_nombre_snapshot:
-            self.producto_nombre_snapshot = self.producto.nombre
-            self.producto_codigo_snapshot = self.producto.codigo_barra
+        # Guardar snapshots del producto o promoción si no están guardados
+        if not self.producto_nombre_snapshot:
+            if self.producto:
+                self.producto_nombre_snapshot = self.producto.nombre
+                self.producto_codigo_snapshot = self.producto.codigo_barra
+            elif self.promocion:
+                self.producto_nombre_snapshot = f"[PROMO] {self.promocion.nombre}"
+                self.producto_codigo_snapshot = None
         
         super().save(*args, **kwargs)
