@@ -121,38 +121,58 @@ class Pedido(models.Model):
         """
         Aprueba el pedido pasándolo a EN_PREPARACION.
         
-        Verifica que los productos estén activos y con stock disponible.
+        Verifica que los productos y promociones estén activos y disponibles.
         """
         from django.utils import timezone
+        from apps.productos.models import Promocion
         
         if self.estado != 'PENDIENTE':
             raise ValueError('Solo se pueden aprobar pedidos pendientes.')
         
-        # Verificar que el pedido tenga productos válidos
-        producto_ids = list(self.items.values_list('producto_id', flat=True).distinct())
-        producto_ids = [pid for pid in producto_ids if pid is not None]
+        # Obtener IDs de productos y promociones
+        producto_ids = list(self.items.filter(producto_id__isnull=False).values_list('producto_id', flat=True).distinct())
+        promocion_ids = list(self.items.filter(promocion_id__isnull=False).values_list('promocion_id', flat=True).distinct())
         
-        if not producto_ids:
-            raise ValueError('El pedido no tiene productos válidos.')
+        # Verificar que el pedido tenga al menos un producto o promoción
+        if not producto_ids and not promocion_ids:
+            raise ValueError('El pedido no tiene productos ni promociones válidas.')
         
         # Verificar disponibilidad de productos
-        productos = Producto.objects.filter(id__in=producto_ids)
-        productos_dict = {p.id: p for p in productos}
+        if producto_ids:
+            productos = Producto.objects.filter(id__in=producto_ids)
+            productos_dict = {p.id: p for p in productos}
+            
+            for item in self.items.filter(producto_id__isnull=False):
+                producto = productos_dict.get(item.producto_id)
+                if not producto:
+                    raise ValueError(f'El producto del item {item.id} no existe o fue eliminado.')
+                
+                if not producto.activo:
+                    raise ValueError(f'El producto "{producto.nombre}" no está disponible.')
+                
+                if not producto.tiene_stock:
+                    raise ValueError(f'El producto "{producto.nombre}" no tiene stock disponible.')
         
-        for item in self.items.all():
-            if not item.producto_id:
-                raise ValueError('No se puede aprobar un pedido con productos eliminados.')
+        # Verificar disponibilidad de promociones
+        if promocion_ids:
+            promociones = Promocion.objects.filter(id__in=promocion_ids)
+            promociones_dict = {p.id: p for p in promociones}
             
-            producto = productos_dict.get(item.producto_id)
-            if not producto:
-                raise ValueError(f'El producto del item {item.id} no existe o fue eliminado.')
-            
-            # Verificar que el producto esté activo y tenga stock
-            if not producto.activo:
-                raise ValueError(f'El producto "{producto.nombre}" no está disponible.')
-            
-            if not producto.tiene_stock:
-                raise ValueError(f'El producto "{producto.nombre}" no tiene stock disponible.')
+            for item in self.items.filter(promocion_id__isnull=False):
+                promocion = promociones_dict.get(item.promocion_id)
+                if not promocion:
+                    raise ValueError(f'La promoción del item {item.id} no existe o fue eliminada.')
+                
+                if not promocion.activo:
+                    raise ValueError(f'La promoción "{promocion.nombre}" no está disponible.')
+                
+                if not promocion.esta_vigente:
+                    raise ValueError(f'La promoción "{promocion.nombre}" ya no está vigente.')
+                
+                # Verificar productos dentro de la promoción
+                for promo_item in promocion.items.all():
+                    if not promo_item.producto.activo or not promo_item.producto.tiene_stock:
+                        raise ValueError(f'El producto "{promo_item.producto.nombre}" de la promoción "{promocion.nombre}" no está disponible.')
         
         # Actualizar estado del pedido
         self.estado = 'EN_PREPARACION'

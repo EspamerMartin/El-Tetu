@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import { Card, Text, Chip } from 'react-native-paper';
 import { Promocion } from '@/types';
@@ -9,32 +9,90 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 interface PromocionCardProps {
   promocion: Promocion;
   onPress?: () => void;
-  compact?: boolean; // Versión compacta para catálogo
+  compact?: boolean; // Versión compacta para scroll horizontal
+  /** Versión estilo producto para grilla (similar a ProductCard) */
+  gridStyle?: boolean;
 }
 
 /**
  * PromocionCard
- * Tarjeta atractiva para mostrar promociones con diseño de marketing
+ * Tarjeta para mostrar promociones con múltiples estilos:
+ * - compact: scroll horizontal en catálogo
+ * - gridStyle: estilo similar a ProductCard para grillas
+ * - default: versión completa para gestión
  */
-const PromocionCard: React.FC<PromocionCardProps> = ({ 
+const PromocionCard: React.FC<PromocionCardProps> = memo(({ 
   promocion, 
   onPress,
-  compact = false 
+  compact = false,
+  gridStyle = false,
 }) => {
   const ahorro = parseFloat(promocion.ahorro);
   const tieneAhorro = ahorro > 0;
   const porcentajeDescuento = parseFloat(promocion.porcentaje_descuento);
 
+  // Versión estilo grilla (similar a ProductCard)
+  if (gridStyle) {
+    return (
+      <Card style={styles.cardGrid} onPress={onPress} mode="elevated">
+        <View style={styles.cardGridContent}>
+          {/* Imagen */}
+          <View style={styles.imageContainerGrid}>
+            {promocion.url_imagen ? (
+              <Image
+                source={{ uri: promocion.url_imagen }}
+                style={styles.imageGrid}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.imagePlaceholderGrid}>
+                <Icon name="tag-multiple" size={40} color={colors.promo} style={{ opacity: 0.5 }} />
+              </View>
+            )}
+            
+            {/* Badge descuento */}
+            {porcentajeDescuento > 0 && (
+              <View style={styles.descuentoBadgeGrid}>
+                <Text style={styles.descuentoTextGrid}>
+                  -{porcentajeDescuento.toFixed(0)}%
+                </Text>
+              </View>
+            )}
+          </View>
+          
+          {/* Info */}
+          <View style={styles.infoContainerGrid}>
+            <Text style={styles.nombreGrid} numberOfLines={2}>
+              {promocion.nombre}
+            </Text>
+            
+            <View style={styles.infoRowGrid}>
+              <Text style={styles.itemsCountGrid}>
+                {promocion.items_count} producto{promocion.items_count !== 1 ? 's' : ''}
+              </Text>
+            </View>
+
+            {/* Precios */}
+            <View style={styles.preciosContainerGrid}>
+              {tieneAhorro && (
+                <Text style={styles.precioOriginalGrid}>
+                  {formatPrice(promocion.precio_original)}
+                </Text>
+              )}
+              <Text style={styles.priceGrid}>
+                {formatPrice(promocion.precio)}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Card>
+    );
+  }
+
+  // Versión compacta para scroll horizontal
   if (compact) {
-    // Versión compacta para mostrar en el catálogo
     return (
       <Card style={styles.cardCompact} onPress={onPress}>
-        {/* Badge de promoción */}
-        <View style={styles.promoBadge}>
-          <Icon name="fire" size={12} color={colors.white} />
-          <Text style={styles.promoBadgeText}>PROMO</Text>
-        </View>
-
         {/* Imagen */}
         <View style={styles.imageContainerCompact}>
           {promocion.url_imagen ? (
@@ -89,7 +147,7 @@ const PromocionCard: React.FC<PromocionCardProps> = ({
     );
   }
 
-  // Versión completa para gestión
+  // Versión completa para gestión (admin/vendedor)
   return (
     <Card style={styles.card} onPress={onPress}>
       {/* Header con badge */}
@@ -198,7 +256,9 @@ const PromocionCard: React.FC<PromocionCardProps> = ({
       </View>
     </Card>
   );
-};
+});
+
+PromocionCard.displayName = 'PromocionCard';
 
 // Helper para formatear fechas
 const formatFecha = (fecha: string): string => {
@@ -210,7 +270,109 @@ const formatFecha = (fecha: string): string => {
 };
 
 const styles = StyleSheet.create({
-  // Card completa
+  // ========== Card estilo grilla (similar a ProductCard) ==========
+  cardGrid: {
+    flex: 1,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.promo,
+    ...shadows.md,
+  },
+  cardGridContent: {
+    overflow: 'hidden',
+  },
+  imageContainerGrid: {
+    position: 'relative',
+    width: '100%',
+    height: 140,
+    backgroundColor: colors.promoLight,
+    overflow: 'hidden',
+  },
+  imageGrid: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  imagePlaceholderGrid: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.promoLight,
+  },
+  promoBadgeGrid: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.promo,
+    paddingHorizontal: spacing.xs + 2,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.xs,
+    gap: 2,
+  },
+  promoBadgeTextGrid: {
+    color: colors.white,
+    fontSize: 9,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  descuentoBadgeGrid: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    backgroundColor: colors.success,
+    paddingHorizontal: spacing.xs + 2,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.xs,
+  },
+  descuentoTextGrid: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  infoContainerGrid: {
+    padding: spacing.sm + 2,
+    paddingBottom: 50, // Espacio para botón overlay
+  },
+  nombreGrid: {
+    fontWeight: '600',
+    color: colors.text,
+    fontSize: 13,
+    lineHeight: 17,
+    marginBottom: spacing.xs,
+  },
+  infoRowGrid: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  itemsCountGrid: {
+    color: colors.textSecondary,
+    fontWeight: '500',
+    fontSize: 10,
+  },
+  preciosContainerGrid: {
+    marginTop: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  precioOriginalGrid: {
+    fontSize: 11,
+    color: colors.textTertiary,
+    textDecorationLine: 'line-through',
+  },
+  priceGrid: {
+    color: colors.promo,
+    fontWeight: '700',
+    fontSize: 16,
+  },
+
+  // ========== Card completa (gestión) ==========
   card: {
     marginHorizontal: spacing.md,
     marginVertical: spacing.sm,
@@ -355,7 +517,7 @@ const styles = StyleSheet.create({
     color: colors.promo,
   },
 
-  // Card compacta
+  // ========== Card compacta (scroll horizontal) ==========
   cardCompact: {
     width: 160,
     marginRight: spacing.md,

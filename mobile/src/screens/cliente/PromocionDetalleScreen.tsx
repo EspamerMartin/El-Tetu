@@ -63,7 +63,7 @@ const PromocionDetalleScreen = ({ route, navigation }: Props) => {
         `"${promocion.nombre}" se agregó al carrito.`,
         [
           { text: 'Seguir viendo', style: 'cancel' },
-          { text: 'Ir al carrito', onPress: () => navigation.navigate('Carrito') },
+          { text: 'Ir al carrito', onPress: () => navigation.navigate('ClienteTabs', { screen: 'Carrito' }) },
         ]
       );
     } catch (err) {

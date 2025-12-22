@@ -194,7 +194,9 @@ const CatalogoScreen = () => {
   const handleAddProducto = useCallback((producto: Producto) => {
     if (!producto.tiene_stock) return;
 
-    const itemEnCarrito = cartItems.find(i => i.producto.id === producto.id);
+    const itemEnCarrito = cartItems.find(i => 
+      i.tipo === 'producto' && i.producto?.id === producto.id
+    );
     const cantidadActual = itemEnCarrito?.cantidad || 0;
 
     if (itemEnCarrito) {
@@ -267,7 +269,7 @@ const CatalogoScreen = () => {
 
   // Render productos
   const renderProducto = useCallback(({ item }: { item: Producto }) => {
-    const itemEnCarrito = cartItems.find(i => i.producto.id === item.id);
+    const itemEnCarrito = cartItems.find(i => i.tipo === 'producto' && i.producto?.id === item.id);
     const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
     
     return (
