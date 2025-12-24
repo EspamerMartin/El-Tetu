@@ -80,27 +80,6 @@ const PromocionesListScreen = ({ navigation }: { navigation: NavigationProp }) =
 
   return (
     <ScreenContainer>
-      {/* Header con estadísticas */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{promociones.length}</Text>
-          <Text style={styles.statLabel}>Total</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: colors.success }]}>
-            {promociones.filter((p: Promocion) => p.activo && p.esta_vigente).length}
-          </Text>
-          <Text style={styles.statLabel}>Activas</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: colors.promo }]}>
-            {promociones.filter((p: Promocion) => p.esta_vigente).length}
-          </Text>
-          <Text style={styles.statLabel}>Vigentes</Text>
-        </View>
-      </View>
 
       {/* Filtros por Estado */}
       <View style={styles.filtersContainer}>
@@ -168,31 +147,6 @@ const PromocionesListScreen = ({ navigation }: { navigation: NavigationProp }) =
 };
 
 const styles = StyleSheet.create({
-  statsContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.primarySurface,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  statDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: colors.border,
-  },
   filtersContainer: {
     backgroundColor: colors.surface,
     elevation: 2,
