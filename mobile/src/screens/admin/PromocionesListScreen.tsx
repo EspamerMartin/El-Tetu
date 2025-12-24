@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, FAB, Chip, Searchbar } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
@@ -19,9 +20,10 @@ type NavigationProp = DrawerNavigationProp<AdminDrawerParamList, 'Promociones'>;
  * Accesible para admin y vendedor
  */
 const PromocionesListScreen = ({ navigation }: { navigation: NavigationProp }) => {
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>('TODOS');
-  
+
   const { data: promocionesData, loading, refetch } = useFetch(
     () => promocionesAPI.getAll(
       estadoFilter === 'TODOS' ? {} : { activo: estadoFilter === 'ACTIVO' }
@@ -38,15 +40,15 @@ const PromocionesListScreen = ({ navigation }: { navigation: NavigationProp }) =
     refetch();
   }, [estadoFilter]);
 
-  const promociones = Array.isArray(promocionesData) 
-    ? promocionesData 
+  const promociones = Array.isArray(promocionesData)
+    ? promocionesData
     : (promocionesData || []);
 
   const promocionesFiltradas = searchQuery
-    ? promociones.filter((p: Promocion) => 
-        p.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.descripcion?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+    ? promociones.filter((p: Promocion) =>
+      p.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.descripcion?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : promociones;
 
   const handleDelete = async (id: number, nombre: string) => {
@@ -79,7 +81,7 @@ const PromocionesListScreen = ({ navigation }: { navigation: NavigationProp }) =
   ];
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={['bottom']}>
 
       {/* Filtros por Estado */}
       <View style={styles.filtersContainer}>
@@ -102,11 +104,11 @@ const PromocionesListScreen = ({ navigation }: { navigation: NavigationProp }) =
         />
       </View>
 
-      <Searchbar 
-        placeholder="Buscar promociones..." 
-        onChangeText={setSearchQuery} 
-        value={searchQuery} 
-        style={styles.searchbar} 
+      <Searchbar
+        placeholder="Buscar promociones..."
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        style={styles.searchbar}
       />
 
       {loading ? (
@@ -136,10 +138,10 @@ const PromocionesListScreen = ({ navigation }: { navigation: NavigationProp }) =
         />
       )}
 
-      <FAB 
-        icon="plus" 
-        style={styles.fab} 
-        onPress={() => navigation.navigate('PromocionForm')} 
+      <FAB
+        icon="plus"
+        style={[styles.fab, { bottom: spacing.lg + insets.bottom }]}
+        onPress={() => navigation.navigate('PromocionForm')}
         label="Nueva"
       />
     </ScreenContainer>
@@ -156,18 +158,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     gap: spacing.sm,
   },
-  filterChip: { 
+  filterChip: {
     marginRight: spacing.xs,
   },
-  searchbar: { 
+  searchbar: {
     margin: spacing.md,
   },
-  list: { 
+  list: {
     paddingBottom: spacing.xxl + spacing.xl,
   },
-  fab: { 
-    position: 'absolute', 
-    bottom: spacing.lg, 
+  fab: {
+    position: 'absolute',
+    bottom: spacing.lg,
     right: spacing.lg,
     backgroundColor: colors.promo,
   },
