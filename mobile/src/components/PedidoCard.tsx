@@ -19,43 +19,43 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onPress }) => {
   const getEstadoConfig = (estado: string) => {
     switch (estado) {
       case 'PENDIENTE':
-        return { 
-          color: colors.warning, 
+        return {
+          color: colors.warning,
           bgColor: colors.warningLight,
           label: 'Pendiente',
           icon: '⏳'
         };
       case 'EN_PREPARACION':
-        return { 
-          color: colors.info, 
+        return {
+          color: colors.info,
           bgColor: colors.infoLight,
           label: 'En Preparación',
           icon: '🔧'
         };
       case 'FACTURADO':
-        return { 
-          color: colors.invoice, 
+        return {
+          color: colors.invoice,
           bgColor: colors.invoiceLight,
           label: 'Facturado',
           icon: '📄'
         };
       case 'ENTREGADO':
-        return { 
-          color: colors.success, 
+        return {
+          color: colors.success,
           bgColor: colors.successLight,
           label: 'Entregado',
           icon: '✓'
         };
       case 'RECHAZADO':
-        return { 
-          color: colors.error, 
+        return {
+          color: colors.error,
           bgColor: colors.errorLight,
           label: 'Rechazado',
           icon: '✕'
         };
       default:
-        return { 
-          color: colors.textSecondary, 
+        return {
+          color: colors.textSecondary,
           bgColor: colors.borderLight,
           label: estado,
           icon: '?'
@@ -159,7 +159,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   estadoChip: {
-    height: 28,
     borderRadius: borderRadius.lg,
   },
   estadoText: {

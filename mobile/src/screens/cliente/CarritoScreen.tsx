@@ -4,12 +4,12 @@ import { Text, Button, Card, IconButton, Divider, Surface, Chip } from 'react-na
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ClienteTabParamList } from '@/navigation/ClienteStack';
 import { useAppSelector, useAppDispatch } from '@/store';
-import { 
-  removeFromCart, 
+import {
+  removeFromCart,
   removePromocionFromCart,
-  updateQuantity, 
+  updateQuantity,
   updatePromocionQuantity,
-  clearCart 
+  clearCart
 } from '@/store/slices/cartSlice';
 import { pedidosAPI } from '@/services/api';
 import { CartItem, CreatePedidoItemData } from '@/types';
@@ -33,7 +33,7 @@ const CarritoScreen = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
   const { items } = useAppSelector((state) => state.cart);
   const { user } = useAppSelector((state) => state.auth);
-  
+
   const [loading, setLoading] = useState(false);
 
   const subtotal = items.reduce((acc, item) => {
@@ -118,7 +118,7 @@ const CarritoScreen = ({ navigation }: Props) => {
 
     try {
       setLoading(true);
-      
+
       // Construir items para el pedido (productos y promociones)
       const pedidoItems: CreatePedidoItemData[] = items.map((item) => {
         if (item.tipo === 'producto' && item.producto) {
@@ -144,7 +144,7 @@ const CarritoScreen = ({ navigation }: Props) => {
 
       const pedido = await pedidosAPI.create(pedidoData);
       dispatch(clearCart());
-      
+
       Alert.alert(
         'Pedido realizado',
         `Tu pedido #${pedido?.id || 'N/A'} ha sido creado exitosamente`,
@@ -156,7 +156,7 @@ const CarritoScreen = ({ navigation }: Props) => {
         ]
       );
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error 
+      const errorMessage = error.response?.data?.error
         || error.response?.data?.message
         || error.response?.data?.detail
         || 'Error al crear el pedido';
@@ -246,8 +246,8 @@ const CarritoScreen = ({ navigation }: Props) => {
             <View style={styles.itemHeader}>
               <View style={styles.itemInfo}>
                 <View style={styles.promoHeader}>
-                  <Chip 
-                    icon="fire" 
+                  <Chip
+                    icon="fire"
                     style={styles.promoBadge}
                     textStyle={styles.promoBadgeText}
                     compact
@@ -410,7 +410,6 @@ const styles = StyleSheet.create({
   },
   promoBadge: {
     backgroundColor: colors.promo,
-    height: 24,
   },
   promoBadgeText: {
     color: colors.white,
