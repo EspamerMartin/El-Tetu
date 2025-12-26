@@ -71,7 +71,7 @@ const AdminHomeScreen = ({ navigation }: Props) => {
             <Text variant="bodyMedium" style={styles.kpiLabel}>Usuarios Totales</Text>
           </Surface>
 
-          <Surface style={[styles.kpiCard, { backgroundColor: colors.secondaryContainer }]} elevation={2}>
+          <Surface style={[styles.kpiCard, { backgroundColor: '#F3E5F5' }]} elevation={2}>
             <Icon name="package-variant" size={40} color={colors.secondary} />
             <Text variant="headlineLarge" style={[styles.kpiValue, { color: colors.secondary }]}>
               {stats.productosActivos}
@@ -89,7 +89,12 @@ const AdminHomeScreen = ({ navigation }: Props) => {
 
           <Surface style={[styles.kpiCard, { backgroundColor: '#E8F5E9' }]} elevation={2}>
             <Icon name="cash-multiple" size={40} color="#4CAF50" />
-            <Text variant="headlineLarge" style={[styles.kpiValue, { color: '#4CAF50' }]}>
+            <Text
+              variant="headlineLarge"
+              style={[styles.kpiValue, { color: '#4CAF50' }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
               {formatPrice(stats.ventasMes)}
             </Text>
             <Text variant="bodyMedium" style={styles.kpiLabel}>Ventas del Mes</Text>
@@ -214,6 +219,7 @@ const styles = StyleSheet.create({
   },
   kpiValue: {
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   kpiLabel: {
     fontWeight: '600',
