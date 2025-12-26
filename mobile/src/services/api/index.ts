@@ -97,7 +97,7 @@ export const productosAPI = {
   }): Promise<PaginatedResponse<Producto>> => {
     const response = await api.get('/productos/', { params });
     const data = response.data;
-    
+
     // Si la respuesta es un array (sin paginación), convertir a formato paginado
     if (Array.isArray(data)) {
       return {
@@ -107,7 +107,7 @@ export const productosAPI = {
         results: data,
       };
     }
-    
+
     // Si ya viene paginado, devolverlo tal cual
     return data;
   },
@@ -299,8 +299,8 @@ export const pedidosAPI = {
   },
 
   asignarTransportador: async (id: number, transportadorId: number | null): Promise<Pedido> => {
-    const response = await api.put(`/pedidos/${id}/asignar-transportador/`, { 
-      transportador: transportadorId 
+    const response = await api.put(`/pedidos/${id}/asignar-transportador/`, {
+      transportador: transportadorId
     });
     return response.data;
   },
@@ -314,6 +314,33 @@ export const pedidosAPI = {
     telefono?: string;
   }>> => {
     const response = await api.get('/pedidos/transportadores/');
+    return response.data;
+  },
+
+  /**
+   * Obtiene estadísticas del dashboard de admin.
+   * Retorna KPIs calculados en el servidor.
+   */
+  getEstadisticasAdmin: async (): Promise<{
+    ventas_mes: number;
+    pedidos_mes: number;
+    productos_activos: number;
+    productos_sin_stock: number;
+    total_usuarios: number;
+  }> => {
+    const response = await api.get('/pedidos/estadisticas/admin/');
+    return response.data;
+  },
+
+  /**
+   * Obtiene estadísticas del dashboard de vendedor.
+   * Retorna solo los KPIs necesarios para el vendedor.
+   */
+  getEstadisticasVendedor: async (): Promise<{
+    pedidos_pendientes: number;
+    productos_sin_stock: number;
+  }> => {
+    const response = await api.get('/pedidos/estadisticas/vendedor/');
     return response.data;
   },
 

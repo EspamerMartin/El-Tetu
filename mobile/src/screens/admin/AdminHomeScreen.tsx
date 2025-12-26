@@ -8,7 +8,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AdminDrawerParamList } from '@/navigation/AdminStack';
 import { AdminStackParamList } from '@/navigation/AdminStack';
 import { useFetch } from '@/hooks';
-import { clientesAPI, productosAPI, pedidosAPI } from '@/services/api';
+import { pedidosAPI } from '@/services/api';
 import { LoadingOverlay, ScreenContainer } from '@/components';
 import { useAppSelector } from '@/store';
 import { spacing } from '@/theme';
@@ -28,54 +28,23 @@ const AdminHomeScreen = ({ navigation }: Props) => {
   const { colors } = useTheme();
   const { user } = useAppSelector((state) => state.auth);
 
-  const { data: usuarios, loading: loadingUsuarios, refetch: refetchUsuarios } = useFetch(() => clientesAPI.getAll());
-  const { data: productos, loading: loadingProductos, refetch: refetchProductos } = useFetch(() => productosAPI.getAll());
-  const { data: pedidos, loading: loadingPedidos, refetch: refetchPedidos } = useFetch(() => pedidosAPI.getAll());
-  const { data: productosSinStock, loading: loadingSinStock, refetch: refetchSinStock } = useFetch(
-    () => productosAPI.getAll({ tiene_stock: false, activo: true })
+  // Usar el endpoint de estadísticas de admin
+  const { data: estadisticas, loading, refetch } = useFetch(
+    () => pedidosAPI.getEstadisticasAdmin()
   );
 
   useFocusEffect(
     React.useCallback(() => {
-      refetchUsuarios();
-      refetchProductos();
-      refetchPedidos();
-      refetchSinStock();
+      refetch();
     }, [])
   );
 
-  const loading = loadingUsuarios || loadingProductos || loadingPedidos || loadingSinStock;
-
-  const hoy = new Date();
-  
-  // Asegurar que siempre tengamos arrays, incluso si la respuesta es directa
-  const pedidosArray = Array.isArray(pedidos) ? pedidos : (pedidos?.results || []);
-  const productosArray = Array.isArray(productos) ? productos : (productos?.results || []);
-  const productosSinStockArray = Array.isArray(productosSinStock) 
-    ? productosSinStock 
-    : (productosSinStock?.results || []);
-
-  // Pedidos del mes (todos los estados)
-  const pedidosMes = pedidosArray.filter((p: any) => {
-    const fechaPedido = new Date(p.fecha_creacion);
-    return fechaPedido.getMonth() === hoy.getMonth() && 
-           fechaPedido.getFullYear() === hoy.getFullYear();
-  });
-
-  // Pedidos procesados del mes (no pendientes ni rechazados)
-  const pedidosAprobadosMes = pedidosMes.filter((p: any) => 
-    ['EN_PREPARACION', 'FACTURADO', 'ENTREGADO'].includes(p.estado)
-  );
-
   const stats = {
-    totalUsuarios: Array.isArray(usuarios) ? usuarios.length : (usuarios?.count || 0),
-    productosActivos: productosArray.filter((p: any) => p.activo).length,
-    pedidosMes: pedidosMes.length,
-    ventasMes: pedidosAprobadosMes.reduce((acc: number, p: any) => {
-      const total = parseFloat(p.total);
-      return acc + (isNaN(total) ? 0 : total);
-    }, 0),
-    productosSinStock: productosSinStockArray.length,
+    totalUsuarios: estadisticas?.total_usuarios || 0,
+    productosActivos: estadisticas?.productos_activos || 0,
+    pedidosMes: estadisticas?.pedidos_mes || 0,
+    ventasMes: estadisticas?.ventas_mes || 0,
+    productosSinStock: estadisticas?.productos_sin_stock || 0,
   };
 
   const iniciales = user ? `${user.nombre.charAt(0)}${user.apellido.charAt(0)}` : 'AD';
@@ -83,7 +52,7 @@ const AdminHomeScreen = ({ navigation }: Props) => {
   return (
     <ScreenContainer>
       {loading && <LoadingOverlay visible message="Cargando estadísticas..." />}
-      
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <View>
@@ -132,8 +101,8 @@ const AdminHomeScreen = ({ navigation }: Props) => {
             onPress={() => navigation.getParent()?.navigate('ProductosSinStock')}
             style={styles.kpiCardTouchableFull}
           >
-            <Surface 
-              style={[styles.kpiCardFull, { backgroundColor: colors.errorContainer }]} 
+            <Surface
+              style={[styles.kpiCardFull, { backgroundColor: colors.errorContainer }]}
               elevation={2}
             >
               <View style={styles.kpiHeader}>
@@ -144,11 +113,11 @@ const AdminHomeScreen = ({ navigation }: Props) => {
               </View>
               <Text variant="bodyMedium" style={styles.kpiLabel}>Sin Stock</Text>
               <Text variant="bodySmall" style={styles.kpiDescription}>
-                {stats.productosSinStock === 0 
+                {stats.productosSinStock === 0
                   ? 'Todos los productos tienen stock disponible'
                   : stats.productosSinStock === 1
-                  ? '1 producto sin stock disponible'
-                  : `${stats.productosSinStock} productos sin stock disponible`}
+                    ? '1 producto sin stock disponible'
+                    : `${stats.productosSinStock} productos sin stock disponible`}
               </Text>
             </Surface>
           </TouchableOpacity>
@@ -156,7 +125,7 @@ const AdminHomeScreen = ({ navigation }: Props) => {
 
         {/* Accesos Rápidos */}
         <Text variant="titleLarge" style={styles.sectionTitle}>Accesos Rápidos</Text>
-        
+
         <View style={styles.quickActionsContainer}>
           <TouchableOpacity
             activeOpacity={0.7}
