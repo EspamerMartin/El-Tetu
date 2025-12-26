@@ -21,8 +21,8 @@ interface PromocionCardProps {
  * - gridStyle: estilo similar a ProductCard para grillas
  * - default: versión completa para gestión
  */
-const PromocionCard: React.FC<PromocionCardProps> = memo(({ 
-  promocion, 
+const PromocionCard: React.FC<PromocionCardProps> = memo(({
+  promocion,
   onPress,
   compact = false,
   gridStyle = false,
@@ -49,7 +49,7 @@ const PromocionCard: React.FC<PromocionCardProps> = memo(({
                 <Icon name="tag-multiple" size={40} color={colors.promo} style={{ opacity: 0.5 }} />
               </View>
             )}
-            
+
             {/* Badge descuento */}
             {porcentajeDescuento > 0 && (
               <View style={styles.descuentoBadgeGrid}>
@@ -59,13 +59,13 @@ const PromocionCard: React.FC<PromocionCardProps> = memo(({
               </View>
             )}
           </View>
-          
+
           {/* Info */}
           <View style={styles.infoContainerGrid}>
             <Text style={styles.nombreGrid} numberOfLines={2}>
               {promocion.nombre}
             </Text>
-            
+
             <View style={styles.infoRowGrid}>
               <Text style={styles.itemsCountGrid}>
                 {promocion.items_count} producto{promocion.items_count !== 1 ? 's' : ''}
@@ -96,8 +96,8 @@ const PromocionCard: React.FC<PromocionCardProps> = memo(({
         {/* Imagen */}
         <View style={styles.imageContainerCompact}>
           {promocion.url_imagen ? (
-            <Image 
-              source={{ uri: promocion.url_imagen }} 
+            <Image
+              source={{ uri: promocion.url_imagen }}
               style={styles.imageCompact}
               resizeMode="cover"
             />
@@ -109,8 +109,8 @@ const PromocionCard: React.FC<PromocionCardProps> = memo(({
         </View>
 
         <Card.Content style={styles.contentCompact}>
-          <Text 
-            variant="titleSmall" 
+          <Text
+            variant="titleSmall"
             style={styles.nombreCompact}
             numberOfLines={2}
           >
@@ -156,11 +156,12 @@ const PromocionCard: React.FC<PromocionCardProps> = memo(({
           <Icon name="fire" size={16} color={colors.white} />
           <Text style={styles.promoBadgeTextLarge}>PROMOCIÓN</Text>
         </View>
-        
+
         {!promocion.activo && (
-          <Chip 
+          <Chip
             style={styles.inactivoChip}
             textStyle={styles.inactivoText}
+            compact
           >
             Inactivo
           </Chip>
@@ -179,8 +180,8 @@ const PromocionCard: React.FC<PromocionCardProps> = memo(({
         {/* Imagen */}
         <View style={styles.imageContainer}>
           {promocion.url_imagen ? (
-            <Image 
-              source={{ uri: promocion.url_imagen }} 
+            <Image
+              source={{ uri: promocion.url_imagen }}
               style={styles.image}
               resizeMode="cover"
             />
@@ -198,8 +199,8 @@ const PromocionCard: React.FC<PromocionCardProps> = memo(({
           </Text>
 
           {promocion.descripcion && (
-            <Text 
-              variant="bodySmall" 
+            <Text
+              variant="bodySmall"
               style={styles.descripcion}
               numberOfLines={2}
             >
@@ -263,9 +264,9 @@ PromocionCard.displayName = 'PromocionCard';
 // Helper para formatear fechas
 const formatFecha = (fecha: string): string => {
   const date = new Date(fecha);
-  return date.toLocaleDateString('es-AR', { 
-    day: '2-digit', 
-    month: 'short' 
+  return date.toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: 'short'
   });
 };
 
@@ -407,7 +408,6 @@ const styles = StyleSheet.create({
   },
   inactivoChip: {
     backgroundColor: colors.errorLight,
-    height: 24,
   },
   inactivoText: {
     color: colors.error,
