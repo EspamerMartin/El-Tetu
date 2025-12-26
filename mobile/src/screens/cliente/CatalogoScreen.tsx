@@ -9,7 +9,7 @@ import { productosAPI, promocionesAPI } from '@/services/api';
 import { Producto, Categoria, Subcategoria, PaginatedResponse, Promocion } from '@/types';
 import { ProductCard, CategoryCard, LoadingOverlay, ScreenContainer, EmptyState, PromocionCard } from '@/components';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { addToCart, updateQuantity } from '@/store/slices/cartSlice';
+import { addToCart, updateQuantity, addPromocionToCart, updatePromocionQuantity } from '@/store/slices/cartSlice';
 import { useFetch, usePaginatedFetch } from '@/hooks';
 import { colors, spacing, borderRadius } from '@/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -37,47 +37,47 @@ const CatalogoScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector(state => state.cart.items);
-  
+
   // Estado de navegación
   const [level, setLevel] = useState<NavigationLevel>('categorias');
   const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null);
   const [selectedSubcategoria, setSelectedSubcategoria] = useState<Subcategoria | null>(null);
-  
+
   // Estado de búsqueda (en nivel productos)
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Fetch categorías
-  const { 
-    data: categoriasData, 
-    loading: loadingCategorias, 
-    refetch: refetchCategorias 
+  const {
+    data: categoriasData,
+    loading: loadingCategorias,
+    refetch: refetchCategorias
   } = useFetch(() => productosAPI.getCategorias({ activo: 'true' }));
 
   // Fetch subcategorías
-  const { 
-    data: subcategoriasData, 
+  const {
+    data: subcategoriasData,
     loading: loadingSubcategorias,
-    refetch: refetchSubcategorias 
+    refetch: refetchSubcategorias
   } = useFetch(() => productosAPI.getSubcategorias({ activo: 'true' }));
 
   // Fetch promociones activas
-  const { 
-    data: promocionesData, 
+  const {
+    data: promocionesData,
     loading: loadingPromociones,
   } = useFetch(() => promocionesAPI.getActivas());
 
-  const promociones: Promocion[] = useMemo(() => 
+  const promociones: Promocion[] = useMemo(() =>
     Array.isArray(promocionesData) ? promocionesData : [],
     [promocionesData]
   );
 
-  const categorias = useMemo(() => 
+  const categorias = useMemo(() =>
     (categoriasData?.results || []).filter((c: Categoria) => c.activo),
     [categoriasData]
   );
 
-  const allSubcategorias = useMemo(() => 
+  const allSubcategorias = useMemo(() =>
     (subcategoriasData?.results || []).filter((s: Subcategoria) => s.activo),
     [subcategoriasData]
   );
@@ -103,15 +103,15 @@ const CatalogoScreen = () => {
 
   // Función de fetch para productos
   const fetchProductos = useCallback(async (page: number): Promise<PaginatedResponse<Producto>> => {
-    const params: Record<string, any> = { 
+    const params: Record<string, any> = {
       activo: true,
       page,
     };
-    
+
     if (selectedCategoria) params.categoria = selectedCategoria.id;
     if (selectedSubcategoria) params.subcategoria = selectedSubcategoria.id;
     if (debouncedSearch) params.search = debouncedSearch;
-    
+
     return productosAPI.getAll(params);
   }, [selectedCategoria, selectedSubcategoria, debouncedSearch]);
 
@@ -139,7 +139,7 @@ const CatalogoScreen = () => {
   }, [level, selectedCategoria, selectedSubcategoria, debouncedSearch, resetProductos]);
 
   // Calcular total de items en carrito
-  const cartTotalItems = useMemo(() => 
+  const cartTotalItems = useMemo(() =>
     cartItems.reduce((acc, item) => acc + item.cantidad, 0),
     [cartItems]
   );
@@ -150,7 +150,7 @@ const CatalogoScreen = () => {
     setSelectedSubcategoria(null);
     setSearchQuery('');
     setDebouncedSearch('');
-    
+
     // Verificar si tiene subcategorías
     const subcats = allSubcategorias.filter((s: Subcategoria) => s.categoria === categoria.id);
     if (subcats.length > 0) {
@@ -194,7 +194,7 @@ const CatalogoScreen = () => {
   const handleAddProducto = useCallback((producto: Producto) => {
     if (!producto.tiene_stock) return;
 
-    const itemEnCarrito = cartItems.find(i => 
+    const itemEnCarrito = cartItems.find(i =>
       i.tipo === 'producto' && i.producto?.id === producto.id
     );
     const cantidadActual = itemEnCarrito?.cantidad || 0;
@@ -208,6 +208,24 @@ const CatalogoScreen = () => {
 
   const handleUpdateCantidad = useCallback((productoId: number, nuevaCantidad: number) => {
     dispatch(updateQuantity({ productoId, cantidad: Math.max(0, nuevaCantidad) }));
+  }, [dispatch]);
+
+  // Handlers para promociones
+  const handleAddPromocion = useCallback((promocion: Promocion) => {
+    const itemEnCarrito = cartItems.find(i =>
+      i.tipo === 'promocion' && i.promocion?.id === promocion.id
+    );
+    const cantidadActual = itemEnCarrito?.cantidad || 0;
+
+    if (itemEnCarrito) {
+      dispatch(updatePromocionQuantity({ promocionId: promocion.id, cantidad: cantidadActual + 1 }));
+    } else {
+      dispatch(addPromocionToCart({ promocion, cantidad: 1 }));
+    }
+  }, [cartItems, dispatch]);
+
+  const handleUpdatePromocionCantidad = useCallback((promocionId: number, nuevaCantidad: number) => {
+    dispatch(updatePromocionQuantity({ promocionId, cantidad: Math.max(0, nuevaCantidad) }));
   }, [dispatch]);
 
   const handleEndReached = useCallback(() => {
@@ -271,12 +289,12 @@ const CatalogoScreen = () => {
   const renderProducto = useCallback(({ item }: { item: Producto }) => {
     const itemEnCarrito = cartItems.find(i => i.tipo === 'producto' && i.producto?.id === item.id);
     const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
-    
+
     return (
       <View style={styles.cardWrapper}>
         <View style={styles.productCardContainer}>
-          <ProductCard 
-            producto={item} 
+          <ProductCard
+            producto={item}
             onPress={() => handleProductPress(item)}
             showAddButton={false}
           />
@@ -337,8 +355,8 @@ const CatalogoScreen = () => {
 
     return (
       <Surface style={styles.breadcrumb} elevation={1}>
-        <TouchableOpacity 
-          style={styles.breadcrumbItem} 
+        <TouchableOpacity
+          style={styles.breadcrumbItem}
           onPress={() => {
             setSelectedCategoria(null);
             setSelectedSubcategoria(null);
@@ -353,7 +371,7 @@ const CatalogoScreen = () => {
         {selectedCategoria && (
           <>
             <Icon name="chevron-right" size={18} color={colors.textSecondary} />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.breadcrumbItem}
               onPress={() => {
                 if (level === 'productos' && subcategoriasFiltradas.length > 0) {
@@ -387,7 +405,7 @@ const CatalogoScreen = () => {
   };
 
   // Loading state
-  const isLoading = 
+  const isLoading =
     (level === 'categorias' && loadingCategorias) ||
     (level === 'subcategorias' && loadingSubcategorias) ||
     (level === 'productos' && loadingProductos && productos.length === 0);
@@ -427,19 +445,63 @@ const CatalogoScreen = () => {
                   <Icon name="fire" size={24} color={colors.promo} />
                   <Text style={styles.promocionesTitle}>Promociones</Text>
                 </View>
-                <ScrollView 
-                  horizontal 
+                <ScrollView
+                  horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.promocionesScroll}
                 >
-                  {promociones.map((promo) => (
-                    <PromocionCard
-                      key={promo.id}
-                      promocion={promo}
-                      compact
-                      onPress={() => navigation.navigate('PromocionDetalle', { promocionId: promo.id })}
-                    />
-                  ))}
+                  {promociones.map((promo) => {
+                    const itemEnCarrito = cartItems.find(i =>
+                      i.tipo === 'promocion' && i.promocion?.id === promo.id
+                    );
+                    const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
+
+                    return (
+                      <View key={promo.id} style={styles.promoCardContainer}>
+                        <PromocionCard
+                          promocion={promo}
+                          compact
+                          onPress={() => navigation.navigate('PromocionDetalle', { promocionId: promo.id })}
+                        />
+                        {cantidadEnCarrito > 0 && (
+                          <View style={styles.promoAddButtonOverlay}>
+                            <View style={styles.cantidadControlsOverlay}>
+                              <IconButton
+                                icon="minus"
+                                size={20}
+                                iconColor={colors.white}
+                                onPress={() => handleUpdatePromocionCantidad(promo.id, cantidadEnCarrito - 1)}
+                                style={styles.cantidadButtonOverlay}
+                              />
+                              <Text style={styles.cantidadTextOverlay}>
+                                {cantidadEnCarrito}
+                              </Text>
+                              <IconButton
+                                icon="plus"
+                                size={20}
+                                iconColor={colors.white}
+                                onPress={() => handleAddPromocion(promo)}
+                                style={styles.cantidadButtonOverlay}
+                              />
+                            </View>
+                          </View>
+                        )}
+                        {cantidadEnCarrito === 0 && (
+                          <View style={styles.promoAddButtonOverlay}>
+                            <Button
+                              mode="contained"
+                              icon="plus"
+                              compact
+                              onPress={() => handleAddPromocion(promo)}
+                              style={styles.addButtonOverlayStyle}
+                            >
+                              Agregar
+                            </Button>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
                 </ScrollView>
                 <Text style={styles.categoriasTitle}>Categorías</Text>
               </View>
@@ -481,8 +543,8 @@ const CatalogoScreen = () => {
             <EmptyState
               icon="package-variant-closed"
               title="No hay productos"
-              message={searchQuery 
-                ? 'Intenta con otra búsqueda' 
+              message={searchQuery
+                ? 'Intenta con otra búsqueda'
                 : 'No hay productos en esta categoría'}
               actionLabel={searchQuery ? 'Limpiar búsqueda' : undefined}
               onAction={searchQuery ? () => {
@@ -642,6 +704,15 @@ const styles = StyleSheet.create({
   promocionesScroll: {
     paddingLeft: spacing.sm,
     paddingBottom: spacing.md,
+  },
+  promoCardContainer: {
+    position: 'relative',
+  },
+  promoAddButtonOverlay: {
+    position: 'absolute',
+    bottom: spacing.sm + 2,
+    left: spacing.sm + 2,
+    right: spacing.sm + spacing.md + 2, // padding (sm+2) + marginRight de la card (md)
   },
   categoriasTitle: {
     fontSize: 18,

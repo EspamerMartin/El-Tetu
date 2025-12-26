@@ -21,15 +21,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   producto,
   onPress,
 }) => {
-  const getStockStyles = () => {
-    if (!producto.tiene_stock) {
-      return { badge: styles.stockBadgeError, text: 'Sin stock' };
-    }
-    return { badge: styles.stockBadgeSuccess, text: 'Disponible' };
-  };
-
-  const stockInfo = getStockStyles();
-
   return (
     <Card style={styles.card} onPress={onPress} mode="elevated">
       <View style={styles.cardContent}>
@@ -46,22 +37,15 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
               <Text style={styles.placeholderIcon}>📦</Text>
             </View>
           )}
-          
-          {/* Badge de stock */}
-          <View style={[styles.stockBadge, stockInfo.badge]}>
-            <Text style={styles.stockBadgeText} numberOfLines={1}>
-              {stockInfo.text}
-            </Text>
-          </View>
         </View>
-        
+
         {/* Información del producto */}
         <View style={styles.infoContainer}>
           {/* Nombre del producto */}
           <Text style={styles.nombre} numberOfLines={2}>
             {producto.nombre}
           </Text>
-          
+
           {/* Categoría y Subcategoría */}
           <View style={styles.infoRow}>
             <Text style={styles.categoryValue} numberOfLines={1}>
@@ -73,7 +57,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
               )}
             </Text>
           </View>
-          
+
           {/* Precio */}
           <Text style={styles.price}>
             {formatPrice(producto.precio)}
@@ -119,35 +103,6 @@ const styles = StyleSheet.create({
   placeholderIcon: {
     fontSize: 40,
     opacity: 0.3,
-  },
-  stockBadge: {
-    position: 'absolute',
-    bottom: spacing.sm,
-    left: spacing.sm,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: borderRadius.sm,
-    maxWidth: '85%',
-    borderWidth: 1.5,
-    ...shadows.sm,
-  },
-  stockBadgeSuccess: {
-    backgroundColor: colors.success,
-    borderColor: '#1B5E20',
-  },
-  stockBadgeWarning: {
-    backgroundColor: colors.warning,
-    borderColor: '#E65100',
-  },
-  stockBadgeError: {
-    backgroundColor: colors.error,
-    borderColor: '#B71C1C',
-  },
-  stockBadgeText: {
-    color: colors.white,
-    fontWeight: '700',
-    fontSize: 11,
-    letterSpacing: 0.3,
   },
   infoContainer: {
     padding: spacing.sm + 2,

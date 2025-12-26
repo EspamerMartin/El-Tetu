@@ -89,7 +89,7 @@ const PromocionCard: React.FC<PromocionCardProps> = memo(({
     );
   }
 
-  // Versión compacta para scroll horizontal
+  // Versión compacta para scroll horizontal (similar a ProductCard)
   if (compact) {
     return (
       <Card style={styles.cardCompact} onPress={onPress}>
@@ -103,21 +103,32 @@ const PromocionCard: React.FC<PromocionCardProps> = memo(({
             />
           ) : (
             <View style={styles.imagePlaceholderCompact}>
-              <Icon name="tag-multiple" size={32} color={colors.promo} />
+              <Icon name="tag-multiple" size={40} color={colors.promo} style={{ opacity: 0.5 }} />
+            </View>
+          )}
+
+          {/* Badge de descuento sobre la imagen */}
+          {porcentajeDescuento > 0 && (
+            <View style={styles.descuentoBadgeCompact}>
+              <Text style={styles.descuentoTextCompact}>
+                -{porcentajeDescuento.toFixed(0)}%
+              </Text>
             </View>
           )}
         </View>
 
-        <Card.Content style={styles.contentCompact}>
-          <Text
-            variant="titleSmall"
-            style={styles.nombreCompact}
-            numberOfLines={2}
-          >
+        {/* Info del producto - similar a ProductCard */}
+        <View style={styles.infoContainerCompact}>
+          <Text style={styles.nombreCompact} numberOfLines={2}>
             {promocion.nombre}
           </Text>
 
-          {/* Precio y descuento */}
+          {/* Cantidad de productos */}
+          <Text style={styles.itemsCountCompact}>
+            {promocion.items_count} producto{promocion.items_count !== 1 ? 's' : ''}
+          </Text>
+
+          {/* Precios */}
           <View style={styles.precioContainerCompact}>
             {tieneAhorro && (
               <Text style={styles.precioOriginalCompact}>
@@ -128,21 +139,7 @@ const PromocionCard: React.FC<PromocionCardProps> = memo(({
               {formatPrice(promocion.precio)}
             </Text>
           </View>
-
-          {/* Badge de descuento */}
-          {porcentajeDescuento > 0 && (
-            <View style={styles.descuentoBadgeCompact}>
-              <Text style={styles.descuentoTextCompact}>
-                -{porcentajeDescuento.toFixed(0)}%
-              </Text>
-            </View>
-          )}
-
-          {/* Cantidad de productos */}
-          <Text style={styles.itemsCountCompact}>
-            {promocion.items_count} producto{promocion.items_count !== 1 ? 's' : ''}
-          </Text>
-        </Card.Content>
+        </View>
       </Card>
     );
   }
@@ -519,7 +516,7 @@ const styles = StyleSheet.create({
 
   // ========== Card compacta (scroll horizontal) ==========
   cardCompact: {
-    width: 160,
+    width: 170,
     marginRight: spacing.md,
     borderRadius: borderRadius.md,
     backgroundColor: colors.white,
@@ -548,7 +545,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   imageContainerCompact: {
-    height: 100,
+    position: 'relative',
+    height: 120,
     backgroundColor: colors.promoLight,
   },
   imageCompact: {
@@ -560,18 +558,21 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.promoLight,
   },
-  contentCompact: {
-    padding: spacing.sm,
+  infoContainerCompact: {
+    padding: spacing.sm + 2,
+    paddingBottom: 50, // Espacio para el botón "Agregar" overlay
   },
   nombreCompact: {
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: colors.text,
+    fontSize: 13,
+    lineHeight: 17,
     marginBottom: spacing.xs,
-    lineHeight: 18,
   },
   precioContainerCompact: {
-    marginBottom: spacing.xs,
+    marginTop: spacing.xs,
   },
   precioOriginalCompact: {
     fontSize: 11,
@@ -579,8 +580,8 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   precioPromoCompact: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
     color: colors.promo,
   },
   descuentoBadgeCompact: {
@@ -588,8 +589,8 @@ const styles = StyleSheet.create({
     top: spacing.sm,
     right: spacing.sm,
     backgroundColor: colors.success,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 2,
+    paddingHorizontal: spacing.xs + 2,
+    paddingVertical: spacing.xs,
     borderRadius: borderRadius.xs,
   },
   descuentoTextCompact: {
@@ -599,7 +600,8 @@ const styles = StyleSheet.create({
   },
   itemsCountCompact: {
     fontSize: 10,
-    color: colors.textSecondary,
+    color: colors.promo,
+    fontWeight: '500',
   },
 });
 
