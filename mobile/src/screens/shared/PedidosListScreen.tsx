@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, Chip, Searchbar, FAB } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAppSelector } from '@/store';
@@ -24,16 +25,17 @@ interface PedidosListScreenProps {
  * - FAB para crear nuevo pedido
  */
 const PedidosListScreen = ({ navigation }: PedidosListScreenProps) => {
+  const insets = useSafeAreaInsets();
   const { user } = useAppSelector((state) => state.auth);
   const isAdmin = user?.rol === 'admin';
-  
+
   const [estadoFilter, setEstadoFilter] = useState<EstadoFilter | null>(isAdmin ? null : 'TODOS');
   const [searchQuery, setSearchQuery] = useState('');
 
   const buildParams = () => {
     const params: { estado?: string } = {};
     // Para admin: null significa "todos", para vendedor: 'TODOS' significa "todos"
-    const estadoValue = isAdmin 
+    const estadoValue = isAdmin
       ? (estadoFilter === null ? undefined : estadoFilter)
       : (estadoFilter === 'TODOS' ? undefined : estadoFilter);
     if (estadoValue) {
@@ -58,18 +60,18 @@ const PedidosListScreen = ({ navigation }: PedidosListScreenProps) => {
   }, [estadoFilter, refetch]);
 
   const pedidos = pedidosData?.results || [];
-  
+
   // Filtrado client-side para búsqueda de texto (más rápido que hacer múltiples requests)
   const pedidosFiltrados = searchQuery
     ? pedidos.filter((p: Pedido) => {
-        const query = searchQuery.toLowerCase();
-        return (
-          p.id.toString().includes(query) ||
-          p.cliente_nombre?.toLowerCase().includes(query) ||
-          p.estado.toLowerCase().includes(query) ||
-          p.total.toString().includes(query)
-        );
-      })
+      const query = searchQuery.toLowerCase();
+      return (
+        p.id.toString().includes(query) ||
+        p.cliente_nombre?.toLowerCase().includes(query) ||
+        p.estado.toLowerCase().includes(query) ||
+        p.total.toString().includes(query)
+      );
+    })
     : pedidos;
 
   const handlePedidoPress = (pedidoId: number) => {
@@ -83,21 +85,21 @@ const PedidosListScreen = ({ navigation }: PedidosListScreenProps) => {
 
   const estados: { value: EstadoFilter | null; label: string; icon: string }[] = isAdmin
     ? [
-        { value: null, label: 'Todos', icon: 'view-list' },
-        { value: 'PENDIENTE', label: 'Pendientes', icon: 'clock-outline' },
-        { value: 'EN_PREPARACION', label: 'En Preparación', icon: 'progress-wrench' },
-        { value: 'FACTURADO', label: 'Facturados', icon: 'file-document-outline' },
-        { value: 'ENTREGADO', label: 'Entregados', icon: 'check-circle' },
-        { value: 'RECHAZADO', label: 'Rechazados', icon: 'close-circle' },
-      ]
+      { value: null, label: 'Todos', icon: 'view-list' },
+      { value: 'PENDIENTE', label: 'Pendientes', icon: 'clock-outline' },
+      { value: 'EN_PREPARACION', label: 'En Preparación', icon: 'progress-wrench' },
+      { value: 'FACTURADO', label: 'Facturados', icon: 'file-document-outline' },
+      { value: 'ENTREGADO', label: 'Entregados', icon: 'check-circle' },
+      { value: 'RECHAZADO', label: 'Rechazados', icon: 'close-circle' },
+    ]
     : [
-        { value: 'TODOS', label: 'Todos', icon: 'view-list' },
-        { value: 'PENDIENTE', label: 'Pendiente', icon: 'clock-outline' },
-        { value: 'EN_PREPARACION', label: 'En Preparación', icon: 'progress-wrench' },
-        { value: 'FACTURADO', label: 'Facturado', icon: 'file-document-outline' },
-        { value: 'ENTREGADO', label: 'Entregado', icon: 'check-circle' },
-        { value: 'RECHAZADO', label: 'Rechazado', icon: 'close-circle' },
-      ];
+      { value: 'TODOS', label: 'Todos', icon: 'view-list' },
+      { value: 'PENDIENTE', label: 'Pendiente', icon: 'clock-outline' },
+      { value: 'EN_PREPARACION', label: 'En Preparación', icon: 'progress-wrench' },
+      { value: 'FACTURADO', label: 'Facturado', icon: 'file-document-outline' },
+      { value: 'ENTREGADO', label: 'Entregado', icon: 'check-circle' },
+      { value: 'RECHAZADO', label: 'Rechazado', icon: 'close-circle' },
+    ];
 
   const getEmptyMessage = () => {
     const isTodos = isAdmin ? estadoFilter === null : estadoFilter === 'TODOS';
@@ -168,7 +170,7 @@ const PedidosListScreen = ({ navigation }: PedidosListScreenProps) => {
       {/* FAB para crear nuevo pedido */}
       <FAB
         icon="plus"
-        style={styles.fab}
+        style={[styles.fab, { bottom: spacing.lg + insets.bottom }]}
         onPress={() => navigation.navigate('NuevoPedido')}
       />
     </ScreenContainer>
@@ -177,7 +179,8 @@ const PedidosListScreen = ({ navigation }: PedidosListScreenProps) => {
 
 const styles = StyleSheet.create({
   searchbar: {
-    margin: spacing.md,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
   },
   filtersContainer: {
     backgroundColor: colors.surface,

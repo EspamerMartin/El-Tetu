@@ -4,9 +4,9 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 import logging
 
-from apps.users.permissions import IsAdmin
+from apps.users.permissions import IsAdmin, IsAdminOrVendedor
 from apps.core.mixins import SoftDeleteMixin
-from .models import Categoria, Subcategoria, Producto, Marca
+from .models import Categoria, Subcategoria, Producto, Marca, Promocion
 from .serializers import (
     CategoriaSerializer,
     SubcategoriaSerializer,
@@ -14,6 +14,9 @@ from .serializers import (
     ProductoDetailSerializer,
     ProductoCreateUpdateSerializer,
     MarcaSerializer,
+    PromocionListSerializer,
+    PromocionDetailSerializer,
+    PromocionCreateUpdateSerializer,
 )
 
 logger = logging.getLogger('eltetu')
@@ -262,3 +265,141 @@ class ProductoDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView)
         return [
             (instance.pedido_items, 'pedido_items'),
         ]
+
+
+# ========== Promociones ==========
+
+class PromocionListCreateView(generics.ListCreateAPIView):
+    """
+    Vista para listar y crear promociones.
+    GET/POST /api/productos/promociones/
+    
+    Filtros disponibles:
+    - activo: true/false
+    - search: búsqueda por nombre
+    
+    Admin y vendedor pueden crear promociones.
+    """
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['activo']
+    search_fields = ['nombre', 'descripcion']
+    
+    def get_queryset(self):
+        """
+        Admin ve todas (incluyendo eliminadas), otros solo activas y vigentes.
+        """
+        queryset = Promocion.objects.prefetch_related('items__producto')
+        
+        if self.request.user.is_admin() or self.request.user.is_vendedor():
+            # Admin/vendedor ven todas
+            return queryset.order_by('-activo', 'fecha_eliminacion', '-fecha_creacion')
+        else:
+            # Clientes solo ven activas, no eliminadas
+            queryset = queryset.filter(activo=True, fecha_eliminacion__isnull=True)
+            return queryset.order_by('-fecha_creacion')
+    
+    def get_serializer_class(self):
+        """Usa serializer de creación para POST."""
+        if self.request.method == 'POST':
+            return PromocionCreateUpdateSerializer
+        return PromocionListSerializer
+    
+    def get_permissions(self):
+        """Admin y vendedor pueden crear promociones."""
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsAdminOrVendedor()]
+        return [IsAuthenticated()]
+    
+    def create(self, request, *args, **kwargs):
+        """Crea promoción y retorna con serializer de detalle."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        
+        logger.info(
+            f'Promoción "{instance.nombre}" creada por usuario {request.user.email}'
+        )
+        
+        # Retornar con serializer de detalle
+        return Response(
+            PromocionDetailSerializer(instance).data,
+            status=201
+        )
+
+
+class PromocionDetailView(SoftDeleteMixin, generics.RetrieveUpdateDestroyAPIView):
+    """
+    Vista para obtener, actualizar y eliminar promoción.
+    GET/PUT/DELETE /api/productos/promociones/{id}/
+    """
+    queryset = Promocion.objects.prefetch_related('items__producto')
+    permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        """Usa serializer de detalle para GET, de actualización para PUT."""
+        if self.request.method in ['PUT', 'PATCH']:
+            return PromocionCreateUpdateSerializer
+        return PromocionDetailSerializer
+    
+    def get_permissions(self):
+        """Admin y vendedor pueden actualizar/eliminar promociones."""
+        if self.request.method in ['PUT', 'PATCH', 'DELETE']:
+            return [IsAuthenticated(), IsAdminOrVendedor()]
+        return [IsAuthenticated()]
+    
+    def get_reference_checks(self, instance):
+        """
+        Define las relaciones a verificar para soft delete.
+        Por ahora no hay referencias (pedidos con promociones vendrán después).
+        """
+        return []
+    
+    def update(self, request, *args, **kwargs):
+        """Actualiza promoción y retorna con serializer de detalle."""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        
+        logger.info(
+            f'Promoción "{instance.nombre}" actualizada por usuario {request.user.email}'
+        )
+        
+        return Response(PromocionDetailSerializer(instance).data)
+
+
+class PromocionActivasView(generics.ListAPIView):
+    """
+    Vista para listar solo promociones activas y vigentes.
+    GET /api/productos/promociones/activas/
+    
+    Esta vista es para el catálogo público (clientes).
+    Solo muestra promociones:
+    - activas (activo=True)
+    - no eliminadas
+    - vigentes (dentro de fechas de inicio/fin o sin fechas)
+    """
+    serializer_class = PromocionListSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Retorna solo promociones activas y vigentes."""
+        from django.utils import timezone
+        from django.db.models import Q
+        
+        ahora = timezone.now()
+        
+        return Promocion.objects.filter(
+            activo=True,
+            fecha_eliminacion__isnull=True
+        ).filter(
+            # Sin fechas definidas O dentro del rango
+            Q(fecha_inicio__isnull=True, fecha_fin__isnull=True) |
+            Q(fecha_inicio__isnull=True, fecha_fin__gte=ahora) |
+            Q(fecha_inicio__lte=ahora, fecha_fin__isnull=True) |
+            Q(fecha_inicio__lte=ahora, fecha_fin__gte=ahora)
+        ).prefetch_related(
+            'items__producto'
+        ).order_by('-fecha_creacion')

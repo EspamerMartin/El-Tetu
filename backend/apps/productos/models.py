@@ -208,3 +208,134 @@ class Producto(SoftDeleteMixin, TimestampMixin):
         if lista_precio and lista_precio.activo:
             return lista_precio.calcular_precio(self.precio_base)
         return self.precio_base
+
+
+class Promocion(SoftDeleteMixin, TimestampMixin):
+    """
+    Modelo para promociones (combos de productos con precio especial).
+    
+    Una promoción agrupa varios productos con un precio fijo especial,
+    más bajo que la suma de los precios individuales.
+    """
+    
+    nombre = models.CharField(max_length=200, verbose_name='Nombre')
+    descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
+    
+    # Precio fijo de la promoción
+    precio = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name='Precio',
+        help_text='Precio fijo de la promoción'
+    )
+    
+    url_imagen = models.URLField(
+        blank=True,
+        null=True,
+        verbose_name='URL de Imagen',
+        help_text='URL de la imagen de la promoción (ej: S3)'
+    )
+    
+    activo = models.BooleanField(default=True, verbose_name='Activo')
+    
+    # Campos para vigencia (opcionales - para uso futuro)
+    fecha_inicio = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Fecha de Inicio',
+        help_text='Fecha desde la cual la promoción está vigente (opcional)'
+    )
+    fecha_fin = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Fecha de Fin',
+        help_text='Fecha hasta la cual la promoción está vigente (opcional)'
+    )
+    
+    class Meta:
+        verbose_name = 'Promoción'
+        verbose_name_plural = 'Promociones'
+        ordering = ['-fecha_creacion']
+    
+    def __str__(self):
+        return self.nombre
+    
+    @property
+    def esta_vigente(self):
+        """
+        Verifica si la promoción está vigente según las fechas.
+        Si no tiene fechas definidas, se considera siempre vigente.
+        """
+        from django.utils import timezone
+        ahora = timezone.now()
+        
+        # Si no tiene fechas, está vigente
+        if not self.fecha_inicio and not self.fecha_fin:
+            return True
+        
+        # Verificar fecha de inicio
+        if self.fecha_inicio and ahora < self.fecha_inicio:
+            return False
+        
+        # Verificar fecha de fin
+        if self.fecha_fin and ahora > self.fecha_fin:
+            return False
+        
+        return True
+    
+    @property
+    def precio_original(self):
+        """
+        Calcula la suma de los precios originales de los productos.
+        Útil para mostrar el ahorro.
+        """
+        total = Decimal('0')
+        for item in self.items.all():
+            if item.producto:
+                total += item.producto.precio_base * item.cantidad
+        return total
+    
+    @property
+    def ahorro(self):
+        """Calcula el ahorro respecto al precio original."""
+        return self.precio_original - self.precio
+    
+    @property
+    def porcentaje_descuento(self):
+        """Calcula el porcentaje de descuento."""
+        if self.precio_original > 0:
+            return ((self.precio_original - self.precio) / self.precio_original * 100).quantize(Decimal('0.1'))
+        return Decimal('0')
+
+
+class PromocionItem(models.Model):
+    """
+    Item de una promoción (relación entre promoción y producto con cantidad).
+    """
+    
+    promocion = models.ForeignKey(
+        Promocion,
+        on_delete=models.CASCADE,
+        related_name='items',
+        verbose_name='Promoción'
+    )
+    producto = models.ForeignKey(
+        Producto,
+        on_delete=models.CASCADE,
+        related_name='en_promociones',
+        verbose_name='Producto'
+    )
+    cantidad = models.PositiveIntegerField(
+        default=1,
+        verbose_name='Cantidad',
+        help_text='Cantidad de este producto incluida en la promoción'
+    )
+    
+    class Meta:
+        verbose_name = 'Item de Promoción'
+        verbose_name_plural = 'Items de Promoción'
+        unique_together = ['promocion', 'producto']
+        ordering = ['id']
+    
+    def __str__(self):
+        return f"{self.cantidad}x {self.producto.nombre}"

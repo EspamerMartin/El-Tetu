@@ -14,6 +14,8 @@ import {
   CreatePedidoData,
   ListaPrecio,
   Marca,
+  Promocion,
+  PromocionCreateData,
 } from '@/types';
 
 // ========== Auth API ==========
@@ -202,6 +204,62 @@ export const productosAPI = {
     const response = await api.delete(`/productos/subcategorias/${id}/`);
     // Si es 204 (No Content), response.data puede ser undefined o string vacío
     // Si es 200, response.data contiene el mensaje
+    return response.data || undefined;
+  },
+};
+
+// ========== Promociones API ==========
+
+export const promocionesAPI = {
+  /**
+   * Obtiene todas las promociones.
+   * Admin/vendedor ven todas, clientes solo activas y vigentes.
+   */
+  getAll: async (params?: {
+    activo?: boolean;
+    search?: string;
+  }): Promise<Promocion[]> => {
+    const response = await api.get('/productos/promociones/', { params });
+    return response.data.results || response.data;
+  },
+
+  /**
+   * Obtiene solo promociones activas y vigentes (para catálogo).
+   */
+  getActivas: async (): Promise<Promocion[]> => {
+    const response = await api.get('/productos/promociones/activas/');
+    return response.data.results || response.data;
+  },
+
+  /**
+   * Obtiene una promoción por ID.
+   */
+  getById: async (id: number): Promise<Promocion> => {
+    const response = await api.get(`/productos/promociones/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Crea una nueva promoción.
+   */
+  create: async (data: PromocionCreateData): Promise<Promocion> => {
+    const response = await api.post('/productos/promociones/', data);
+    return response.data;
+  },
+
+  /**
+   * Actualiza una promoción existente.
+   */
+  update: async (id: number, data: Partial<PromocionCreateData>): Promise<Promocion> => {
+    const response = await api.put(`/productos/promociones/${id}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Elimina una promoción.
+   */
+  delete: async (id: number): Promise<{ message?: string } | void> => {
+    const response = await api.delete(`/productos/promociones/${id}/`);
     return response.data || undefined;
   },
 };

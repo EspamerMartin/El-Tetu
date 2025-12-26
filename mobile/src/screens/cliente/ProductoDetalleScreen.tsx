@@ -39,7 +39,7 @@ const ProductoDetalleScreen = ({ route, navigation }: Props) => {
   const isCliente = user?.rol === 'cliente';
   
   const cantidadEnCarrito = producto 
-    ? cartItems.find(item => item.producto.id === producto.id)?.cantidad || 0
+    ? cartItems.find(item => item.tipo === 'producto' && item.producto?.id === producto.id)?.cantidad || 0
     : 0;
 
   useEffect(() => {

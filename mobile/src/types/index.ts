@@ -136,10 +136,80 @@ export interface Producto {
   fecha_actualizacion: string;
 }
 
+// ========== Promocion Types ==========
+
+export interface PromocionItem {
+  id: number;
+  producto: number;
+  producto_nombre: string;
+  producto_imagen?: string;
+  producto_precio: string;
+  cantidad: number;
+  subtotal: string;
+}
+
+export interface Promocion {
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  precio: string;
+  url_imagen?: string;
+  activo: boolean;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  esta_vigente: boolean;
+  items: PromocionItem[];
+  items_count: number;
+  precio_original: string;
+  ahorro: string;
+  porcentaje_descuento: string;
+  fecha_creacion: string;
+  fecha_actualizacion?: string;
+}
+
+export interface PromocionCreateData {
+  nombre: string;
+  descripcion?: string;
+  precio: number;
+  url_imagen?: string;
+  activo?: boolean;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  items: Array<{
+    producto: number;
+    cantidad: number;
+  }>;
+}
+
 // ========== Cart Types ==========
 
+/**
+ * Item del carrito - puede ser un producto individual o una promoción
+ */
 export interface CartItem {
+  // Tipo de item para distinguir entre producto y promoción
+  tipo: 'producto' | 'promocion';
+  // Solo uno de los dos estará presente
+  producto?: Producto;
+  promocion?: Promocion;
+  cantidad: number;
+}
+
+/**
+ * @deprecated Usar CartItem con tipo='producto'
+ */
+export interface CartProductItem {
+  tipo: 'producto';
   producto: Producto;
+  cantidad: number;
+}
+
+/**
+ * @deprecated Usar CartItem con tipo='promocion'  
+ */
+export interface CartPromocionItem {
+  tipo: 'promocion';
+  promocion: Promocion;
   cantidad: number;
 }
 
@@ -159,9 +229,11 @@ export interface ListaPrecio {
 export interface PedidoItem {
   id: number;
   producto?: number;
+  promocion?: number;
   producto_detalle?: Producto;
   producto_nombre?: string;
   producto_codigo?: string;
+  es_promocion: boolean;
   cantidad: number;
   precio_unitario: string;
   subtotal: string;
@@ -211,13 +283,19 @@ export interface PedidoTransportador extends Omit<Pedido, 'cliente_info'> {
   cliente_info: ClienteInfoTransportador;
 }
 
+/**
+ * Item para crear pedido - puede ser producto o promoción
+ */
+export interface CreatePedidoItemData {
+  producto?: number;  // ID del producto (si es item de producto)
+  promocion?: number; // ID de la promoción (si es item de promoción)
+  cantidad: number;
+}
+
 export interface CreatePedidoData {
   cliente?: number;
   lista_precio: number;
-  items: Array<{
-    producto: number;
-    cantidad: number;
-  }>;
+  items: CreatePedidoItemData[];
   notas?: string;
 }
 

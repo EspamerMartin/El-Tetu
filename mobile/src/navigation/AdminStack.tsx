@@ -12,6 +12,8 @@ import ProductosListScreen from '@/screens/admin/ProductosListScreen';
 import ProductoFormScreen from '@/screens/admin/ProductoFormScreen';
 import MarcasListScreen from '@/screens/admin/MarcasListScreen';
 import CategoriasListScreen from '@/screens/admin/CategoriasListScreen';
+import PromocionesListScreen from '@/screens/admin/PromocionesListScreen';
+import PromocionFormScreen from '@/screens/admin/PromocionFormScreen';
 import PedidosListScreen from '@/screens/shared/PedidosListScreen';
 import PedidoDetalleScreen from '@/screens/shared/PedidoDetalleScreen';
 import ListasPreciosScreen from '@/screens/admin/ListasPreciosScreen';
@@ -25,6 +27,7 @@ export type AdminDrawerParamList = {
   AdminHome: undefined;
   Usuarios: undefined;
   Productos: undefined;
+  Promociones: undefined;
   Marcas: undefined;
   Categorias: undefined;
   ListasPrecios: undefined;
@@ -37,6 +40,7 @@ export type AdminStackParamList = {
   UsuarioDetalle: { usuarioId: number };
   UsuarioForm: { usuarioId?: number };
   ProductoForm: { productoId?: number };
+  PromocionForm: { promocionId?: number };
   ListaPrecioForm: { listaId?: number };
   AsignarListasClientes: undefined;
   PedidoAdminDetalle: { pedidoId: number };
@@ -93,6 +97,16 @@ const AdminDrawer = () => {
           title: 'Productos',
           drawerIcon: ({ color, size }) => (
             <Icon name="package-variant" color={color} size={size} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Promociones"
+        component={PromocionesListScreen}
+        options={{
+          title: 'Promociones',
+          drawerIcon: ({ color, size }) => (
+            <Icon name="fire" color={color} size={size} />
           ),
         }}
       />
@@ -183,6 +197,13 @@ const AdminStack = () => {
         component={ProductoFormScreen}
         options={({ route }) => ({
           title: route.params?.productoId ? 'Editar Producto' : 'Nuevo Producto',
+        })}
+      />
+      <Stack.Screen
+        name="PromocionForm"
+        component={PromocionFormScreen}
+        options={({ route }) => ({
+          title: route.params?.promocionId ? 'Editar Promoción' : 'Nueva Promoción',
         })}
       />
       <Stack.Screen

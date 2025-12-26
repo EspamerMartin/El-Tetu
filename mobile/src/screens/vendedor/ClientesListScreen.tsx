@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, Searchbar, Card, Avatar, Chip, FAB } from 'react-native-paper';
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { CompositeScreenProps, useFocusEffect } from '@react-navigation/native';
@@ -22,6 +23,7 @@ type Props = CompositeScreenProps<
  * Lista de todos los clientes con búsqueda
  */
 const ClientesListScreen = ({ navigation }: Props) => {
+  const insets = useSafeAreaInsets();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -128,15 +130,13 @@ const ClientesListScreen = ({ navigation }: Props) => {
   };
 
   return (
-    <ScreenContainer>
-      <View style={styles.searchContainer}>
-        <Searchbar
-          placeholder="Buscar por nombre, email o teléfono..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchbar}
-        />
-      </View>
+    <ScreenContainer edges={['bottom']}>
+      <Searchbar
+        placeholder="Buscar por nombre, email o teléfono..."
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        style={styles.searchbar}
+      />
 
       {loading ? (
         <LoadingOverlay visible message="Cargando clientes..." />
@@ -158,7 +158,7 @@ const ClientesListScreen = ({ navigation }: Props) => {
 
       <FAB
         icon="plus"
-        style={styles.fab}
+        style={[styles.fab, { bottom: spacing.lg + insets.bottom }]}
         onPress={handleNuevoCliente}
       />
     </ScreenContainer>
@@ -166,15 +166,9 @@ const ClientesListScreen = ({ navigation }: Props) => {
 };
 
 const styles = StyleSheet.create({
-  searchContainer: {
-    padding: spacing.md,
-    backgroundColor: colors.white,
-    ...shadows.sm,
-  },
   searchbar: {
-    backgroundColor: colors.primarySurface,
-    borderRadius: borderRadius.md,
-    elevation: 0,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
   },
   list: {
     padding: spacing.md,

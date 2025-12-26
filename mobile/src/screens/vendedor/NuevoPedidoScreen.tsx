@@ -6,9 +6,9 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { VendedorStackParamList } from '@/navigation/VendedorStack';
 import { AdminStackParamList } from '@/navigation/AdminStack';
 import { useFetch, usePaginatedFetch } from '@/hooks';
-import { clientesAPI, productosAPI, pedidosAPI, listasAPI } from '@/services/api';
-import { Cliente, Producto, CreatePedidoData, ListaPrecio, Categoria, Subcategoria, PaginatedResponse } from '@/types';
-import { LoadingOverlay, ScreenContainer, ProductCard, CategoryCard } from '@/components';
+import { clientesAPI, productosAPI, pedidosAPI, listasAPI, promocionesAPI } from '@/services/api';
+import { Cliente, Producto, CreatePedidoData, ListaPrecio, Categoria, Subcategoria, PaginatedResponse, Promocion } from '@/types';
+import { LoadingOverlay, ScreenContainer, ProductCard, CategoryCard, PromocionCard } from '@/components';
 import { colors, spacing, borderRadius } from '@/theme';
 import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -17,12 +17,21 @@ const screenWidth = Dimensions.get('window').width;
 
 type Props = NativeStackScreenProps<VendedorStackParamList | AdminStackParamList, 'NuevoPedido'>;
 
-interface ItemPedido {
+interface ItemProducto {
+  tipo: 'producto';
   producto: Producto;
   cantidad: number;
 }
 
-type ProductosLevel = 'categorias' | 'subcategorias' | 'productos';
+interface ItemPromocion {
+  tipo: 'promocion';
+  promocion: Promocion;
+  cantidad: number;
+}
+
+type ItemPedido = ItemProducto | ItemPromocion;
+
+type ProductosLevel = 'categorias' | 'subcategorias' | 'productos' | 'promociones';
 
 /**
  * NuevoPedidoScreen
@@ -64,6 +73,11 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
     productosAPI.getSubcategorias({ activo: 'true' })
   );
 
+  // Fetch promociones activas
+  const { data: promocionesData, loading: loadingPromociones } = useFetch(() => 
+    promocionesAPI.getActivas()
+  );
+
   // Arrays normalizados
   const clientes = Array.isArray(clientesData) ? clientesData : (clientesData?.results || []);
   const listas = Array.isArray(listasData) ? listasData : (listasData?.results || []);
@@ -74,6 +88,11 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   const allSubcategorias = useMemo(() => 
     (subcategoriasData?.results || []).filter((s: Subcategoria) => s.activo),
     [subcategoriasData]
+  );
+
+  const promociones: Promocion[] = useMemo(() => 
+    Array.isArray(promocionesData) ? promocionesData : [],
+    [promocionesData]
   );
 
   // Subcategorías filtradas por categoría seleccionada
@@ -209,6 +228,8 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
     } else if (productosLevel === 'subcategorias') {
       setSelectedCategoria(null);
       setProductosLevel('categorias');
+    } else if (productosLevel === 'promociones') {
+      setProductosLevel('categorias');
     }
   }, [productosLevel, selectedSubcategoria]);
 
@@ -247,31 +268,74 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
       return;
     }
 
-    const existente = items.find(i => i.producto.id === producto.id);
+    const existente = items.find(i => 
+      i.tipo === 'producto' && i.producto.id === producto.id
+    );
     
-    if (existente) {
+    if (existente && existente.tipo === 'producto') {
       setItems(items.map(i => 
-        i.producto.id === producto.id 
+        (i.tipo === 'producto' && i.producto.id === producto.id)
           ? { ...i, cantidad: i.cantidad + 1 }
           : i
       ));
     } else {
-      setItems([...items, { producto, cantidad: 1 }]);
+      setItems([...items, { tipo: 'producto', producto, cantidad: 1 }]);
     }
   };
 
-  const handleRemoveItem = (productoId: number) => {
-    setItems(items.filter(i => i.producto.id !== productoId));
+  const handleAddPromocion = (promocion: Promocion) => {
+    const existente = items.find(i => 
+      i.tipo === 'promocion' && i.promocion.id === promocion.id
+    );
+    
+    if (existente && existente.tipo === 'promocion') {
+      setItems(items.map(i => 
+        (i.tipo === 'promocion' && i.promocion.id === promocion.id)
+          ? { ...i, cantidad: i.cantidad + 1 }
+          : i
+      ));
+    } else {
+      setItems([...items, { tipo: 'promocion', promocion, cantidad: 1 }]);
+    }
   };
 
-  const handleUpdateCantidad = (productoId: number, cantidad: number) => {
+  const handleRemoveItem = (item: ItemPedido) => {
+    if (item.tipo === 'producto') {
+      setItems(items.filter(i => 
+        !(i.tipo === 'producto' && i.producto.id === item.producto.id)
+      ));
+    } else {
+      setItems(items.filter(i => 
+        !(i.tipo === 'promocion' && i.promocion.id === item.promocion.id)
+      ));
+    }
+  };
+
+  const handleUpdateCantidadProducto = (productoId: number, cantidad: number) => {
     if (cantidad < 1) {
-      handleRemoveItem(productoId);
+      setItems(items.filter(i => 
+        !(i.tipo === 'producto' && i.producto.id === productoId)
+      ));
       return;
     }
     
     setItems(items.map(i => 
-      i.producto.id === productoId 
+      (i.tipo === 'producto' && i.producto.id === productoId)
+        ? { ...i, cantidad }
+        : i
+    ));
+  };
+
+  const handleUpdateCantidadPromocion = (promocionId: number, cantidad: number) => {
+    if (cantidad < 1) {
+      setItems(items.filter(i => 
+        !(i.tipo === 'promocion' && i.promocion.id === promocionId)
+      ));
+      return;
+    }
+    
+    setItems(items.map(i => 
+      (i.tipo === 'promocion' && i.promocion.id === promocionId)
         ? { ...i, cantidad }
         : i
     ));
@@ -298,9 +362,15 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
   const calcularTotal = () => {
     return items.reduce((acc, item) => {
-      const precioBase = parseFloat(item.producto.precio);
-      const precioConDescuento = calcularPrecioConDescuento(precioBase);
-      return acc + (precioConDescuento * item.cantidad);
+      if (item.tipo === 'producto') {
+        const precioBase = parseFloat(item.producto.precio);
+        const precioConDescuento = calcularPrecioConDescuento(precioBase);
+        return acc + (precioConDescuento * item.cantidad);
+      } else {
+        // Promociones no tienen descuento adicional
+        const precioPromo = parseFloat(item.promocion.precio);
+        return acc + (precioPromo * item.cantidad);
+      }
     }, 0);
   };
 
@@ -315,10 +385,19 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
       const payload: CreatePedidoData = {
         cliente: clienteSeleccionado.id,
         lista_precio: listaSeleccionada.id,
-        items: items.map(i => ({
-          producto: i.producto.id,
-          cantidad: i.cantidad,
-        })),
+        items: items.map(i => {
+          if (i.tipo === 'producto') {
+            return {
+              producto: i.producto.id,
+              cantidad: i.cantidad,
+            };
+          } else {
+            return {
+              promocion: i.promocion.id,
+              cantidad: i.cantidad,
+            };
+          }
+        }),
       };
 
       await pedidosAPI.create(payload);
@@ -363,7 +442,9 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
   // Render productos con stock
   const renderProductoConStock = useCallback(({ item: producto }: { item: Producto }) => {
-    const itemEnCarrito = items.find(i => i.producto.id === producto.id);
+    const itemEnCarrito = items.find(i => 
+      i.tipo === 'producto' && i.producto.id === producto.id
+    );
     const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
     
     return (
@@ -381,7 +462,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
                   icon="minus"
                   size={18}
                   iconColor={colors.error}
-                  onPress={() => handleUpdateCantidad(producto.id, cantidadEnCarrito - 1)}
+                  onPress={() => handleUpdateCantidadProducto(producto.id, cantidadEnCarrito - 1)}
                   style={styles.cantidadButtonOverlay}
                 />
                 <Surface style={styles.cantidadDisplayOverlay}>
@@ -415,7 +496,66 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
         </View>
       </View>
     );
-  }, [items, handleAddProducto, handleUpdateCantidad]);
+  }, [items, handleAddProducto, handleUpdateCantidadProducto]);
+
+  // Render promoción
+  const renderPromocion = useCallback(({ item: promocion }: { item: Promocion }) => {
+    const itemEnCarrito = items.find(i => 
+      i.tipo === 'promocion' && i.promocion.id === promocion.id
+    );
+    const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
+    
+    return (
+      <View style={styles.cardWrapper}>
+        <View style={styles.productCardContainer}>
+          <PromocionCard 
+            promocion={promocion} 
+            gridStyle
+            onPress={() => {}}
+          />
+          {cantidadEnCarrito > 0 && (
+            <View style={styles.cantidadOverlay}>
+              <View style={styles.cantidadControlsOverlay}>
+                <IconButton
+                  icon="minus"
+                  size={18}
+                  iconColor={colors.error}
+                  onPress={() => handleUpdateCantidadPromocion(promocion.id, cantidadEnCarrito - 1)}
+                  style={styles.cantidadButtonOverlay}
+                />
+                <Surface style={styles.cantidadDisplayOverlay}>
+                  <Text variant="titleSmall" style={styles.cantidadTextOverlay}>
+                    {cantidadEnCarrito}
+                  </Text>
+                </Surface>
+                <IconButton
+                  icon="plus"
+                  size={18}
+                  iconColor={colors.primary}
+                  onPress={() => handleAddPromocion(promocion)}
+                  style={styles.cantidadButtonOverlay}
+                />
+              </View>
+            </View>
+          )}
+          {cantidadEnCarrito === 0 && (
+            <View style={styles.addButtonOverlay}>
+              <Button
+                mode="contained"
+                icon="plus"
+                compact
+                buttonColor={colors.promo}
+                onPress={() => handleAddPromocion(promocion)}
+                style={styles.addButtonOverlayStyle}
+              >
+                Agregar
+              </Button>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  }, [items, handleAddPromocion, handleUpdateCantidadPromocion]);
 
   // Render productos sin stock
   const renderProductoSinStock = useCallback(({ item: producto }: { item: Producto }) => (
@@ -451,8 +591,17 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
           }}
         >
           <Icon name="home" size={16} color={colors.primary} />
-          <Text style={styles.breadcrumbText}>Categorías</Text>
+          <Text style={styles.breadcrumbText}>Catálogo</Text>
         </TouchableOpacity>
+
+        {productosLevel === 'promociones' && (
+          <>
+            <Icon name="chevron-right" size={16} color={colors.textSecondary} />
+            <Text style={[styles.breadcrumbText, styles.breadcrumbTextActive]}>
+              Promociones
+            </Text>
+          </>
+        )}
 
         {selectedCategoria && (
           <>
@@ -492,11 +641,13 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
   // Header de productos (paso 2)
   const renderProductosHeader = () => {
-    let title = 'Categorías';
+    let title = 'Catálogo';
     if (productosLevel === 'subcategorias' && selectedCategoria) {
       title = selectedCategoria.nombre;
     } else if (productosLevel === 'productos') {
       title = selectedSubcategoria?.nombre || selectedCategoria?.nombre || 'Productos';
+    } else if (productosLevel === 'promociones') {
+      title = 'Promociones';
     }
 
     return (
@@ -529,9 +680,10 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   };
 
   const isLoadingProductosData = 
-    (productosLevel === 'categorias' && loadingCategorias) ||
+    (productosLevel === 'categorias' && (loadingCategorias || loadingPromociones)) ||
     (productosLevel === 'subcategorias' && loadingSubcategorias) ||
-    (productosLevel === 'productos' && loadingProductos && productos.length === 0);
+    (productosLevel === 'productos' && loadingProductos && productos.length === 0) ||
+    (productosLevel === 'promociones' && loadingPromociones);
 
   return (
     <ScreenContainer edges={[]}>
@@ -612,6 +764,37 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
               keyExtractor={(item) => item.id.toString()}
               numColumns={2}
               contentContainerStyle={styles.categoriasList}
+              showsVerticalScrollIndicator={false}
+              ListHeaderComponent={
+                promociones.length > 0 ? (
+                  <TouchableOpacity 
+                    style={styles.promocionesButton}
+                    onPress={() => setProductosLevel('promociones')}
+                  >
+                    <View style={styles.promocionesButtonContent}>
+                      <Icon name="fire" size={24} color={colors.promo} />
+                      <View style={styles.promocionesButtonText}>
+                        <Text style={styles.promocionesButtonTitle}>Promociones</Text>
+                        <Text style={styles.promocionesButtonSubtitle}>
+                          {promociones.length} promo{promociones.length !== 1 ? 's' : ''} disponible{promociones.length !== 1 ? 's' : ''}
+                        </Text>
+                      </View>
+                      <Icon name="chevron-right" size={24} color={colors.promo} />
+                    </View>
+                  </TouchableOpacity>
+                ) : null
+              }
+            />
+          )}
+
+          {/* Nivel: Promociones */}
+          {productosLevel === 'promociones' && !loadingPromociones && (
+            <FlatList
+              data={promociones}
+              renderItem={renderPromocion}
+              keyExtractor={(item) => `promo-${item.id}`}
+              numColumns={2}
+              contentContainerStyle={styles.productsList}
               showsVerticalScrollIndicator={false}
             />
           )}
@@ -727,57 +910,109 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
             </Surface>
 
             <Surface style={styles.resumenSection} elevation={1}>
-              <Text variant="titleMedium" style={styles.sectionTitle}>Productos ({items.length})</Text>
+              <Text variant="titleMedium" style={styles.sectionTitle}>Items ({items.length})</Text>
               {items.map((item, index) => {
-                const precioBase = parseFloat(item.producto.precio);
-                const precioUnitario = calcularPrecioConDescuento(precioBase);
-                const subtotal = precioUnitario * item.cantidad;
-                
-                return (
-                  <View key={index} style={styles.itemRow}>
-                    <View style={styles.itemInfo}>
-                      <Text variant="bodyLarge" style={styles.itemNombre}>{item.producto.nombre}</Text>
-                      <View style={styles.itemDetails}>
-                        <Text variant="bodySmall" style={styles.itemPrecioUnitario}>
-                          {formatPrice(precioUnitario)} c/u
-                        </Text>
-                        <Text variant="bodyMedium" style={styles.itemSubtotal}>
-                          Subtotal: {formatPrice(subtotal)}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={styles.itemActions}>
-                      <View style={styles.cantidadControlsConfirm}>
-                        <IconButton
-                          icon="minus-circle"
-                          size={22}
-                          iconColor={colors.error}
-                          onPress={() => handleUpdateCantidad(item.producto.id, item.cantidad - 1)}
-                          style={styles.cantidadButtonConfirm}
-                        />
-                        <Surface style={styles.cantidadDisplayConfirm}>
-                          <Text variant="titleMedium" style={styles.cantidadTextConfirm}>
-                            {item.cantidad}
+                if (item.tipo === 'producto') {
+                  const precioBase = parseFloat(item.producto.precio);
+                  const precioUnitario = calcularPrecioConDescuento(precioBase);
+                  const subtotal = precioUnitario * item.cantidad;
+                  
+                  return (
+                    <View key={`prod-${index}`} style={styles.itemRow}>
+                      <View style={styles.itemInfo}>
+                        <Text variant="bodyLarge" style={styles.itemNombre}>{item.producto.nombre}</Text>
+                        <View style={styles.itemDetails}>
+                          <Text variant="bodySmall" style={styles.itemPrecioUnitario}>
+                            {formatPrice(precioUnitario)} c/u
                           </Text>
-                        </Surface>
+                          <Text variant="bodyMedium" style={styles.itemSubtotal}>
+                            Subtotal: {formatPrice(subtotal)}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.itemActions}>
+                        <View style={styles.cantidadControlsConfirm}>
+                          <IconButton
+                            icon="minus-circle"
+                            size={22}
+                            iconColor={colors.error}
+                            onPress={() => handleUpdateCantidadProducto(item.producto.id, item.cantidad - 1)}
+                            style={styles.cantidadButtonConfirm}
+                          />
+                          <Surface style={styles.cantidadDisplayConfirm}>
+                            <Text variant="titleMedium" style={styles.cantidadTextConfirm}>
+                              {item.cantidad}
+                            </Text>
+                          </Surface>
+                          <IconButton
+                            icon="plus-circle"
+                            size={22}
+                            iconColor={colors.primary}
+                            onPress={() => handleUpdateCantidadProducto(item.producto.id, item.cantidad + 1)}
+                            style={styles.cantidadButtonConfirm}
+                          />
+                        </View>
                         <IconButton
-                          icon="plus-circle"
-                          size={22}
-                          iconColor={colors.primary}
-                          onPress={() => handleUpdateCantidad(item.producto.id, item.cantidad + 1)}
-                          style={styles.cantidadButtonConfirm}
+                          icon="delete"
+                          size={20}
+                          iconColor={colors.error}
+                          onPress={() => handleRemoveItem(item)}
+                          style={styles.deleteButton}
                         />
                       </View>
-                      <IconButton
-                        icon="delete"
-                        size={20}
-                        iconColor={colors.error}
-                        onPress={() => handleRemoveItem(item.producto.id)}
-                        style={styles.deleteButton}
-                      />
                     </View>
-                  </View>
-                );
+                  );
+                } else {
+                  // Item de promoción
+                  const precioPromo = parseFloat(item.promocion.precio);
+                  const subtotal = precioPromo * item.cantidad;
+                  
+                  return (
+                    <View key={`promo-${index}`} style={styles.itemRow}>
+                      <View style={styles.itemInfo}>
+                        <Text variant="bodyLarge" style={styles.itemNombre}>{item.promocion.nombre}</Text>
+                        <View style={styles.itemDetails}>
+                          <Text variant="bodySmall" style={styles.itemPrecioUnitarioPromo}>
+                            {formatPrice(precioPromo)} c/u
+                          </Text>
+                          <Text variant="bodyMedium" style={styles.itemSubtotalPromo}>
+                            Subtotal: {formatPrice(subtotal)}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.itemActions}>
+                        <View style={styles.cantidadControlsConfirm}>
+                          <IconButton
+                            icon="minus-circle"
+                            size={22}
+                            iconColor={colors.error}
+                            onPress={() => handleUpdateCantidadPromocion(item.promocion.id, item.cantidad - 1)}
+                            style={styles.cantidadButtonConfirm}
+                          />
+                          <Surface style={styles.cantidadDisplayConfirm}>
+                            <Text variant="titleMedium" style={styles.cantidadTextConfirm}>
+                              {item.cantidad}
+                            </Text>
+                          </Surface>
+                          <IconButton
+                            icon="plus-circle"
+                            size={22}
+                            iconColor={colors.promo}
+                            onPress={() => handleUpdateCantidadPromocion(item.promocion.id, item.cantidad + 1)}
+                            style={styles.cantidadButtonConfirm}
+                          />
+                        </View>
+                        <IconButton
+                          icon="delete"
+                          size={20}
+                          iconColor={colors.error}
+                          onPress={() => handleRemoveItem(item)}
+                          style={styles.deleteButton}
+                        />
+                      </View>
+                    </View>
+                  );
+                }
               })}
             </Surface>
 
@@ -1171,6 +1406,13 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
   },
+  itemPrecioUnitarioPromo: {
+    color: colors.promo,
+  },
+  itemSubtotalPromo: {
+    color: colors.promo,
+    fontWeight: '600',
+  },
   itemActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1234,6 +1476,35 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+  },
+  // Estilos para botón de promociones
+  promocionesButton: {
+    marginHorizontal: spacing.sm / 2,
+    marginBottom: spacing.md,
+    backgroundColor: colors.promoLight,
+    borderRadius: borderRadius.md,
+    borderWidth: 2,
+    borderColor: colors.promo,
+    overflow: 'hidden',
+  },
+  promocionesButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  promocionesButtonText: {
+    flex: 1,
+  },
+  promocionesButtonTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.promo,
+  },
+  promocionesButtonSubtitle: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
 });
 

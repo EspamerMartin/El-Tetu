@@ -8,6 +8,9 @@ from .views import (
     SubcategoriaDetailView,
     ProductoListCreateView,
     ProductoDetailView,
+    PromocionListCreateView,
+    PromocionDetailView,
+    PromocionActivasView,
 )
 from .views_listas import (
     ListaPrecioListCreateView,
@@ -30,6 +33,11 @@ urlpatterns = [
     # Subcategorías
     path('subcategorias/', SubcategoriaListCreateView.as_view(), name='subcategoria_list_create'),
     path('subcategorias/<int:pk>/', SubcategoriaDetailView.as_view(), name='subcategoria_detail'),
+    
+    # Promociones
+    path('promociones/', PromocionListCreateView.as_view(), name='promocion_list_create'),
+    path('promociones/activas/', PromocionActivasView.as_view(), name='promocion_activas'),
+    path('promociones/<int:pk>/', PromocionDetailView.as_view(), name='promocion_detail'),
     
     # Productos
     path('', ProductoListCreateView.as_view(), name='producto_list_create'),

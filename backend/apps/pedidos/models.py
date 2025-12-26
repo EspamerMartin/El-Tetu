@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from apps.productos.models import Producto
+from apps.productos.models import Producto, Promocion
 
 
 class Pedido(models.Model):
@@ -121,38 +121,58 @@ class Pedido(models.Model):
         """
         Aprueba el pedido pasándolo a EN_PREPARACION.
         
-        Verifica que los productos estén activos y con stock disponible.
+        Verifica que los productos y promociones estén activos y disponibles.
         """
         from django.utils import timezone
+        from apps.productos.models import Promocion
         
         if self.estado != 'PENDIENTE':
             raise ValueError('Solo se pueden aprobar pedidos pendientes.')
         
-        # Verificar que el pedido tenga productos válidos
-        producto_ids = list(self.items.values_list('producto_id', flat=True).distinct())
-        producto_ids = [pid for pid in producto_ids if pid is not None]
+        # Obtener IDs de productos y promociones
+        producto_ids = list(self.items.filter(producto_id__isnull=False).values_list('producto_id', flat=True).distinct())
+        promocion_ids = list(self.items.filter(promocion_id__isnull=False).values_list('promocion_id', flat=True).distinct())
         
-        if not producto_ids:
-            raise ValueError('El pedido no tiene productos válidos.')
+        # Verificar que el pedido tenga al menos un producto o promoción
+        if not producto_ids and not promocion_ids:
+            raise ValueError('El pedido no tiene productos ni promociones válidas.')
         
         # Verificar disponibilidad de productos
-        productos = Producto.objects.filter(id__in=producto_ids)
-        productos_dict = {p.id: p for p in productos}
+        if producto_ids:
+            productos = Producto.objects.filter(id__in=producto_ids)
+            productos_dict = {p.id: p for p in productos}
+            
+            for item in self.items.filter(producto_id__isnull=False):
+                producto = productos_dict.get(item.producto_id)
+                if not producto:
+                    raise ValueError(f'El producto del item {item.id} no existe o fue eliminado.')
+                
+                if not producto.activo:
+                    raise ValueError(f'El producto "{producto.nombre}" no está disponible.')
+                
+                if not producto.tiene_stock:
+                    raise ValueError(f'El producto "{producto.nombre}" no tiene stock disponible.')
         
-        for item in self.items.all():
-            if not item.producto_id:
-                raise ValueError('No se puede aprobar un pedido con productos eliminados.')
+        # Verificar disponibilidad de promociones
+        if promocion_ids:
+            promociones = Promocion.objects.filter(id__in=promocion_ids)
+            promociones_dict = {p.id: p for p in promociones}
             
-            producto = productos_dict.get(item.producto_id)
-            if not producto:
-                raise ValueError(f'El producto del item {item.id} no existe o fue eliminado.')
-            
-            # Verificar que el producto esté activo y tenga stock
-            if not producto.activo:
-                raise ValueError(f'El producto "{producto.nombre}" no está disponible.')
-            
-            if not producto.tiene_stock:
-                raise ValueError(f'El producto "{producto.nombre}" no tiene stock disponible.')
+            for item in self.items.filter(promocion_id__isnull=False):
+                promocion = promociones_dict.get(item.promocion_id)
+                if not promocion:
+                    raise ValueError(f'La promoción del item {item.id} no existe o fue eliminada.')
+                
+                if not promocion.activo:
+                    raise ValueError(f'La promoción "{promocion.nombre}" no está disponible.')
+                
+                if not promocion.esta_vigente:
+                    raise ValueError(f'La promoción "{promocion.nombre}" ya no está vigente.')
+                
+                # Verificar productos dentro de la promoción
+                for promo_item in promocion.items.all():
+                    if not promo_item.producto.activo or not promo_item.producto.tiene_stock:
+                        raise ValueError(f'El producto "{promo_item.producto.nombre}" de la promoción "{promocion.nombre}" no está disponible.')
         
         # Actualizar estado del pedido
         self.estado = 'EN_PREPARACION'
@@ -197,7 +217,7 @@ class Pedido(models.Model):
 
 
 class PedidoItem(models.Model):
-    """Modelo para items de un pedido."""
+    """Modelo para items de un pedido (producto individual o promoción)."""
     
     pedido = models.ForeignKey(
         Pedido,
@@ -206,6 +226,7 @@ class PedidoItem(models.Model):
         verbose_name='Pedido'
     )
     
+    # Puede ser un producto individual o una promoción (uno de los dos)
     producto = models.ForeignKey(
         Producto,
         on_delete=models.SET_NULL,
@@ -216,20 +237,30 @@ class PedidoItem(models.Model):
         help_text='Producto del pedido. Se establece en NULL si el producto se elimina.'
     )
     
-    # Snapshots para preservar información histórica del producto
+    promocion = models.ForeignKey(
+        Promocion,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='pedido_items',
+        verbose_name='Promoción',
+        help_text='Promoción del pedido. Se establece en NULL si la promoción se elimina.'
+    )
+    
+    # Snapshots para preservar información histórica del producto/promoción
     producto_nombre_snapshot = models.CharField(
         max_length=200,
         blank=True,
         null=True,
-        verbose_name='Nombre Producto (Snapshot)',
-        help_text='Nombre del producto al momento de crear el item'
+        verbose_name='Nombre Producto/Promoción (Snapshot)',
+        help_text='Nombre del producto o promoción al momento de crear el item'
     )
     producto_codigo_snapshot = models.CharField(
         max_length=50,
         blank=True,
         null=True,
         verbose_name='Código Producto (Snapshot)',
-        help_text='Código del producto al momento de crear el item'
+        help_text='Código del producto al momento de crear el item (vacío para promociones)'
     )
     
     cantidad = models.IntegerField(verbose_name='Cantidad')
@@ -260,9 +291,21 @@ class PedidoItem(models.Model):
         verbose_name_plural = 'Items de Pedido'
         ordering = ['id']
     
+    @property
+    def es_promocion(self):
+        """Indica si este item es una promoción."""
+        return self.promocion is not None
+    
     def __str__(self):
-        producto_nombre = self.producto_nombre_snapshot or (self.producto.nombre if self.producto else "Producto eliminado")
-        return f"{producto_nombre} x{self.cantidad}"
+        if self.producto_nombre_snapshot:
+            nombre = self.producto_nombre_snapshot
+        elif self.promocion:
+            nombre = self.promocion.nombre
+        elif self.producto:
+            nombre = self.producto.nombre
+        else:
+            nombre = "Item eliminado"
+        return f"{nombre} x{self.cantidad}"
     
     def save(self, *args, **kwargs):
         """Calcula subtotal y guarda snapshots antes de guardar."""
@@ -270,9 +313,13 @@ class PedidoItem(models.Model):
         if self.precio_unitario and self.cantidad:
             self.subtotal = self.precio_unitario * self.cantidad
         
-        # Guardar snapshots del producto si existe y no están guardados
-        if self.producto and not self.producto_nombre_snapshot:
-            self.producto_nombre_snapshot = self.producto.nombre
-            self.producto_codigo_snapshot = self.producto.codigo_barra
+        # Guardar snapshots del producto o promoción si no están guardados
+        if not self.producto_nombre_snapshot:
+            if self.producto:
+                self.producto_nombre_snapshot = self.producto.nombre
+                self.producto_codigo_snapshot = self.producto.codigo_barra
+            elif self.promocion:
+                self.producto_nombre_snapshot = f"[PROMO] {self.promocion.nombre}"
+                self.producto_codigo_snapshot = None
         
         super().save(*args, **kwargs)

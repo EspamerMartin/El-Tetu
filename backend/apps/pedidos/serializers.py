@@ -2,7 +2,7 @@ from rest_framework import serializers
 import logging
 
 from apps.productos.serializers import ProductoListSerializer
-from apps.productos.models import Producto
+from apps.productos.models import Producto, Promocion
 from apps.users.serializers import HorarioClienteSerializer
 from .models import Pedido, PedidoItem
 
@@ -15,32 +15,47 @@ class PedidoItemSerializer(serializers.ModelSerializer):
     producto_detalle = ProductoListSerializer(source='producto', read_only=True, allow_null=True)
     producto_nombre = serializers.SerializerMethodField()
     producto_codigo = serializers.SerializerMethodField()
+    es_promocion = serializers.SerializerMethodField()
     
     class Meta:
         model = PedidoItem
         fields = [
-            'id', 'producto', 'producto_detalle', 
-            'producto_nombre', 'producto_codigo',
+            'id', 'producto', 'promocion', 'producto_detalle', 
+            'producto_nombre', 'producto_codigo', 'es_promocion',
             'cantidad', 'precio_unitario', 'subtotal', 
             'descuento', 'fecha_creacion'
         ]
         read_only_fields = ['id', 'subtotal', 'descuento', 'fecha_creacion']
     
     def get_producto_nombre(self, obj):
-        """Retorna el nombre del producto desde snapshot o del objeto."""
-        return obj.producto_nombre_snapshot or (obj.producto.nombre if obj.producto else "Producto eliminado")
+        """Retorna el nombre del producto/promoción desde snapshot o del objeto."""
+        if obj.producto_nombre_snapshot:
+            return obj.producto_nombre_snapshot
+        if obj.promocion:
+            return f"[PROMO] {obj.promocion.nombre}"
+        if obj.producto:
+            return obj.producto.nombre
+        return "Item eliminado"
     
     def get_producto_codigo(self, obj):
         """Retorna el código del producto desde snapshot o del objeto."""
         return obj.producto_codigo_snapshot or (obj.producto.codigo_barra if obj.producto else None)
+    
+    def get_es_promocion(self, obj):
+        """Indica si el item es una promoción."""
+        return obj.promocion is not None
 
 
 class PedidoItemCreateSerializer(serializers.ModelSerializer):
-    """Serializer para crear items de pedido."""
+    """Serializer para crear items de pedido (producto o promoción)."""
+    
+    # Ambos opcionales, pero uno debe estar presente
+    producto = serializers.IntegerField(required=False, allow_null=True)
+    promocion = serializers.IntegerField(required=False, allow_null=True)
     
     class Meta:
         model = PedidoItem
-        fields = ['producto', 'cantidad']
+        fields = ['producto', 'promocion', 'cantidad']
     
     def validate_cantidad(self, value):
         """Valida que la cantidad sea positiva y tenga un mínimo."""
@@ -49,58 +64,90 @@ class PedidoItemCreateSerializer(serializers.ModelSerializer):
         return value
     
     def validate(self, data):
-        """Valida stock disponible y disponibilidad del producto."""
+        """Valida stock/disponibilidad del producto o promoción."""
         producto_value = data.get('producto')
-        cantidad = data.get('cantidad')
+        promocion_value = data.get('promocion')
+        # cantidad se valida en validate_cantidad, aquí no se necesita
         
-        if not producto_value:
+        # Debe haber exactamente uno de los dos
+        if not producto_value and not promocion_value:
             raise serializers.ValidationError({
-                'producto': 'Debe especificar un producto válido.'
+                'non_field_errors': 'Debe especificar un producto o una promoción.'
             })
         
-        # Extraer ID si es un objeto Producto, o usar directamente si es un ID
-        if isinstance(producto_value, Producto):
-            producto_id = producto_value.id
-            producto = producto_value
-        else:
-            producto_id = producto_value
-            # Obtener el objeto Producto desde la base de datos
-            try:
-                producto = Producto.objects.get(pk=producto_id)
-            except Producto.DoesNotExist:
+        if producto_value and promocion_value:
+            raise serializers.ValidationError({
+                'non_field_errors': 'No puede especificar producto y promoción a la vez.'
+            })
+        
+        # Validar PRODUCTO
+        if producto_value:
+            if isinstance(producto_value, Producto):
+                producto = producto_value
+            else:
+                try:
+                    producto = Producto.objects.get(pk=producto_value)
+                except Producto.DoesNotExist:
+                    raise serializers.ValidationError({
+                        'producto': 'El producto especificado no existe.'
+                    })
+            
+            data['producto'] = producto.id
+            data['_producto_obj'] = producto  # Para uso interno
+            
+            if not producto.activo:
+                logger.warning(
+                    f'Intento de agregar producto inactivo al pedido: {producto.nombre} (ID: {producto.id})'
+                )
                 raise serializers.ValidationError({
-                    'producto': 'El producto especificado no existe.'
+                    'producto': f'El producto "{producto.nombre}" no está disponible actualmente.'
+                })
+            
+            if hasattr(producto, 'is_deleted') and producto.is_deleted:
+                raise serializers.ValidationError({
+                    'producto': f'El producto "{producto.nombre}" ya no está disponible.'
+                })
+            
+            if not producto.tiene_stock:
+                logger.warning(f'Producto sin stock: {producto.nombre} (ID: {producto.id})')
+                raise serializers.ValidationError({
+                    'producto': f'El producto "{producto.nombre}" no tiene stock disponible.'
                 })
         
-        # Actualizar data con el ID para asegurar que se guarde correctamente
-        data['producto'] = producto_id
-        
-        # Verificar si el producto está activo
-        if not producto.activo:
-            logger.warning(
-                f'Intento de agregar producto inactivo al pedido: {producto.nombre} (ID: {producto.id})'
-            )
-            raise serializers.ValidationError({
-                'producto': f'El producto "{producto.nombre}" no está disponible actualmente.'
-            })
-        
-        # Verificar si el producto fue eliminado (soft delete)
-        if hasattr(producto, 'is_deleted') and producto.is_deleted:
-            logger.warning(
-                f'Intento de agregar producto eliminado al pedido: {producto.nombre} (ID: {producto.id})'
-            )
-            raise serializers.ValidationError({
-                'producto': f'El producto "{producto.nombre}" ya no está disponible.'
-            })
-        
-        # Validar que el producto tenga stock disponible
-        if not producto.tiene_stock:
-            logger.warning(
-                f'Producto sin stock: {producto.nombre} (ID: {producto.id})'
-            )
-            raise serializers.ValidationError({
-                'producto': f'El producto "{producto.nombre}" no tiene stock disponible.'
-            })
+        # Validar PROMOCIÓN
+        if promocion_value:
+            if isinstance(promocion_value, Promocion):
+                promocion = promocion_value
+            else:
+                try:
+                    promocion = Promocion.objects.get(pk=promocion_value)
+                except Promocion.DoesNotExist:
+                    raise serializers.ValidationError({
+                        'promocion': 'La promoción especificada no existe.'
+                    })
+            
+            data['promocion'] = promocion.id
+            data['_promocion_obj'] = promocion  # Para uso interno
+            
+            if not promocion.activo:
+                logger.warning(
+                    f'Intento de agregar promoción inactiva al pedido: {promocion.nombre} (ID: {promocion.id})'
+                )
+                raise serializers.ValidationError({
+                    'promocion': f'La promoción "{promocion.nombre}" no está disponible actualmente.'
+                })
+            
+            if not promocion.esta_vigente:
+                raise serializers.ValidationError({
+                    'promocion': f'La promoción "{promocion.nombre}" no está vigente.'
+                })
+            
+            # Verificar que los productos de la promoción estén disponibles
+            for item in promocion.items.all():
+                if not item.producto.activo or not item.producto.tiene_stock:
+                    raise serializers.ValidationError({
+                        'promocion': f'El producto "{item.producto.nombre}" de la promoción no está disponible.'
+                    })
         
         return data
 
@@ -158,7 +205,7 @@ class PedidoCreateSerializer(serializers.ModelSerializer):
         return value
     
     def create(self, validated_data):
-        """Crea pedido con items, validando stock antes de crear."""
+        """Crea pedido con items (productos o promociones), validando stock antes de crear."""
         items_data = validated_data.pop('items')
         cliente = validated_data.get('cliente')
         
@@ -172,79 +219,123 @@ class PedidoCreateSerializer(serializers.ModelSerializer):
             validated_data['lista_precio_nombre_snapshot'] = lista_precio.nombre
             validated_data['lista_precio_descuento_snapshot'] = lista_precio.descuento_porcentaje
         
-        # Validar stock de todos los items ANTES de crear el pedido (evita race conditions)
+        # Validar y preparar items ANTES de crear el pedido
+        items_preparados = []
         for item_data in items_data:
             producto_value = item_data.get('producto')
+            promocion_value = item_data.get('promocion')
             cantidad = item_data.get('cantidad')
             
-            if not producto_value:
-                raise serializers.ValidationError({
-                    'items': 'Todos los items deben tener un producto válido.'
-                })
+            # Usar objetos cacheados del serializer si existen
+            producto_obj = item_data.get('_producto_obj')
+            promocion_obj = item_data.get('_promocion_obj')
             
-            # Obtener objeto Producto si es ID, o usar directamente si es objeto
-            if isinstance(producto_value, Producto):
-                producto = producto_value
-            else:
-                try:
-                    producto = Producto.objects.get(pk=producto_value)
-                except Producto.DoesNotExist:
+            if producto_value and not producto_obj:
+                # Es un item de producto
+                if isinstance(producto_value, Producto):
+                    producto_obj = producto_value
+                else:
+                    try:
+                        producto_obj = Producto.objects.get(pk=producto_value)
+                    except Producto.DoesNotExist:
+                        raise serializers.ValidationError({
+                            'items': f'El producto con ID {producto_value} no existe.'
+                        })
+                
+                if not producto_obj.activo:
                     raise serializers.ValidationError({
-                        'items': f'El producto con ID {producto_value} no existe.'
+                        'items': f'El producto "{producto_obj.nombre}" no está disponible.'
                     })
-            
-            # Verificar disponibilidad del producto
-            if not producto.activo:
-                raise serializers.ValidationError({
-                    'items': f'El producto "{producto.nombre}" no está disponible.'
+                
+                if not producto_obj.tiene_stock:
+                    raise serializers.ValidationError({
+                        'items': f'El producto "{producto_obj.nombre}" no tiene stock disponible.'
+                    })
+                
+                items_preparados.append({
+                    'tipo': 'producto',
+                    'objeto': producto_obj,
+                    'cantidad': cantidad
                 })
             
-            # Verificar que el producto tenga stock disponible
-            if not producto.tiene_stock:
-                logger.error(
-                    f'Error al crear pedido: Producto sin stock - {producto.nombre}'
-                )
-                raise serializers.ValidationError({
-                    'items': f'El producto "{producto.nombre}" no tiene stock disponible.'
+            elif promocion_value and not promocion_obj:
+                # Es un item de promoción
+                if isinstance(promocion_value, Promocion):
+                    promocion_obj = promocion_value
+                else:
+                    try:
+                        promocion_obj = Promocion.objects.get(pk=promocion_value)
+                    except Promocion.DoesNotExist:
+                        raise serializers.ValidationError({
+                            'items': f'La promoción con ID {promocion_value} no existe.'
+                        })
+                
+                if not promocion_obj.activo or not promocion_obj.esta_vigente:
+                    raise serializers.ValidationError({
+                        'items': f'La promoción "{promocion_obj.nombre}" no está disponible.'
+                    })
+                
+                items_preparados.append({
+                    'tipo': 'promocion',
+                    'objeto': promocion_obj,
+                    'cantidad': cantidad
                 })
             
-            # Asegurar que item_data tenga el objeto Producto para uso posterior
-            item_data['producto'] = producto
+            elif producto_obj:
+                items_preparados.append({
+                    'tipo': 'producto',
+                    'objeto': producto_obj,
+                    'cantidad': cantidad
+                })
+            
+            elif promocion_obj:
+                items_preparados.append({
+                    'tipo': 'promocion',
+                    'objeto': promocion_obj,
+                    'cantidad': cantidad
+                })
+            
+            else:
+                raise serializers.ValidationError({
+                    'items': 'Cada item debe tener un producto o una promoción.'
+                })
         
         # Crear pedido
         pedido = Pedido.objects.create(**validated_data)
         logger.info(
             f'Pedido #{pedido.id} creado por cliente {cliente.email} '
-            f'con {len(items_data)} items'
+            f'con {len(items_preparados)} items'
         )
         
         # Crear items con snapshots
-        for item_data in items_data:
-            # producto ya es un objeto Producto (asegurado en la validación anterior)
-            producto = item_data.get('producto')
-            cantidad = item_data.get('cantidad')
+        for item_prep in items_preparados:
+            tipo = item_prep['tipo']
+            obj = item_prep['objeto']
+            cantidad = item_prep['cantidad']
             
-            # Asegurar que producto es un objeto Producto
-            if not isinstance(producto, Producto):
-                # Si por alguna razón no es un objeto, obtenerlo
-                try:
-                    producto = Producto.objects.get(pk=producto)
-                except Producto.DoesNotExist:
-                    logger.error(f'Producto con ID {producto} no existe al crear item')
-                    continue
-            
-            # Calcular precio según la lista del pedido
-            precio_unitario = producto.get_precio_lista(pedido.lista_precio)
-            
-            # Crear item con snapshots
-            PedidoItem.objects.create(
-                pedido=pedido,
-                producto=producto,
-                cantidad=cantidad,
-                precio_unitario=precio_unitario,
-                producto_nombre_snapshot=producto.nombre,
-                producto_codigo_snapshot=producto.codigo_barra
-            )
+            if tipo == 'producto':
+                # Item de producto individual
+                precio_unitario = obj.get_precio_lista(pedido.lista_precio)
+                PedidoItem.objects.create(
+                    pedido=pedido,
+                    producto=obj,
+                    promocion=None,
+                    cantidad=cantidad,
+                    precio_unitario=precio_unitario,
+                    producto_nombre_snapshot=obj.nombre,
+                    producto_codigo_snapshot=obj.codigo_barra
+                )
+            else:
+                # Item de promoción (precio fijo, sin descuento de lista)
+                PedidoItem.objects.create(
+                    pedido=pedido,
+                    producto=None,
+                    promocion=obj,
+                    cantidad=cantidad,
+                    precio_unitario=obj.precio,
+                    producto_nombre_snapshot=f"[PROMO] {obj.nombre}",
+                    producto_codigo_snapshot=None
+                )
         
         # Calcular totales
         pedido.calcular_totales()
