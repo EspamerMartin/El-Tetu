@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, FAB, Card, Chip, IconButton, Searchbar } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { AdminDrawerParamList } from '@/navigation/AdminStack';
@@ -17,9 +18,10 @@ type EstadoFilter = 'TODOS' | 'ACTIVO' | 'INACTIVO';
 type NavigationProp = DrawerNavigationProp<AdminDrawerParamList, 'Productos'>;
 
 const ProductosListScreen = ({ navigation }: { navigation: NavigationProp }) => {
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>('TODOS');
-  
+
   const { data: productosData, loading, refetch } = useFetch(
     () => productosAPI.getAll(estadoFilter === 'TODOS' ? {} : { activo: estadoFilter === 'ACTIVO' })
   );
@@ -119,9 +121,9 @@ const ProductosListScreen = ({ navigation }: { navigation: NavigationProp }) => 
                   <Chip icon={item.activo ? 'check' : 'close'} compact style={styles.chip}>
                     {item.activo ? 'Activo' : 'Inactivo'}
                   </Chip>
-                  <Chip 
-                    icon={item.tiene_stock ? 'package-variant' : 'package-variant-closed'} 
-                    compact 
+                  <Chip
+                    icon={item.tiene_stock ? 'package-variant' : 'package-variant-closed'}
+                    compact
                     style={[styles.chip, !item.tiene_stock && styles.chipError]}
                   >
                     {item.tiene_stock ? 'Disponible' : 'Sin stock'}
@@ -140,7 +142,7 @@ const ProductosListScreen = ({ navigation }: { navigation: NavigationProp }) => 
         />
       )}
 
-      <FAB icon="plus" style={styles.fab} onPress={() => navigation.navigate('ProductoForm')} />
+      <FAB icon="plus" style={[styles.fab, { bottom: spacing.lg + insets.bottom }]} onPress={() => navigation.navigate('ProductoForm')} />
     </ScreenContainer>
   );
 };
@@ -161,7 +163,7 @@ const styles = StyleSheet.create({
   card: { marginBottom: spacing.md },
   actions: { flexDirection: 'row' },
   chipsContainer: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
-  chip: { },
+  chip: {},
   chipError: { backgroundColor: colors.errorLight },
   fab: { position: 'absolute', bottom: spacing.lg, right: spacing.lg },
 });
