@@ -7,11 +7,10 @@ import { VendedorDrawerParamList, VendedorStackParamList } from '@/navigation/Ve
 import { CompositeScreenProps } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFetch } from '@/hooks';
-import { pedidosAPI, productosAPI } from '@/services/api';
+import { pedidosAPI } from '@/services/api';
 import { LoadingOverlay, ScreenContainer } from '@/components';
 import { useAppSelector } from '@/store';
 import { colors, spacing, borderRadius, shadows } from '@/theme';
-import { formatPrice } from '@/utils';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type Props = CompositeScreenProps<
@@ -21,7 +20,6 @@ type Props = CompositeScreenProps<
 
 interface DashboardStats {
   totalPedidos: number;
-  ventasDelDia: number;
   productosSinStock: number;
 }
 
@@ -33,41 +31,20 @@ interface DashboardStats {
 const VendedorHomeScreen = ({ navigation }: Props) => {
   const { user } = useAppSelector((state) => state.auth);
 
-  const { data: pedidos, loading: loadingPedidos, refetch: refetchPedidos } = useFetch(
-    () => pedidosAPI.getAll({ estado__in: 'PENDIENTE,EN_PREPARACION,FACTURADO' })
-  );
-
-  const { data: ventasHoy, loading: loadingVentas, refetch: refetchVentas } = useFetch(
-    () => pedidosAPI.getAll({ fecha_pedido__gte: new Date().toISOString().split('T')[0] })
-  );
-
-  const { data: productosSinStock, loading: loadingProductos, refetch: refetchProductos } = useFetch(
-    () => productosAPI.getAll({ tiene_stock: false, activo: true })
+  // Usar el endpoint de estadísticas de vendedor
+  const { data: estadisticas, loading, refetch } = useFetch(
+    () => pedidosAPI.getEstadisticasVendedor()
   );
 
   useFocusEffect(
     React.useCallback(() => {
-      refetchPedidos();
-      refetchVentas();
-      refetchProductos();
+      refetch();
     }, [])
   );
 
-  const loading = loadingPedidos || loadingVentas || loadingProductos;
-
-  const pedidosArray = Array.isArray(pedidos) ? pedidos : (pedidos?.results || []);
-  const ventasHoyArray = Array.isArray(ventasHoy) ? ventasHoy : (ventasHoy?.results || []);
-  const productosSinStockArray = Array.isArray(productosSinStock) 
-    ? productosSinStock 
-    : (productosSinStock?.results || []);
-
   const stats: DashboardStats = {
-    totalPedidos: pedidosArray.length,
-    ventasDelDia: ventasHoyArray.reduce((acc, p) => {
-      const total = parseFloat(p.total);
-      return acc + (isNaN(total) ? 0 : total);
-    }, 0),
-    productosSinStock: productosSinStockArray.length,
+    totalPedidos: estadisticas?.pedidos_pendientes || 0,
+    productosSinStock: estadisticas?.productos_sin_stock || 0,
   };
 
   const iniciales = user ? `${user.nombre.charAt(0)}${user.apellido.charAt(0)}` : 'VE';
@@ -75,7 +52,7 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
   return (
     <ScreenContainer>
       {loading && <LoadingOverlay visible message="Cargando estadísticas..." />}
-      
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <View>
@@ -100,18 +77,7 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
             </Text>
           </Surface>
 
-          <Surface style={[styles.kpiCard, styles.kpiCardSecondary]} elevation={2}>
-            <View style={styles.kpiHeader}>
-              <Icon name="cash-multiple" size={32} color={colors.accent} />
-              <Text variant="headlineSmall" style={[styles.kpiValue, { color: colors.accent }]}>
-                {formatPrice(stats.ventasDelDia)}
-              </Text>
-            </View>
-            <Text variant="bodyMedium" style={styles.kpiLabel}>Ventas del Día</Text>
-            <Text variant="bodySmall" style={styles.kpiDescription}>
-              Total de pedidos de hoy
-            </Text>
-          </Surface>
+
 
           <TouchableOpacity
             activeOpacity={0.7}
@@ -134,7 +100,7 @@ const VendedorHomeScreen = ({ navigation }: Props) => {
 
         {/* Accesos Rápidos */}
         <Text variant="titleLarge" style={styles.sectionTitle}>Accesos Rápidos</Text>
-        
+
         <View style={styles.quickActionsContainer}>
           <TouchableOpacity
             activeOpacity={0.7}

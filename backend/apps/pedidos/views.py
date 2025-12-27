@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
-from django.db.models import Case, When, IntegerField
+from django.db.models import Case, When, IntegerField, Sum
+from django.utils import timezone
 import logging
 
 from apps.users.permissions import IsAdminOrVendedor, IsTransportador
@@ -19,6 +20,89 @@ from .serializers import (
 from .pdf_generator import generar_remito_pdf
 
 logger = logging.getLogger('eltetu')
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminOrVendedor])
+def estadisticas_admin_view(request):
+    """
+    Vista para obtener estadísticas del dashboard de admin.
+    GET /api/pedidos/estadisticas/admin/
+    
+    Retorna:
+    - ventas_mes: Total de ventas del mes (solo pedidos ENTREGADO)
+    - pedidos_mes: Cantidad de pedidos del mes (todos los estados)
+    - productos_activos: Cantidad de productos activos
+    - productos_sin_stock: Cantidad de productos sin stock
+    - total_usuarios: Total de usuarios activos
+    """
+    from apps.productos.models import Producto
+    from apps.users.models import CustomUser
+    
+    hoy = timezone.now().date()
+    inicio_mes = hoy.replace(day=1)
+    
+    # Ventas del mes (solo ENTREGADO)
+    ventas_mes = Pedido.objects.filter(
+        estado='ENTREGADO',
+        fecha_creacion__date__gte=inicio_mes
+    ).aggregate(total=Sum('total'))['total'] or 0
+    
+    # Pedidos del mes (todos los estados)
+    pedidos_mes = Pedido.objects.filter(
+        fecha_creacion__date__gte=inicio_mes
+    ).count()
+    
+    # Productos
+    productos_activos = Producto.objects.filter(activo=True).count()
+    productos_sin_stock = Producto.objects.filter(
+        activo=True, 
+        tiene_stock=False
+    ).count()
+    
+    # Usuarios activos
+    total_usuarios = CustomUser.objects.filter(
+        is_active=True,
+        fecha_eliminacion__isnull=True
+    ).count()
+    
+    return Response({
+        'ventas_mes': float(ventas_mes),
+        'pedidos_mes': pedidos_mes,
+        'productos_activos': productos_activos,
+        'productos_sin_stock': productos_sin_stock,
+        'total_usuarios': total_usuarios,
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminOrVendedor])
+def estadisticas_vendedor_view(request):
+    """
+    Vista para obtener estadísticas del dashboard de vendedor.
+    GET /api/pedidos/estadisticas/vendedor/
+    
+    Retorna:
+    - pedidos_pendientes: Pedidos en estados activos (no entregados ni rechazados)
+    - productos_sin_stock: Cantidad de productos sin stock
+    """
+    from apps.productos.models import Producto
+    
+    # Pedidos pendientes/activos (no entregados ni rechazados)
+    pedidos_pendientes = Pedido.objects.filter(
+        estado__in=['PENDIENTE', 'EN_PREPARACION', 'FACTURADO']
+    ).count()
+    
+    # Productos sin stock
+    productos_sin_stock = Producto.objects.filter(
+        activo=True, 
+        tiene_stock=False
+    ).count()
+    
+    return Response({
+        'pedidos_pendientes': pedidos_pendientes,
+        'productos_sin_stock': productos_sin_stock,
+    }, status=status.HTTP_200_OK)
 
 
 class PedidoListCreateView(generics.ListCreateAPIView):
