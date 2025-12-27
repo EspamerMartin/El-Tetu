@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, Button, Card, IconButton, FAB, Dialog, Portal, Chip, Avatar, Searchbar, Switch } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
@@ -22,6 +23,7 @@ type EstadoFilter = 'TODOS' | 'ACTIVO' | 'INACTIVO';
  * - Filtrar por estado (activo/inactivo)
  */
 const MarcasListScreen = () => {
+  const insets = useSafeAreaInsets();
   const [dialogVisible, setDialogVisible] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [nombre, setNombre] = useState('');
@@ -49,9 +51,9 @@ const MarcasListScreen = () => {
   const marcas = marcasData?.results || [];
   const marcasFiltradas = searchQuery
     ? marcas.filter((m: Marca) =>
-        m.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (m.descripcion && m.descripcion.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
+      m.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (m.descripcion && m.descripcion.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
     : marcas;
 
   const handleSave = async () => {
@@ -62,12 +64,12 @@ const MarcasListScreen = () => {
 
     try {
       setSaving(true);
-      const data: Partial<Marca> = { 
-        nombre: nombre.trim(), 
-        descripcion: descripcion.trim() || undefined, 
-        activo 
+      const data: Partial<Marca> = {
+        nombre: nombre.trim(),
+        descripcion: descripcion.trim() || undefined,
+        activo
       };
-      
+
       if (editingId) {
         await productosAPI.updateMarca(editingId, data);
       } else {
@@ -110,11 +112,11 @@ const MarcasListScreen = () => {
             refetch();
           } catch (err: any) {
             const errorMessage = err.response?.data?.error || err.response?.data?.detail || 'No se pudo eliminar';
-            
+
             // Detectar error de productos asociados
             if (errorMessage.includes('productos') || errorMessage.includes('constraint') || errorMessage.includes('foreign key')) {
               Alert.alert(
-                'No se puede eliminar', 
+                'No se puede eliminar',
                 'Esta marca tiene productos asociados. Primero debes eliminar o reasignar todos los productos que pertenecen a esta marca.',
                 [{ text: 'Entendido' }]
               );
@@ -167,13 +169,13 @@ const MarcasListScreen = () => {
     try {
       // Intentar hacer DELETE (el backend maneja soft/hard delete automáticamente)
       const response = await productosAPI.deleteMarca(editingId);
-      
+
       // Si tiene productos, el backend hace soft delete (retorna 200 con mensaje)
       // Si no tiene productos, el backend hace hard delete (retorna 204 sin body)
-      const message = response && response.message 
-        ? response.message 
+      const message = response && response.message
+        ? response.message
         : 'Marca eliminada correctamente';
-      
+
       // Esperar a que el usuario presione OK antes de cerrar y refrescar
       await new Promise<void>((resolve) => {
         Alert.alert('Éxito', message, [
@@ -185,7 +187,7 @@ const MarcasListScreen = () => {
           },
         ]);
       });
-      
+
       setDialogVisible(false);
       refetch();
     } catch (err: any) {
@@ -193,7 +195,7 @@ const MarcasListScreen = () => {
       try {
         await productosAPI.updateMarca(editingId, { activo: false });
         setActivo(false);
-        
+
         // Esperar a que el usuario presione OK antes de refrescar
         await new Promise<void>((resolve) => {
           Alert.alert('Marca desactivada', 'La marca fue desactivada.', [
@@ -205,7 +207,7 @@ const MarcasListScreen = () => {
             },
           ]);
         });
-        
+
         refetch();
       } catch (updateErr: any) {
         const errorMsg = updateErr.response?.data?.error || updateErr.response?.data?.detail || 'No se pudo procesar';
@@ -219,14 +221,14 @@ const MarcasListScreen = () => {
   return (
     <View style={styles.container}>
       {loading && <LoadingOverlay visible message="Cargando marcas..." />}
-      
+
       <Searchbar
         placeholder="Buscar marcas..."
         onChangeText={setSearchQuery}
         value={searchQuery}
         style={styles.searchbar}
       />
-      
+
       {/* Filtros por Estado */}
       <View style={styles.filtersContainer}>
         <FlatList
@@ -251,7 +253,7 @@ const MarcasListScreen = () => {
           )}
         />
       </View>
-      
+
       <FlatList
         data={marcasFiltradas}
         keyExtractor={(item) => item.id.toString()}
@@ -291,23 +293,23 @@ const MarcasListScreen = () => {
         }
       />
 
-      <FAB icon="plus" style={styles.fab} onPress={handleOpenDialog} label="Nueva Marca" />
+      <FAB icon="plus" style={[styles.fab, { bottom: spacing.lg + insets.bottom }]} onPress={handleOpenDialog} label="Nueva Marca" />
 
       <Portal>
         <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)}>
           <Dialog.Title>{editingId ? 'Editar' : 'Nueva'} Marca</Dialog.Title>
           <Dialog.Content>
-            <InputField 
-              label="Nombre *" 
-              value={nombre} 
+            <InputField
+              label="Nombre *"
+              value={nombre}
               onChangeText={setNombre}
               placeholder="Ej: Coca-Cola, Quilmes, Arcor"
             />
-            <InputField 
-              label="Descripción" 
-              value={descripcion} 
-              onChangeText={setDescripcion} 
-              multiline 
+            <InputField
+              label="Descripción"
+              value={descripcion}
+              onChangeText={setDescripcion}
+              multiline
               numberOfLines={3}
               placeholder="Descripción opcional de la marca"
             />
@@ -355,8 +357,8 @@ const styles = StyleSheet.create({
   list: { padding: spacing.md },
   card: { marginBottom: spacing.md },
   actions: { flexDirection: 'row' },
-  marcaInfo: { 
-    flexDirection: 'row', 
+  marcaInfo: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
   switchRow: {

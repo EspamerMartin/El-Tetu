@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, FAB, Card, IconButton, Chip, Searchbar } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { AdminStackParamList } from '@/navigation/AdminStack';
@@ -24,6 +25,7 @@ type Props = NativeStackScreenProps<AdminStackParamList, 'ListasPrecios'>;
 type EstadoFilter = 'TODOS' | 'ACTIVO' | 'INACTIVO';
 
 const ListasPreciosScreen = ({ navigation }: Props) => {
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>('TODOS');
   const [deleting, setDeleting] = useState(false);
@@ -46,10 +48,10 @@ const ListasPreciosScreen = ({ navigation }: Props) => {
   }, [estadoFilter]);
 
   const listasFiltradas = searchQuery
-    ? listas.filter(lista => 
-        lista.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lista.codigo.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+    ? listas.filter(lista =>
+      lista.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lista.codigo.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : listas;
 
   const handleCreate = () => {
@@ -108,7 +110,7 @@ const ListasPreciosScreen = ({ navigation }: Props) => {
               Código: {item.codigo}
             </Text>
           </View>
-          
+
           <Chip
             icon="percent"
             style={[
@@ -130,7 +132,7 @@ const ListasPreciosScreen = ({ navigation }: Props) => {
           >
             {item.activo ? 'Activa' : 'Inactiva'}
           </Chip>
-          
+
           {item.codigo === 'base' && (
             <Chip
               icon="star"
@@ -212,7 +214,7 @@ const ListasPreciosScreen = ({ navigation }: Props) => {
       {/* Botón flotante para crear nueva lista */}
       <FAB
         icon="plus"
-        style={styles.fab}
+        style={[styles.fab, { bottom: spacing.xl + insets.bottom }]}
         onPress={handleCreate}
         label="Nueva Lista"
       />
@@ -220,7 +222,7 @@ const ListasPreciosScreen = ({ navigation }: Props) => {
       {/* Botón flotante para asignar listas a clientes */}
       <FAB
         icon="account-group"
-        style={styles.fabSecondary}
+        style={[styles.fabSecondary, { bottom: spacing.xl * 4 + insets.bottom }]}
         onPress={handleAsignarClientes}
         label="Asignar Clientes"
         variant="secondary"

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, Button, Card, IconButton, FAB, Dialog, Portal, Chip, Avatar, Menu, Switch } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useFetch } from '@/hooks';
 import { productosAPI } from '@/services/api';
@@ -12,6 +13,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 type EstadoFilter = 'TODOS' | 'ACTIVO' | 'INACTIVO';
 
 const CategoriasListScreen = () => {
+  const insets = useSafeAreaInsets();
   const [dialogVisible, setDialogVisible] = useState(false);
   const [subDialogVisible, setSubDialogVisible] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -52,12 +54,12 @@ const CategoriasListScreen = () => {
 
     try {
       setSaving(true);
-      const data: Partial<Categoria> = { 
-        nombre: nombre.trim(), 
-        descripcion: descripcion.trim() || undefined, 
-        activo 
+      const data: Partial<Categoria> = {
+        nombre: nombre.trim(),
+        descripcion: descripcion.trim() || undefined,
+        activo
       };
-      
+
       if (editingId) {
         await productosAPI.updateCategoria(editingId, data);
       } else {
@@ -91,16 +93,16 @@ const CategoriasListScreen = () => {
 
     try {
       setSaving(true);
-      const data: Partial<Subcategoria> = { 
-        nombre: nombre.trim(), 
-        descripcion: descripcion.trim() || undefined, 
+      const data: Partial<Subcategoria> = {
+        nombre: nombre.trim(),
+        descripcion: descripcion.trim() || undefined,
         activo
       };
-      
+
       if (selectedCategoriaId) {
         data.categoria = selectedCategoriaId;
       }
-      
+
       if (editingSubId) {
         await productosAPI.updateSubcategoria(editingSubId, data);
       } else {
@@ -153,11 +155,11 @@ const CategoriasListScreen = () => {
             refetchSubcategorias();
           } catch (err: any) {
             const errorMessage = err.response?.data?.error || err.response?.data?.detail || 'No se pudo eliminar';
-            
+
             // Detectar error de productos asociados
             if (errorMessage.includes('productos') || errorMessage.includes('constraint') || errorMessage.includes('foreign key')) {
               Alert.alert(
-                'No se puede eliminar', 
+                'No se puede eliminar',
                 'Esta categoría tiene productos asociados. Primero debes eliminar o reasignar todos los productos que pertenecen a esta categoría.',
                 [{ text: 'Entendido' }]
               );
@@ -183,10 +185,10 @@ const CategoriasListScreen = () => {
             refetchSubcategorias();
           } catch (err: any) {
             const errorMessage = err.response?.data?.error || err.response?.data?.detail || 'No se pudo eliminar';
-            
+
             if (errorMessage.includes('productos') || errorMessage.includes('constraint') || errorMessage.includes('foreign key')) {
               Alert.alert(
-                'No se puede eliminar', 
+                'No se puede eliminar',
                 'Esta subcategoría tiene productos asociados. Primero debes eliminar o reasignar todos los productos que pertenecen a esta subcategoría.',
                 [{ text: 'Entendido' }]
               );
@@ -248,13 +250,13 @@ const CategoriasListScreen = () => {
     try {
       // Intentar hacer DELETE (el backend maneja soft/hard delete automáticamente)
       const response = await productosAPI.deleteCategoria(editingId);
-      
+
       // Si tiene productos o subcategorías, el backend hace soft delete (retorna 200 con mensaje)
       // Si no tiene referencias, el backend hace hard delete (retorna 204 sin body)
-      const message = response && response.message 
-        ? response.message 
+      const message = response && response.message
+        ? response.message
         : 'Categoría eliminada correctamente';
-      
+
       // Esperar a que el usuario presione OK antes de cerrar y refrescar
       await new Promise<void>((resolve) => {
         Alert.alert('Éxito', message, [
@@ -266,7 +268,7 @@ const CategoriasListScreen = () => {
           },
         ]);
       });
-      
+
       setDialogVisible(false);
       refetch();
     } catch (err: any) {
@@ -274,7 +276,7 @@ const CategoriasListScreen = () => {
       try {
         await productosAPI.updateCategoria(editingId, { activo: false });
         setActivo(false);
-        
+
         // Esperar a que el usuario presione OK antes de refrescar
         await new Promise<void>((resolve) => {
           Alert.alert('Categoría desactivada', 'La categoría fue desactivada.', [
@@ -286,7 +288,7 @@ const CategoriasListScreen = () => {
             },
           ]);
         });
-        
+
         refetch();
       } catch (updateErr: any) {
         const errorMsg = updateErr.response?.data?.error || updateErr.response?.data?.detail || 'No se pudo procesar';
@@ -329,13 +331,13 @@ const CategoriasListScreen = () => {
     try {
       // Intentar hacer DELETE (el backend maneja soft/hard delete automáticamente)
       const response = await productosAPI.deleteSubcategoria(editingSubId);
-      
+
       // Si tiene productos, el backend hace soft delete (retorna 200 con mensaje)
       // Si no tiene productos, el backend hace hard delete (retorna 204 sin body)
-      const message = response && response.message 
-        ? response.message 
+      const message = response && response.message
+        ? response.message
         : 'Subcategoría eliminada correctamente';
-      
+
       // Esperar a que el usuario presione OK antes de cerrar y refrescar
       await new Promise<void>((resolve) => {
         Alert.alert('Éxito', message, [
@@ -347,7 +349,7 @@ const CategoriasListScreen = () => {
           },
         ]);
       });
-      
+
       setSubDialogVisible(false);
       refetchSubcategorias();
     } catch (err: any) {
@@ -355,7 +357,7 @@ const CategoriasListScreen = () => {
       try {
         await productosAPI.updateSubcategoria(editingSubId, { activo: false });
         setActivo(false);
-        
+
         // Esperar a que el usuario presione OK antes de refrescar
         await new Promise<void>((resolve) => {
           Alert.alert('Subcategoría desactivada', 'La subcategoría fue desactivada.', [
@@ -367,7 +369,7 @@ const CategoriasListScreen = () => {
             },
           ]);
         });
-        
+
         refetchSubcategorias();
       } catch (updateErr: any) {
         const errorMsg = updateErr.response?.data?.error || updateErr.response?.data?.detail || 'No se pudo procesar';
@@ -385,7 +387,7 @@ const CategoriasListScreen = () => {
   return (
     <View style={styles.container}>
       {loading && <LoadingOverlay visible message="Cargando categorías..." />}
-      
+
       {/* Filtros por Estado */}
       <View style={styles.filtersContainer}>
         <FlatList
@@ -410,7 +412,7 @@ const CategoriasListScreen = () => {
           )}
         />
       </View>
-      
+
       <FlatList
         data={categorias}
         keyExtractor={(item) => item.id.toString()}
@@ -418,7 +420,7 @@ const CategoriasListScreen = () => {
         renderItem={({ item }) => {
           const subs = getSubcategoriasByCategoria(item.id);
           const isExpanded = expandedCategoria === item.id;
-          
+
           return (
             <Card style={styles.card}>
               <Card.Title
@@ -432,10 +434,10 @@ const CategoriasListScreen = () => {
                     <IconButton {...props} icon="pencil" onPress={() => handleEdit(item)} />
                     <IconButton {...props} icon="delete" onPress={() => handleDelete(item.id)} />
                     {subs.length > 0 && (
-                      <IconButton 
-                        {...props} 
-                        icon={isExpanded ? "chevron-up" : "chevron-down"} 
-                        onPress={() => setExpandedCategoria(isExpanded ? null : item.id)} 
+                      <IconButton
+                        {...props}
+                        icon={isExpanded ? "chevron-up" : "chevron-down"}
+                        onPress={() => setExpandedCategoria(isExpanded ? null : item.id)}
                       />
                     )}
                   </View>
@@ -450,10 +452,10 @@ const CategoriasListScreen = () => {
                     {subs.length} subcategorías
                   </Chip>
                 </View>
-                
-                <Button 
-                  mode="outlined" 
-                  icon="plus" 
+
+                <Button
+                  mode="outlined"
+                  icon="plus"
                   onPress={() => handleOpenSubDialog(item.id)}
                   style={{ marginTop: spacing.md }}
                   compact
@@ -500,18 +502,18 @@ const CategoriasListScreen = () => {
         }
       />
 
-      <FAB icon="plus" style={styles.fab} onPress={handleOpenDialog} />
+      <FAB icon="plus" style={[styles.fab, { bottom: spacing.lg + insets.bottom }]} onPress={handleOpenDialog} />
 
       <Portal>
         <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)}>
           <Dialog.Title>{editingId ? 'Editar' : 'Nueva'} Categoría</Dialog.Title>
           <Dialog.Content>
             <InputField label="Nombre" value={nombre} onChangeText={setNombre} />
-            <InputField 
-              label="Descripción" 
-              value={descripcion} 
-              onChangeText={setDescripcion} 
-              multiline 
+            <InputField
+              label="Descripción"
+              value={descripcion}
+              onChangeText={setDescripcion}
+              multiline
               numberOfLines={2}
             />
             <View style={styles.switchRow}>
@@ -542,11 +544,11 @@ const CategoriasListScreen = () => {
           <Dialog.Title>{editingSubId ? 'Editar' : 'Nueva'} Subcategoría</Dialog.Title>
           <Dialog.Content>
             <InputField label="Nombre" value={nombre} onChangeText={setNombre} />
-            <InputField 
-              label="Descripción" 
-              value={descripcion} 
-              onChangeText={setDescripcion} 
-              multiline 
+            <InputField
+              label="Descripción"
+              value={descripcion}
+              onChangeText={setDescripcion}
+              multiline
               numberOfLines={2}
             />
             <View style={styles.switchRow}>
@@ -592,10 +594,10 @@ const styles = StyleSheet.create({
   list: { padding: spacing.md },
   card: { marginBottom: spacing.md },
   actions: { flexDirection: 'row' },
-  categoryInfo: { 
-    flexDirection: 'row', 
+  categoryInfo: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm 
+    marginBottom: spacing.sm
   },
   switchRow: {
     flexDirection: 'row',
@@ -604,13 +606,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     paddingVertical: spacing.sm,
   },
-  subcategoriesContainer: { 
+  subcategoriesContainer: {
     marginTop: spacing.md,
     paddingLeft: spacing.md,
     borderLeftWidth: 2,
     borderLeftColor: colors.outline,
   },
-  subCard: { 
+  subCard: {
     marginBottom: spacing.sm,
     backgroundColor: colors.surfaceVariant,
   },

@@ -59,38 +59,43 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   const [searchProducto, setSearchProducto] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const { data: clientesData, loading: loadingClientes } = useFetch(() => 
+  // Paso 1: Clientes y listas de precios (siempre carga)
+  const { data: clientesData, loading: loadingClientes } = useFetch(() =>
     clientesAPI.getAll({ rol: 'cliente' })
   );
-  
+
   const { data: listasData, loading: loadingListas } = useFetch(() => listasAPI.getAll());
-  
-  const { data: categoriasData, loading: loadingCategorias } = useFetch(() => 
-    productosAPI.getCategorias({ activo: 'true' })
-  );
-  
-  const { data: subcategoriasData, loading: loadingSubcategorias } = useFetch(() => 
-    productosAPI.getSubcategorias({ activo: 'true' })
+
+  // Paso 2: Categorías, subcategorías y promociones (lazy loading)
+  const { data: categoriasData, loading: loadingCategorias } = useFetch(
+    () => productosAPI.getCategorias({ activo: 'true' }),
+    { enabled: paso >= 2 }
   );
 
-  // Fetch promociones activas
-  const { data: promocionesData, loading: loadingPromociones } = useFetch(() => 
-    promocionesAPI.getActivas()
+  const { data: subcategoriasData, loading: loadingSubcategorias } = useFetch(
+    () => productosAPI.getSubcategorias({ activo: 'true' }),
+    { enabled: paso >= 2 }
+  );
+
+  // Fetch promociones activas (lazy loading)
+  const { data: promocionesData, loading: loadingPromociones } = useFetch(
+    () => promocionesAPI.getActivas(),
+    { enabled: paso >= 2 }
   );
 
   // Arrays normalizados
   const clientes = Array.isArray(clientesData) ? clientesData : (clientesData?.results || []);
   const listas = Array.isArray(listasData) ? listasData : (listasData?.results || []);
-  const categorias = useMemo(() => 
+  const categorias = useMemo(() =>
     (categoriasData?.results || []).filter((c: Categoria) => c.activo),
     [categoriasData]
   );
-  const allSubcategorias = useMemo(() => 
+  const allSubcategorias = useMemo(() =>
     (subcategoriasData?.results || []).filter((s: Subcategoria) => s.activo),
     [subcategoriasData]
   );
 
-  const promociones: Promocion[] = useMemo(() => 
+  const promociones: Promocion[] = useMemo(() =>
     Array.isArray(promocionesData) ? promocionesData : [],
     [promocionesData]
   );
@@ -116,15 +121,15 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
   // Función de fetch para productos
   const fetchProductos = useCallback(async (page: number): Promise<PaginatedResponse<Producto>> => {
-    const params: Record<string, any> = { 
+    const params: Record<string, any> = {
       activo: true,
       page,
     };
-    
+
     if (selectedCategoria) params.categoria = selectedCategoria.id;
     if (selectedSubcategoria) params.subcategoria = selectedSubcategoria.id;
     if (debouncedSearch) params.search = debouncedSearch;
-    
+
     return productosAPI.getAll(params);
   }, [selectedCategoria, selectedSubcategoria, debouncedSearch]);
 
@@ -198,7 +203,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
     setSelectedSubcategoria(null);
     setSearchProducto('');
     setDebouncedSearch('');
-    
+
     const subcats = allSubcategorias.filter((s: Subcategoria) => s.categoria === categoria.id);
     if (subcats.length > 0) {
       setProductosLevel('subcategorias');
@@ -235,19 +240,19 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
   // Filtrado de clientes
   const clientesFiltrados = searchCliente
-    ? clientes.filter(c => 
-        c.nombre.toLowerCase().includes(searchCliente.toLowerCase()) ||
-        c.email.toLowerCase().includes(searchCliente.toLowerCase())
-      )
+    ? clientes.filter(c =>
+      c.nombre.toLowerCase().includes(searchCliente.toLowerCase()) ||
+      c.email.toLowerCase().includes(searchCliente.toLowerCase())
+    )
     : clientes;
 
   // Separar productos con y sin stock
-  const productosConStock = useMemo(() => 
-    productos.filter(p => p.tiene_stock), 
+  const productosConStock = useMemo(() =>
+    productos.filter(p => p.tiene_stock),
     [productos]
   );
-  const productosSinStock = useMemo(() => 
-    productos.filter(p => !p.tiene_stock), 
+  const productosSinStock = useMemo(() =>
+    productos.filter(p => !p.tiene_stock),
     [productos]
   );
 
@@ -268,12 +273,12 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
       return;
     }
 
-    const existente = items.find(i => 
+    const existente = items.find(i =>
       i.tipo === 'producto' && i.producto.id === producto.id
     );
-    
+
     if (existente && existente.tipo === 'producto') {
-      setItems(items.map(i => 
+      setItems(items.map(i =>
         (i.tipo === 'producto' && i.producto.id === producto.id)
           ? { ...i, cantidad: i.cantidad + 1 }
           : i
@@ -284,12 +289,12 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   };
 
   const handleAddPromocion = (promocion: Promocion) => {
-    const existente = items.find(i => 
+    const existente = items.find(i =>
       i.tipo === 'promocion' && i.promocion.id === promocion.id
     );
-    
+
     if (existente && existente.tipo === 'promocion') {
-      setItems(items.map(i => 
+      setItems(items.map(i =>
         (i.tipo === 'promocion' && i.promocion.id === promocion.id)
           ? { ...i, cantidad: i.cantidad + 1 }
           : i
@@ -301,11 +306,11 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
   const handleRemoveItem = (item: ItemPedido) => {
     if (item.tipo === 'producto') {
-      setItems(items.filter(i => 
+      setItems(items.filter(i =>
         !(i.tipo === 'producto' && i.producto.id === item.producto.id)
       ));
     } else {
-      setItems(items.filter(i => 
+      setItems(items.filter(i =>
         !(i.tipo === 'promocion' && i.promocion.id === item.promocion.id)
       ));
     }
@@ -313,13 +318,13 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
   const handleUpdateCantidadProducto = (productoId: number, cantidad: number) => {
     if (cantidad < 1) {
-      setItems(items.filter(i => 
+      setItems(items.filter(i =>
         !(i.tipo === 'producto' && i.producto.id === productoId)
       ));
       return;
     }
-    
-    setItems(items.map(i => 
+
+    setItems(items.map(i =>
       (i.tipo === 'producto' && i.producto.id === productoId)
         ? { ...i, cantidad }
         : i
@@ -328,13 +333,13 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
   const handleUpdateCantidadPromocion = (promocionId: number, cantidad: number) => {
     if (cantidad < 1) {
-      setItems(items.filter(i => 
+      setItems(items.filter(i =>
         !(i.tipo === 'promocion' && i.promocion.id === promocionId)
       ));
       return;
     }
-    
-    setItems(items.map(i => 
+
+    setItems(items.map(i =>
       (i.tipo === 'promocion' && i.promocion.id === promocionId)
         ? { ...i, cantidad }
         : i
@@ -352,10 +357,10 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
     const precio = typeof precioBase === 'string' ? parseFloat(precioBase) : precioBase;
     if (isNaN(precio)) return 0;
     if (!listaSeleccionada) return precio;
-    
+
     const descuentoPorcentaje = parseFloat(listaSeleccionada.descuento_porcentaje);
     if (isNaN(descuentoPorcentaje) || descuentoPorcentaje === 0) return precio;
-    
+
     const descuento = precio * (descuentoPorcentaje / 100);
     return precio - descuento;
   };
@@ -442,17 +447,17 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
   // Render productos con stock
   const renderProductoConStock = useCallback(({ item: producto }: { item: Producto }) => {
-    const itemEnCarrito = items.find(i => 
+    const itemEnCarrito = items.find(i =>
       i.tipo === 'producto' && i.producto.id === producto.id
     );
     const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
-    
+
     return (
       <View style={styles.cardWrapper}>
         <View style={styles.productCardContainer}>
-          <ProductCard 
-            producto={producto} 
-            onPress={() => {}}
+          <ProductCard
+            producto={producto}
+            onPress={() => { }}
             showAddButton={false}
           />
           {cantidadEnCarrito > 0 && (
@@ -500,18 +505,18 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
   // Render promoción
   const renderPromocion = useCallback(({ item: promocion }: { item: Promocion }) => {
-    const itemEnCarrito = items.find(i => 
+    const itemEnCarrito = items.find(i =>
       i.tipo === 'promocion' && i.promocion.id === promocion.id
     );
     const cantidadEnCarrito = itemEnCarrito?.cantidad || 0;
-    
+
     return (
       <View style={styles.cardWrapper}>
         <View style={styles.productCardContainer}>
-          <PromocionCard 
-            promocion={promocion} 
+          <PromocionCard
+            promocion={promocion}
             gridStyle
-            onPress={() => {}}
+            onPress={() => { }}
           />
           {cantidadEnCarrito > 0 && (
             <View style={styles.cantidadOverlay}>
@@ -561,9 +566,9 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
   const renderProductoSinStock = useCallback(({ item: producto }: { item: Producto }) => (
     <View style={styles.cardWrapper}>
       <View style={[styles.productCardContainer, styles.productoSinStockContainer]}>
-        <ProductCard 
-          producto={producto} 
-          onPress={() => {}}
+        <ProductCard
+          producto={producto}
+          onPress={() => { }}
           showAddButton={false}
         />
         <View style={styles.disabledOverlay}>
@@ -581,8 +586,8 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
     return (
       <Surface style={styles.breadcrumb} elevation={1}>
-        <TouchableOpacity 
-          style={styles.breadcrumbItem} 
+        <TouchableOpacity
+          style={styles.breadcrumbItem}
           onPress={() => {
             setSelectedCategoria(null);
             setSelectedSubcategoria(null);
@@ -606,7 +611,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
         {selectedCategoria && (
           <>
             <Icon name="chevron-right" size={16} color={colors.textSecondary} />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.breadcrumbItem}
               onPress={() => {
                 if (productosLevel === 'productos' && subcategoriasFiltradas.length > 0) {
@@ -679,7 +684,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
     );
   };
 
-  const isLoadingProductosData = 
+  const isLoadingProductosData =
     (productosLevel === 'categorias' && (loadingCategorias || loadingPromociones)) ||
     (productosLevel === 'subcategorias' && loadingSubcategorias) ||
     (productosLevel === 'productos' && loadingProductos && productos.length === 0) ||
@@ -736,8 +741,8 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
               <Text style={styles.clienteInfoText} numberOfLines={1}>
                 {clienteSeleccionado?.nombre} {clienteSeleccionado?.apellido}
               </Text>
-              <Button 
-                mode="text" 
+              <Button
+                mode="text"
                 textColor={colors.primary}
                 onPress={() => setPaso(1)}
                 compact
@@ -749,7 +754,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
           {/* Header de productos */}
           {renderProductosHeader()}
-          
+
           {/* Breadcrumb de productos */}
           {renderProductosBreadcrumb()}
 
@@ -767,7 +772,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
               showsVerticalScrollIndicator={false}
               ListHeaderComponent={
                 promociones.length > 0 ? (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.promocionesButton}
                     onPress={() => setProductosLevel('promociones')}
                   >
@@ -892,8 +897,8 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
               <View style={styles.listaPrecioSection}>
                 <View style={styles.listaPrecioHeader}>
                   <Text variant="titleMedium">Lista de Precios</Text>
-                  <Button 
-                    mode="outlined" 
+                  <Button
+                    mode="outlined"
                     icon="tag"
                     onPress={handleOpenMenu}
                     style={styles.listaPrecioButton}
@@ -916,7 +921,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
                   const precioBase = parseFloat(item.producto.precio);
                   const precioUnitario = calcularPrecioConDescuento(precioBase);
                   const subtotal = precioUnitario * item.cantidad;
-                  
+
                   return (
                     <View key={`prod-${index}`} style={styles.itemRow}>
                       <View style={styles.itemInfo}>
@@ -966,7 +971,7 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
                   // Item de promoción
                   const precioPromo = parseFloat(item.promocion.precio);
                   const subtotal = precioPromo * item.cantidad;
-                  
+
                   return (
                     <View key={`promo-${index}`} style={styles.itemRow}>
                       <View style={styles.itemInfo}>
@@ -1032,20 +1037,20 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
           {/* Modal de selección de lista - Fuera del ScrollView para que no se mueva */}
           <Portal>
             {menuListaPrecioVisible && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalOverlay}
                 activeOpacity={1}
                 onPress={handleCloseMenu}
               >
-                <Surface 
-                  style={styles.listaPrecioModal} 
+                <Surface
+                  style={styles.listaPrecioModal}
                   elevation={4}
                 >
                   <Text variant="titleMedium" style={styles.modalTitle}>Seleccionar Lista</Text>
                   <ScrollView style={styles.modalScrollView}>
                     {listas.map((lista) => (
-                      <TouchableOpacity 
-                        key={lista.id} 
+                      <TouchableOpacity
+                        key={lista.id}
                         style={styles.listaOption}
                         onPress={() => handleSelectLista(lista)}
                       >
@@ -1063,15 +1068,15 @@ const NuevoPedidoScreen = ({ navigation }: Props) => {
 
           {/* Barra de acciones fija */}
           <Surface style={[styles.actionsBar, { paddingBottom: Math.max(spacing.md, insets.bottom) }]} elevation={5}>
-            <Button 
-              mode="outlined" 
+            <Button
+              mode="outlined"
               onPress={() => setPaso(2)}
               style={styles.actionButton}
             >
               Atrás
             </Button>
-            <Button 
-              mode="contained" 
+            <Button
+              mode="contained"
               onPress={handleConfirmarPedido}
               style={styles.actionButton}
             >
