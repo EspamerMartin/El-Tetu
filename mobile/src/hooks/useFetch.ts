@@ -4,6 +4,7 @@ interface UseFetchOptions<T> {
   initialData?: T;
   onSuccess?: (data: T) => void;
   onError?: (error: any) => void;
+  enabled?: boolean; // Si false, no ejecuta hasta que sea true
 }
 
 interface UseFetchResult<T> {
@@ -18,23 +19,26 @@ interface UseFetchResult<T> {
  * 
  * @param fetchFn - Función que retorna una Promise con los datos
  * @param options - Opciones de configuración
+ * @param options.enabled - Si false, no ejecuta la petición hasta que sea true (default: true)
  * @returns Estado de la petición (data, loading, error, refetch)
  * 
  * @example
- * const { data, loading, error, refetch } = useFetch(
- *   () => productosAPI.getAll(),
- *   { onSuccess: (data) => console.log(data) }
- * );
+ * // Fetch inmediato
+ * const { data } = useFetch(() => productosAPI.getAll());
+ * 
+ * // Fetch condicional (lazy loading)
+ * const { data } = useFetch(() => productosAPI.getAll(), { enabled: paso >= 2 });
  */
 export function useFetch<T>(
   fetchFn: () => Promise<T>,
   options: UseFetchOptions<T> = {}
 ): UseFetchResult<T> {
-  const { initialData = null, onSuccess, onError } = options;
+  const { initialData = null, onSuccess, onError, enabled = true } = options;
 
   const [data, setData] = useState<T | null>(initialData);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
+  const [hasFetched, setHasFetched] = useState(false);
 
   // Usar ref para mantener la función actualizada sin causar re-renders
   const fetchFnRef = useRef(fetchFn);
@@ -52,6 +56,7 @@ export function useFetch<T>(
       setError(null);
       const result = await fetchFnRef.current();
       setData(result);
+      setHasFetched(true);
       onSuccessRef.current?.(result);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Error al cargar datos';
@@ -63,16 +68,25 @@ export function useFetch<T>(
   }, []); // Sin dependencias - estable
 
   useEffect(() => {
+    // Si no está habilitado o ya se ejecutó, no hacer nada
+    if (!enabled || hasFetched) {
+      if (!enabled) {
+        setLoading(false);
+      }
+      return;
+    }
+
     let isMounted = true;
-    
+
     const fetch = async () => {
       try {
         setLoading(true);
         setError(null);
         const result = await fetchFnRef.current();
-        
+
         if (isMounted) {
           setData(result);
+          setHasFetched(true);
           onSuccessRef.current?.(result);
         }
       } catch (err: any) {
@@ -87,13 +101,13 @@ export function useFetch<T>(
         }
       }
     };
-    
+
     fetch();
-    
+
     return () => {
       isMounted = false;
     };
-  }, [executeFetch]);
+  }, [enabled, hasFetched]);
 
   return {
     data,
