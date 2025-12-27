@@ -195,24 +195,6 @@ export interface CartItem {
   cantidad: number;
 }
 
-/**
- * @deprecated Usar CartItem con tipo='producto'
- */
-export interface CartProductItem {
-  tipo: 'producto';
-  producto: Producto;
-  cantidad: number;
-}
-
-/**
- * @deprecated Usar CartItem con tipo='promocion'  
- */
-export interface CartPromocionItem {
-  tipo: 'promocion';
-  promocion: Promocion;
-  cantidad: number;
-}
-
 // ========== Pedido Types ==========
 
 export type PedidoEstado = 'PENDIENTE' | 'EN_PREPARACION' | 'FACTURADO' | 'ENTREGADO' | 'RECHAZADO';
