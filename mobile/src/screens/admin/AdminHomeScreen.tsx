@@ -135,6 +135,7 @@ const AdminHomeScreen = ({ navigation }: Props) => {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => navigation.navigate('Usuarios')}
+            style={styles.actionTouchable}
           >
             <Surface style={styles.actionCard} elevation={1}>
               <Icon name="account-group" size={40} color={colors.primary} />
@@ -148,6 +149,7 @@ const AdminHomeScreen = ({ navigation }: Props) => {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => navigation.navigate('Pedidos')}
+            style={styles.actionTouchable}
           >
             <Surface style={styles.actionCard} elevation={1}>
               <Icon name="clipboard-list" size={40} color={colors.primary} />
@@ -241,9 +243,12 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.md,
   },
-  actionCard: {
+  actionTouchable: {
     flex: 1,
     minWidth: '45%',
+  },
+  actionCard: {
+    flex: 1,
     padding: spacing.lg,
     borderRadius: 12,
     alignItems: 'center',
